@@ -9,6 +9,7 @@ namespace DiscordBot
     internal class Program
     {
         public static Task Main(string[] args) => new Program().MainAsync();
+
         private DiscordSocketClient _client;
         private ILiteCollection<BumpConfig> bumpCfg;
         private ILiteCollection<DenunciaConfig> denunciaCfg;
@@ -36,38 +37,44 @@ namespace DiscordBot
             await _client.LoginAsync(TokenType.Bot, token);
             _client.MessageReceived += _client_MessageReceived;
             _client.SlashCommandExecuted += SlashCommandHandler;
+
             await _client.StartAsync();
 
             _client.Ready += async () =>
             {
-                var globalCommand = new SlashCommandBuilder();
-                globalCommand.WithName("denunciar")
-                .WithDescription("Utilize esse comando para denunciar algo que fere as regras do servidor.")
-                .AddOption("usuario", ApplicationCommandOptionType.User, "Usuário a ser denunciado", isRequired: true)
-                .AddOption("relato", ApplicationCommandOptionType.String, "Relato da denuncia", isRequired: true)
-                .AddOption("testemunha", ApplicationCommandOptionType.User, "Testemunha")
-                .AddOption("print", ApplicationCommandOptionType.Attachment, "Print da conversa")
-                .AddOption("anonimato", ApplicationCommandOptionType.Boolean, "Postar anonimamente");
+                var denunciarCommand = new SlashCommandBuilder()
+                    .WithName("denunciar")
+                    .WithDescription("Utilize esse comando para denunciar algo que fere as regras do servidor.")
+                    .AddOption("usuario", ApplicationCommandOptionType.User, "Usuário a ser denunciado", isRequired: true)
+                    .AddOption("relato", ApplicationCommandOptionType.String, "Relato da denuncia", isRequired: true)
+                    .AddOption("testemunha", ApplicationCommandOptionType.User, "Testemunha")
+                    .AddOption("print", ApplicationCommandOptionType.Attachment, "Print da conversa")
+                    .AddOption("anonimato", ApplicationCommandOptionType.Boolean, "Postar anonimamente");
 
+                var configReward = new SlashCommandBuilder()
+                    .WithName("config-reward")
+                    .WithDescription("Configure as regras das recompensas de bump.")
+                    .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal do Bump", isRequired: true)
+                    .AddOption("bot", ApplicationCommandOptionType.User, "Bot reminder", isRequired: true)
+                    .AddOption("conteudo", ApplicationCommandOptionType.String, "Conteudo da mensagem", isRequired: true)
+                    .AddOption("xp", ApplicationCommandOptionType.Number, "XP por bump", isRequired: true)
+                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
 
-                var globalCommand2 = new SlashCommandBuilder();
-                globalCommand2.WithName("config-reward")
-                .WithDescription("Configure as regras das recompensas de bump.")
-                .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal do Bump", isRequired: true)
-                .AddOption("bot", ApplicationCommandOptionType.User, "Bot reminder", isRequired: true)
-                .AddOption("conteudo", ApplicationCommandOptionType.String, "Conteudo da mensagem", isRequired: true)
-                .AddOption("xp", ApplicationCommandOptionType.Number, "XP por bump", isRequired: true);
+                var configDenuncias = new SlashCommandBuilder()
+                    .WithName("config-denuncias")
+                    .WithDescription("Configure onde as denúncias serão postadas.")
+                    .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal de denúncias", isRequired: true)
+                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
 
-                var globalCommand3 = new SlashCommandBuilder();
-                globalCommand3.WithName("config-denuncias")
-                .WithDescription("Configure onde as denúncias serão postadas.")
-                .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal de denúncias", isRequired: true);
+                var guildMessageCommand = new MessageCommandBuilder().WithName("Censurar mensagem");
 
                 try
                 {
-                    await _client.CreateGlobalApplicationCommandAsync(globalCommand.Build());
-                    await _client.CreateGlobalApplicationCommandAsync(globalCommand2.Build());
-                    await _client.CreateGlobalApplicationCommandAsync(globalCommand3.Build());
+                    await _client.BulkOverwriteGlobalApplicationCommandsAsync(new[] {
+                        denunciarCommand.Build(),
+                        configReward.Build(),
+                        configDenuncias.Build()
+                    });
                 }
                 catch (HttpException exception)
                 {
@@ -159,7 +166,6 @@ namespace DiscordBot
             var bot = (IUser)command.Data.Options.First(a => a.Name == "bot").Value;
             var conteudo = ((string)command.Data.Options.First(a => a.Name == "conteudo").Value);
             var xp = ((double)command.Data.Options.First(a => a.Name == "xp").Value);
-
 
             var config = bumpCfg.Query().Where(a => a.GuildId == command.GuildId).FirstOrDefault();
 
