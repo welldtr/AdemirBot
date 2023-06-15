@@ -1,0 +1,12 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/DiscordBot/DesignTimeBuild
+/.vs/DiscordBot/FileContentIndex
+/.vs/DiscordBot/v17
+/.vs/ProjectEvaluation
+/bin/Debug/net6.0
+/obj
+/Properties/launchSettings.json
+/.vs/DiscordBot/config
