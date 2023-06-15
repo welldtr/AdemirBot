@@ -222,6 +222,7 @@ namespace DiscordBot
             {
                 foreach (var mentionedUser in arg.MentionedUsers)
                 {
+                    mentionedUser.SendMessageAsync($"Você ganhou {config.XPPerBump}xp por bumpar o servidor {guild.Name}");
                     Console.WriteLine($"{mentionedUser.Username} ganhou {config.XPPerBump}xp.");
                 }
             }
