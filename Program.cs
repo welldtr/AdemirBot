@@ -12,6 +12,8 @@ namespace DiscordBot
         private DiscordSocketClient _client;
         private ILiteCollection<BumpConfig> bumpCfg;
         private ILiteCollection<DenunciaConfig> denunciaCfg;
+        private ILiteCollection<Denuncia> denuncias;
+        private ILiteCollection<Bump> bumps;
 
         public async Task MainAsync()
         {
@@ -19,6 +21,8 @@ namespace DiscordBot
 
             bumpCfg = db.GetCollection<BumpConfig>("bump_config");
             denunciaCfg = db.GetCollection<DenunciaConfig>("denuncia_config");
+            denuncias = db.GetCollection<Denuncia>("denuncias");
+            bumps = db.GetCollection<Bump>("bumps");
 
             var config = new DiscordSocketConfig()
             {
@@ -108,7 +112,7 @@ namespace DiscordBot
 
             await command.RespondAsync($"Não se preocupe, {command.User.Username}. Esta informação será mantida em sigilo.", ephemeral: true);
 
-            var guildId = command.GuildId;
+            var guildId = command.GuildId ?? 0;
             var guild = _client.Guilds.First(a => a.Id == guildId);
             var canal = (IMessageChannel)guild.Channels.First(a => a.Id == config.ChannelId);
 
@@ -117,7 +121,8 @@ namespace DiscordBot
             var testemunha = (IUser?)command.Data.Options.FirstOrDefault(a => a.Name == "testemunha")?.Value;
             var print = (IAttachment?)command.Data.Options.FirstOrDefault(a => a.Name == "print")?.Value;
             var anonimato = ((bool?)command.Data.Options.FirstOrDefault(a => a.Name == "anonimato")?.Value) ?? false;
-            await canal.SendMessageAsync("", false, new EmbedBuilder()
+
+            var msg = await canal.SendMessageAsync("", false, new EmbedBuilder()
             {
                 Fields = new List<EmbedFieldBuilder>
                 {
@@ -127,6 +132,17 @@ namespace DiscordBot
                 ImageUrl = print?.Url,
                 Description = anonimato ? "" : ($"|| Denúnciado por: {command.User.Mention} " + (testemunha == null ? "" : $"Testemunha: {testemunha.Mention}") + " ||")
             }.Build());
+
+            denuncias.Insert(new Denuncia
+            {
+                ReportId = msg.Id,
+                GuildId = guildId,
+                DenunciaDate = DateTime.Now,
+                DenunciadoUserId = denunciado.Id,
+                DenuncianteUserId = command.User.Id,
+                PrintUrl = print?.Url,
+                TestemunhaUserId = testemunha?.Id
+            });
         }
 
         private async Task ProcessarBumpReward(SocketSlashCommand command)
@@ -207,7 +223,7 @@ namespace DiscordBot
 
             var config = bumpCfg.Query().Where(a => a.GuildId == guildId).FirstOrDefault();
 
-            if(config == null)
+            if (config == null)
             {
                 Console.WriteLine("Configuração de recompensa de bump ausente.");
                 return Task.CompletedTask;
@@ -224,6 +240,14 @@ namespace DiscordBot
                 {
                     mentionedUser.SendMessageAsync($"Você ganhou {config.XPPerBump}xp por bumpar o servidor {guild.Name}");
                     Console.WriteLine($"{mentionedUser.Username} ganhou {config.XPPerBump}xp.");
+
+                    bumps.Insert(new Bump
+                    {
+                        BumpDate = arg.Timestamp.DateTime,
+                        GuildId = guildId,
+                        UserId = mentionedUser.Id,
+                        XP = config.XPPerBump
+                    });
                 }
             }
             return Task.CompletedTask;
