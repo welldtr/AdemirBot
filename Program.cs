@@ -3,6 +3,7 @@ using Discord.Net;
 using Discord.WebSocket;
 using LiteDB;
 using Newtonsoft.Json;
+using System.Diagnostics.Metrics;
 
 namespace DiscordBot
 {
@@ -12,6 +13,7 @@ namespace DiscordBot
 
         private DiscordSocketClient _client;
         private ILiteCollection<BumpConfig> bumpCfg;
+        private ILiteCollection<Membership> memberships;
         private ILiteCollection<DenunciaConfig> denunciaCfg;
         private ILiteCollection<Denuncia> denuncias;
         private ILiteCollection<Bump> bumps;
@@ -20,6 +22,7 @@ namespace DiscordBot
         {
             var db = new LiteDatabase(@"./Ademir.db");
 
+            memberships = db.GetCollection<Membership>("memberships");
             bumpCfg = db.GetCollection<BumpConfig>("bump_config");
             denunciaCfg = db.GetCollection<DenunciaConfig>("denuncia_config");
             denuncias = db.GetCollection<Denuncia>("denuncias");
@@ -37,6 +40,8 @@ namespace DiscordBot
             await _client.LoginAsync(TokenType.Bot, token);
             _client.MessageReceived += _client_MessageReceived;
             _client.SlashCommandExecuted += SlashCommandHandler;
+            _client.UserLeft += _client_UserLeft;
+            _client.UserJoined += _client_UserJoined;
 
             await _client.StartAsync();
 
@@ -87,6 +92,68 @@ namespace DiscordBot
 
 
             await Task.Delay(-1);
+        }
+
+        private async Task _client_UserJoined(SocketGuildUser arg)
+        {
+            var userId = arg.Id;
+
+            var datejoined = arg.JoinedAt.HasValue ? arg.JoinedAt.Value.DateTime : default(DateTime);
+
+            memberships.Insert(new Membership
+            {
+                GuildId = arg.Guild.Id,
+                MemberId = userId,
+                MemberUserName = arg.Username,
+                DateJoined = datejoined
+            });
+        }
+
+        private async Task _client_UserLeft(SocketGuild guild, SocketUser user)
+        {
+            var userId = user.Id;
+            var guildId = guild.Id;
+            
+            var member = memberships.Query()
+                .Where(a => a.MemberId == userId && a.GuildId == guildId)
+                .FirstOrDefault();
+
+            var dateleft = DateTime.UtcNow;
+            if (member == null)
+            {
+                memberships.Insert(new Membership
+                {
+                    GuildId = guildId,
+                    MemberId = userId,
+                    MemberUserName = user.Username,
+                    DateLeft = dateleft
+                });
+            }
+            else
+            {
+                if (member.DateJoined != null)
+                { 
+                    var tempoNoServidor = dateleft - member.DateJoined.Value;
+                    if (tempoNoServidor < TimeSpan.FromMinutes(30))
+                    {
+                        var buttonMessages = await guild.SystemChannel
+                            .GetMessagesAsync(100)
+                            .Where(a => a.Any(b => b.Type == MessageType.GuildMemberJoin))
+                            .Select(a => a.Where(b => b.Type == MessageType.GuildMemberJoin))
+                            .Flatten()
+                            .ToListAsync();
+
+                        foreach(var buttonMessage in buttonMessages)
+                        {
+                            await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id);
+                            Console.WriteLine($"Mensagem de boas vindas do usuario [{member.MemberUserName}] apagada.");
+                        }
+                    }
+                }
+                member.MemberUserName = user.Username;
+                member.DateLeft = dateleft;
+                memberships.Update(member);
+            }
         }
 
         private async Task SlashCommandHandler(SocketSlashCommand command)
