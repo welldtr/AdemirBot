@@ -5,7 +5,7 @@ namespace DiscordBot
     public class Membership
     {
         [BsonId]
-        public ulong MembershipId { get; set; }
+        public Guid MembershipId { get; set; }
         public ulong MemberId { get; set; }
         public ulong GuildId { get; set; }
         public string MemberUserName { get; set; }

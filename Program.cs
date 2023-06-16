@@ -90,7 +90,6 @@ namespace DiscordBot
                 Console.WriteLine("Bot is connected!");
             };
 
-
             await Task.Delay(-1);
         }
 
@@ -145,8 +144,15 @@ namespace DiscordBot
 
                         foreach(var buttonMessage in buttonMessages)
                         {
-                            await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id);
-                            Console.WriteLine($"Mensagem de boas vindas do usuario [{member.MemberUserName}] apagada.");
+                            try
+                            {
+                                await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id);
+                                Console.WriteLine($"Mensagem de boas vindas do usuario [{member.MemberUserName}] apagada.");
+                            }
+                            catch(Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                            }
                         }
                     }
                 }
