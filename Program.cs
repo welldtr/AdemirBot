@@ -3,7 +3,10 @@ using Discord.Net;
 using Discord.WebSocket;
 using LiteDB;
 using Newtonsoft.Json;
-using System.Diagnostics.Metrics;
+using OpenAI.Managers;
+using OpenAI;
+using OpenAI.ObjectModels.RequestModels;
+using OpenAI.ObjectModels;
 
 namespace DiscordBot
 {
@@ -93,7 +96,7 @@ namespace DiscordBot
             await Task.Delay(-1);
         }
 
-        private async Task _client_UserJoined(SocketGuildUser arg)
+        private Task _client_UserJoined(SocketGuildUser arg)
         {
             var userId = arg.Id;
 
@@ -106,13 +109,15 @@ namespace DiscordBot
                 MemberUserName = arg.Username,
                 DateJoined = datejoined
             });
+
+            return Task.CompletedTask;
         }
 
         private async Task _client_UserLeft(SocketGuild guild, SocketUser user)
         {
             var userId = user.Id;
             var guildId = guild.Id;
-            
+
             var member = memberships.Query()
                 .Where(a => a.MemberId == userId && a.GuildId == guildId)
                 .FirstOrDefault();
@@ -131,7 +136,7 @@ namespace DiscordBot
             else
             {
                 if (member.DateJoined != null)
-                { 
+                {
                     var tempoNoServidor = dateleft - member.DateJoined.Value;
                     if (tempoNoServidor < TimeSpan.FromMinutes(30))
                     {
@@ -142,14 +147,14 @@ namespace DiscordBot
                             .Flatten()
                             .ToListAsync();
 
-                        foreach(var buttonMessage in buttonMessages)
+                        foreach (var buttonMessage in buttonMessages)
                         {
                             try
                             {
                                 await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id);
                                 Console.WriteLine($"Mensagem de boas vindas do usuario [{member.MemberUserName}] apagada.");
                             }
-                            catch(Exception ex)
+                            catch (Exception ex)
                             {
                                 Console.WriteLine(ex.ToString());
                             }
@@ -296,19 +301,104 @@ namespace DiscordBot
             await command.RespondAsync("Canal de denúncias configurado.", ephemeral: true);
         }
 
-        private Task _client_MessageReceived(SocketMessage arg)
+        private async Task _client_MessageReceived(SocketMessage arg)
         {
             var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
+            var guild = _client.Guilds.First(a => a.Id == guildId);
 
+            if (arg.Channel == guild.SystemChannel)
+            {
+                if (arg.MentionedUsers.Any(u => u.Id == _client.CurrentUser.Id))
+                {
+                    await ProcessarMensagemNoChatGPT(arg);
+                }
+                else if(arg.Reference != null && arg.Reference.MessageId.IsSpecified)
+                {
+                    var msg = await arg.Channel.GetMessageAsync(arg.Reference.MessageId.Value!);
+                    if(msg.Author.Id == _client.CurrentUser.Id)
+                    {
+                        await ProcessarMensagemNoChatGPT(arg);
+                    }
+                }
+            }
+
+            await VerificarSeMensagemDeBump(arg);
+        }
+
+        private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
+        {
+            var msgRefer = new MessageReference(arg.Id);
+
+            if (string.IsNullOrWhiteSpace(arg.Content.Replace($"<@{_client.CurrentUser.Id}>", "")))
+            {
+                await arg.AddReactionAsync(new Emoji("🥱"));
+                return;
+            }
+            var typingState = arg.Channel.EnterTypingState();
+            var gptKey = Environment.GetEnvironmentVariable("ChatGPTKey");
+            var gpt3 = new OpenAIService(new OpenAiOptions()
+            {
+                ApiKey = gptKey!
+            });
+
+            var m = (IMessage)arg;
+            var msgs = new List<ChatMessage>() { new ChatMessage("user", arg.Content.Replace($"<@{_client.CurrentUser.Id}>", "GPT")) };
+
+            while (m.Reference != null && m.Reference.MessageId.IsSpecified)
+            {
+                m = await m.Channel.GetMessageAsync(m.Reference.MessageId.Value!);
+                msgs.Insert(0, new ChatMessage((arg.Author.Id == _client.CurrentUser.Id ? "system" : "user"), m.Content));
+            }
+
+            var completionResult = await gpt3.ChatCompletion.CreateCompletion
+                       (new ChatCompletionCreateRequest()
+                       {
+                           Messages = msgs,
+                           Model = Models.ChatGpt3_5Turbo,
+                           Temperature = 0.2F,
+                           MaxTokens = 100,
+                           N = 1
+                       });
+
+            typingState.Dispose();
+            
+            if (completionResult.Successful)
+            {
+                foreach (var choice in completionResult.Choices)
+                {
+                    await arg.Channel.SendMessageAsync(choice.Message.Content, messageReference: msgRefer);
+                }
+            }
+            else
+            {
+                if (completionResult.Error?.Type == "insufficient_quota")
+                {
+                    await arg.Channel.SendMessageAsync("Desculpe. A cota de interações com o GPT excedeu", messageReference: msgRefer);
+                }
+
+                else if (completionResult.Error == null)
+                {
+                    await arg.Channel.SendMessageAsync("Ocorreu um erro desconhecido", messageReference: msgRefer);
+                }
+                else
+                {
+                    await arg.Channel.SendMessageAsync($"Ocorreu um erro: ```{completionResult.Error?.Code}: {completionResult.Error?.Message}```", messageReference: msgRefer);
+                    Console.WriteLine($"{completionResult.Error?.Code}: {completionResult.Error?.Message}");
+                }
+            }
+        }
+
+        private Task VerificarSeMensagemDeBump(SocketMessage arg)
+        {
+            var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
+            var guild = _client.Guilds.First(a => a.Id == guildId);
             var config = bumpCfg.Query().Where(a => a.GuildId == guildId).FirstOrDefault();
 
             if (config == null)
             {
-                Console.WriteLine("Configuração de recompensa de bump ausente.");
                 return Task.CompletedTask;
             }
 
-            var guild = _client.Guilds.First(a => a.Id == guildId);
             var canal = (IMessageChannel)guild.Channels.First(a => a.Id == config.BumpChannelId);
 
             if (arg.Channel.Id == config.BumpChannelId &&
