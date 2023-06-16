@@ -12,7 +12,7 @@ variables:
   tag: '$(Build.BuildId)'
 
 pool:
-  name: Default
+  name: Azure Pipelines
 stages:
 - stage: Build
   displayName: Build image
