@@ -28,4 +28,5 @@ stages:
         repository: 'emmanuelpereira/ademir-bot'
         dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
         tags: |
+          latest
           $(tag)
