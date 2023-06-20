@@ -2,13 +2,14 @@
 
 namespace DiscordBot
 {
-    public class Member
+    public class Membership
     {
         [BsonId]
+        public Guid MembershipId { get; set; }
         public ulong MemberId { get; set; }
         public ulong GuildId { get; set; }
         public string MemberUserName { get; set; }
-        public string MemberNickname { get; set; }
-        public DateTime LastMessageTime { get; set; }
+        public DateTime? DateJoined { get; set; }
+        public DateTime? DateLeft { get; set; }
     }
 }
