@@ -26,11 +26,13 @@ namespace DiscordBot
         private IMongoCollection<Message> messagelog;
         private IMongoCollection<Member> members;
         private IMongoCollection<Bump> bumps;
+        private IMongoCollection<Macro> macros;
         private bool importando = false;
         private MongoClient mongo;
         private OpenAIService openAI;
         private ModalBuilder massbanModal;
         private ModalBuilder masskickModal;
+        private ModalBuilder macroModal;
 
         bool isPremiumGuild(ulong value) => premiumGuilds.Contains(value.ToString());
 
@@ -55,6 +57,7 @@ namespace DiscordBot
             messagelog = db.GetCollection<Message>("messages");
             denuncias = db.GetCollection<Denuncia>("denuncias");
             bumps = db.GetCollection<Bump>("bumps");
+            macros = db.GetCollection<Macro>("macros");
 
             var config = new DiscordSocketConfig()
             {
@@ -71,6 +74,7 @@ namespace DiscordBot
             _client.UserLeft += _client_UserLeft;
             _client.UserJoined += _client_UserJoined;
             _client.ModalSubmitted += _client_ModalSubmitted;
+            _client.ButtonExecuted += _client_ButtonExecuted;
 
             await _client.StartAsync();
 
@@ -85,6 +89,14 @@ namespace DiscordBot
                 .WithCustomId("mass_kick")
                 .AddTextInput("Membros", "members", TextInputStyle.Paragraph,
                     "IDs dos membros a expulsar", required: true);
+
+            macroModal = new ModalBuilder()
+                .WithTitle("Adicionar Macro")
+                .WithCustomId("macro")
+                .AddTextInput("Nome da Macro", "nome", TextInputStyle.Short,
+                    "Nome da macro usada (ex.: mensagem)", required: true)
+                .AddTextInput("Mensagem da Macro", "mensagem", TextInputStyle.Paragraph,
+                    "Mensagem que deve ser enviada ao digitar %nomedamacro", required: true);
 
             _client.Ready += async () =>
             {
@@ -140,6 +152,17 @@ namespace DiscordBot
                     .WithDescription("Importa mensagens do histórico até 365 dias")
                     .WithDefaultMemberPermissions(GuildPermission.Administrator);
 
+                var macro = new SlashCommandBuilder()
+                    .WithName("macro")
+                    .WithDescription("Adiciona uma macro ao Ademir como atalho para digitar uma mensagem")
+                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
+
+                var excluirMacro = new SlashCommandBuilder()
+                    .WithName("excluir-macro")
+                    .AddOption("macro", ApplicationCommandOptionType.String, "Nome da macro", isRequired: true)
+                    .WithDescription("Excluir a macro especificada")
+                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
+
                 var obterUsuariosMenosAtivos = new SlashCommandBuilder()
                     .WithName("usuarios-inativos")
                     .WithDescription("Extrair uma lista dos usuários que menos escrevem no chat.")
@@ -159,7 +182,9 @@ namespace DiscordBot
                         importarHistorico.Build(),
                         obterUsuariosMenosAtivos.Build(),
                         massBan.Build(),
-                        massKick.Build()
+                        massKick.Build(),
+                        macro.Build(),
+                        excluirMacro.Build(),
                     });
                 }
                 catch (HttpException exception)
@@ -172,6 +197,22 @@ namespace DiscordBot
             };
 
             await Task.Delay(-1);
+        }
+
+        private Task _client_ButtonExecuted(SocketMessageComponent arg)
+        {
+            Task _;
+            switch (arg.Data.CustomId)
+            {
+                case "dismiss":
+                    _ = Task.Run(async () => await arg.UpdateAsync(a =>
+                    {
+                        a.Content = "Operação cancelada";
+                        a.Components = null;
+                    }));
+                    break;
+            }
+            return Task.CompletedTask;
         }
 
         private async Task _client_UserJoined(SocketGuildUser arg)
@@ -254,9 +295,35 @@ namespace DiscordBot
                 case "mass_kick":
                     _ = Task.Run(async () => await ProcessarExpulsarEmMassa(modal));
                     break;
+
+                case "macro":
+                    _ = Task.Run(async () => await ProcessarMacro(modal));
+                    break;
             }
 
             return Task.CompletedTask;
+        }
+
+        private async Task ProcessarMacro(SocketModal modal)
+        {
+            string nome = modal.Data.Components.First(x => x.CustomId == "nome").Value;
+            string mensagem = modal.Data.Components.First(x => x.CustomId == "mensagem").Value;
+            var macro = await macros.CountDocumentsAsync(a => a.GuildId == modal.GuildId && a.Nome == nome);
+
+            if (macro > 0)
+            {
+                await modal.RespondAsync($"Já existe uma macro com o nome {nome} no server.", ephemeral: true);
+            }
+
+            macros.InsertOne(new Macro
+            {
+                MacroId = Guid.NewGuid(),
+                GuildId = modal.GuildId ?? 0,
+                Nome = nome,
+                Mensagem = mensagem
+            });
+
+            await modal.RespondAsync($"Lembre-se que para acionar a macro você deve digitar %{nome}", ephemeral: true);
         }
 
         private async Task ProcessarExpulsarEmMassa(SocketModal modal)
@@ -267,7 +334,7 @@ namespace DiscordBot
             foreach (var id in memberIds)
             {
                 var user = _client.GetGuild(modal.GuildId ?? 0).GetUser(id);
-                if(user != null)
+                if (user != null)
                     await user.KickAsync();
             }
             await modal.Channel.SendMessageAsync($"{memberIds.Length} Usuários Expulsos.");
@@ -284,11 +351,11 @@ namespace DiscordBot
             }
             await modal.Channel.SendMessageAsync($"{memberIds.Length} Usuários Banidos.");
         }
-        
+
         private ulong[] SplitAndParseMemberIds(string memberIds)
         {
             return memberIds
-                .Split(new char[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries)
+                .Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(a => ulong.Parse(a))
                 .ToArray();
         }
@@ -334,8 +401,34 @@ namespace DiscordBot
                 case "masskick":
                     _ = Task.Run(async () => await ModalExpulsarEmMassa(command));
                     break;
+
+                case "macro":
+                    _ = Task.Run(async () => await ModalMacro(command));
+                    break;
+
+                case "excluir-macro":
+                    _ = Task.Run(async () => await ExcluirMacro(command));
+                    break;
             }
             return Task.CompletedTask;
+        }
+
+        private async Task ExcluirMacro(SocketSlashCommand command)
+        {
+            var nome = (string)command.Data.Options.First(a => a.Name == "macro").Value;
+            await command.DeferAsync(ephemeral: true);
+            var macro = await macros
+                .FindOneAndDeleteAsync(a => a.GuildId == command.GuildId && a.Nome == nome);
+
+            if (macro == null)
+                await command.ModifyOriginalResponseAsync(a => a.Content = "Essa macro não existe.");
+            else
+                await command.ModifyOriginalResponseAsync(a => a.Content = "Macro excluída.");
+        }
+
+        private async Task ModalMacro(SocketSlashCommand command)
+        {
+            await command.RespondWithModalAsync(macroModal.Build());
         }
 
         private async Task ModalExpulsarEmMassa(SocketSlashCommand command)
@@ -741,6 +834,18 @@ namespace DiscordBot
             }
 
             await VerificarSeMensagemDeBump(arg);
+            if (user.GuildPermissions.Administrator && arg.Content.StartsWith("%") && arg.Content.Length > 1 && !arg.Content.Contains(' '))
+            {
+                var macro = await macros
+                    .Find(a => a.GuildId == guildId && a.Nome == arg.Content.Substring(1))
+                    .FirstOrDefaultAsync();
+
+                if (macro != null)
+                {
+                    await channel.SendMessageAsync(macro.Mensagem, allowedMentions: AllowedMentions.None);
+                    await channel.DeleteMessageAsync(arg);
+                }
+            }
         }
 
         private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
@@ -772,9 +877,11 @@ namespace DiscordBot
                 return;
             }
 
+            var attachmentContent = (arg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(arg.Attachments.First(a => a.ContentType.StartsWith("text/plain")).Url);
+            var content = arg.Content + attachmentContent;
 
             var m = (IMessage)arg;
-            var msgs = new List<ChatMessage>() { new ChatMessage("user", arg.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir")) };
+            var msgs = new List<ChatMessage>() { new ChatMessage("user", content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir")) };
 
             while (m.Reference != null && m.Reference.MessageId.IsSpecified)
             {
@@ -818,14 +925,14 @@ namespace DiscordBot
                     Messages = msgs,
                     Model = Models.ChatGpt3_5Turbo,
                     Temperature = 0.2F,
-                    MaxTokens = 1000,
-                    N = 1
+                    N = 1,
                 });
 
             if (completionResult.Successful)
             {
                 foreach (var choice in completionResult.Choices)
                 {
+
                     var resposta = choice.Message.Content;
                     var embeds = new List<Embed>();
 
