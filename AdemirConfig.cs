@@ -9,5 +9,6 @@ namespace DiscordBot
         public ulong GuildId { get; set; }
         public ulong AdemirRoleId { get; set; }
         public int AdemirConversationRPM { get; set; }
+        public bool Premium { get; set; }
     }
 }
