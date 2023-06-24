@@ -10,7 +10,13 @@ using OpenAI.ObjectModels;
 using MongoDB.Driver;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Net;
+using Discord.Audio;
+using YoutubeExplode;
+using NAudio.Wave;
+using NAudio.MediaFoundation;
+using NAudio.Lame;
+using System.Diagnostics;
+using System.Globalization;
 
 namespace DiscordBot
 {
@@ -36,12 +42,16 @@ namespace DiscordBot
         private ModalBuilder masskickModal;
         private ModalBuilder macroModal;
 
+        private IAudioClient _audioClient;
+        private YoutubeClient _youtubeClient;
+
         bool isPremiumGuild(ulong value) => premiumGuilds.Contains(value.ToString());
 
 
         public async Task MainAsync()
         {
             var mongoServer = Environment.GetEnvironmentVariable("MongoServer");
+            _youtubeClient = new YoutubeClient();
             mongo = new MongoClient(mongoServer);
             var db = mongo.GetDatabase("ademir");
 
@@ -116,6 +126,12 @@ namespace DiscordBot
                     .WithDescription("Utilize esse comando para banir membros em massa.")
                     .WithDefaultMemberPermissions(GuildPermission.Administrator);
 
+                var volume = new SlashCommandBuilder()
+                    .WithName("volume")
+                    .WithDescription("Definir o Volume do Bot")
+                    .AddOption("volume", ApplicationCommandOptionType.Number, "Volume (%)", isRequired: true)
+                    .WithDefaultMemberPermissions(GuildPermission.Connect);
+
                 var massKick = new SlashCommandBuilder()
                     .WithName("masskick")
                     .WithDescription("Utilize esse comando para expulsar membros em massa.")
@@ -186,6 +202,7 @@ namespace DiscordBot
                         massBan.Build(),
                         massKick.Build(),
                         macro.Build(),
+                        volume.Build(),
                         excluirMacro.Build(),
                     });
                 }
@@ -411,6 +428,10 @@ namespace DiscordBot
                 case "excluir-macro":
                     _ = Task.Run(async () => await ExcluirMacro(command));
                     break;
+
+                case "volume":
+                    _ = Task.Run(async () => await Volume(command));
+                    break;
             }
             return Task.CompletedTask;
         }
@@ -426,6 +447,23 @@ namespace DiscordBot
                 await command.ModifyOriginalResponseAsync(a => a.Content = "Essa macro não existe.");
             else
                 await command.ModifyOriginalResponseAsync(a => a.Content = "Macro excluída.");
+        }
+        private async Task Volume(SocketSlashCommand command)
+        {
+            var volume = Convert.ToInt32(command.Data.Options.First(a => a.Name == "volume").Value);
+            await command.DeferAsync(ephemeral: true);
+
+            if (volume > 0 && volume < 110)
+            {
+                var cfg = await ademirCfg.Find(a => a.GuildId == command.GuildId).FirstAsync();
+                cfg.GlobalVolume = volume;
+                await ademirCfg.ReplaceOneAsync(a => a.GuildId == command.GuildId, cfg);
+                await command.ModifyOriginalResponseAsync(a => a.Content = $"Volume definido em {volume}% para a próxima execução.");
+            }
+            else
+            {
+                await command.ModifyOriginalResponseAsync(a => a.Content = "Volume inválido [0~110%]");
+            }
         }
 
         private async Task ModalMacro(SocketSlashCommand command)
@@ -794,6 +832,7 @@ namespace DiscordBot
         {
             var channel = ((SocketTextChannel)arg.Channel);
 
+
             if (!arg.Author?.IsBot ?? false)
                 await messagelog.ReplaceOneAsync(a => a.MessageId == arg.Id, new Message
                 {
@@ -809,6 +848,11 @@ namespace DiscordBot
             var guild = _client.Guilds.First(a => a.Id == guildId);
 
             var user = guild.GetUser(arg.Author?.Id ?? 0);
+
+            if (arg.Content.StartsWith(">pp"))
+            {
+                var _ = Task.Run(async () => await PlayAudioCommand(arg));
+            }
 
             if (user == null)
             {
@@ -854,6 +898,73 @@ namespace DiscordBot
                     await channel.DeleteMessageAsync(arg);
                 }
             }
+        }
+
+        private async Task PlayAudioCommand(SocketMessage arg)
+        {
+            var channel = ((SocketTextChannel)arg.Channel);
+            var guildId = channel.Guild.Id;
+            var ademirConfig = await ademirCfg.Find(a => a.GuildId == guildId).FirstOrDefaultAsync();
+            var guild = _client.Guilds.First(a => a.Id == guildId);
+            var user = guild.GetUser(arg.Author?.Id ?? 0);
+            string sourceFilename = string.Empty;
+            try
+            {
+                var query = arg.Content.Substring(4);
+                var video = await _youtubeClient.Videos.GetAsync(query);
+                var embed = new EmbedBuilder()
+                   .WithTitle(video.Title)
+                   .WithDescription($"Duração: {video.Duration}")
+                   .WithImageUrl(video.Thumbnails.FirstOrDefault()?.Url)
+                   .WithFields(new[] {
+                       new EmbedFieldBuilder().WithName("Autor").WithValue(video.Author)
+                   })
+                   .Build();
+                await channel.SendMessageAsync($"Tocando agora:", embed: embed);
+                var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id);
+                var audioStreamInfo = streamInfoSet.GetAudioOnlyStreams().OrderByDescending(a => a.Bitrate).FirstOrDefault();
+                sourceFilename = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{audioStreamInfo.Container}");
+                await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename);
+                
+                var voiceChannel = user.VoiceChannel;
+                if (voiceChannel != null)
+                {
+                    _audioClient = await voiceChannel.ConnectAsync(selfDeaf: true);
+                    
+                    using (var ffmpeg = CreateStream(sourceFilename, (ademirConfig?.GlobalVolume ?? 100)))
+                    using (var output = ffmpeg.StandardOutput.BaseStream)
+                    using (var discord = _audioClient.CreatePCMStream(AudioApplication.Music))
+                    {
+                        await _audioClient.SetSpeakingAsync(true);
+                        try { await output.CopyToAsync(discord); }
+                        finally { await discord.FlushAsync(); }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await channel.SendMessageAsync($"Erro ao tocar musica: {ex}");
+            }
+            finally
+            {
+                if (!string.IsNullOrEmpty(sourceFilename))
+                {
+                    File.Delete(sourceFilename);
+                }
+                await channel.SendMessageAsync($"Fila terminada.");
+            }
+        }
+
+        private static Process CreateStream(string path, int volume)
+        {
+            var volPercent = (volume/200M).ToString(CultureInfo.InvariantCulture);
+            return Process.Start(new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -af \"volume = {volPercent}\" -f s16le -ar 48000 pipe:1",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+            });
         }
 
         private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
@@ -986,30 +1097,30 @@ namespace DiscordBot
                     try
                     {
                         var mm = await channel.SendMessageAsync(resposta, embeds: embeds.ToArray(), messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-                    
-                    if (choice.Message.Content.Contains(">>"))
-                    {
-                        var pedido = choice.Message.Content.Split("\n", StringSplitOptions.RemoveEmptyEntries)
-                            .FirstOrDefault(a => a.Contains(">>"))?.Replace(">>", "");
 
-                        var imageResult = await openAI.Image.CreateImage(new ImageCreateRequest
+                        if (choice.Message.Content.Contains(">>"))
                         {
-                            Prompt = pedido!,
-                            N = 1,
-                            Size = StaticValues.ImageStatics.Size.Size512,
-                            ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Url,
-                        });
+                            var pedido = choice.Message.Content.Split("\n", StringSplitOptions.RemoveEmptyEntries)
+                                .FirstOrDefault(a => a.Contains(">>"))?.Replace(">>", "");
 
-                        resposta = resposta.Replace($">>{pedido}", "");
+                            var imageResult = await openAI.Image.CreateImage(new ImageCreateRequest
+                            {
+                                Prompt = pedido!,
+                                N = 1,
+                                Size = StaticValues.ImageStatics.Size.Size512,
+                                ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Url,
+                            });
 
-                        if (imageResult.Successful)
-                        {
-                            foreach (var img in imageResult.Results)
-                                embeds.Add(new EmbedBuilder().WithImageUrl(img.Url).Build());
+                            resposta = resposta.Replace($">>{pedido}", "");
+
+                            if (imageResult.Successful)
+                            {
+                                foreach (var img in imageResult.Results)
+                                    embeds.Add(new EmbedBuilder().WithImageUrl(img.Url).Build());
+                            }
                         }
-                    }
 
-                    await mm.ModifyAsync(m => m.Embeds = embeds.ToArray());
+                        await mm.ModifyAsync(m => m.Embeds = embeds.ToArray());
                     }
                     catch (Exception ex)
                     {

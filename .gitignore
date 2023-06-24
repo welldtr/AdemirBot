@@ -10,3 +10,6 @@
 /obj
 /Properties/launchSettings.json
 /.vs/DiscordBot/config
+/.vscode/launch.json
+/.vscode/tasks.json
+/.vs/DiscordBot/project-colors.json
