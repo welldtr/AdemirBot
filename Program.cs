@@ -12,11 +12,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Discord.Audio;
 using YoutubeExplode;
-using NAudio.Wave;
-using NAudio.MediaFoundation;
-using NAudio.Lame;
 using System.Diagnostics;
 using System.Globalization;
+using HtmlAgilityPack;
 
 namespace DiscordBot
 {
@@ -35,6 +33,7 @@ namespace DiscordBot
         private IMongoCollection<Member> members;
         private IMongoCollection<Bump> bumps;
         private IMongoCollection<Macro> macros;
+        private IMongoCollection<Track> tracks;
         private bool importando = false;
         private MongoClient mongo;
         private OpenAIService openAI;
@@ -44,6 +43,7 @@ namespace DiscordBot
 
         private IAudioClient _audioClient;
         private YoutubeClient _youtubeClient;
+        private CancellationTokenSource cts;
 
         bool isPremiumGuild(ulong value) => premiumGuilds.Contains(value.ToString());
 
@@ -70,6 +70,7 @@ namespace DiscordBot
             denuncias = db.GetCollection<Denuncia>("denuncias");
             bumps = db.GetCollection<Bump>("bumps");
             macros = db.GetCollection<Macro>("macros");
+            tracks = db.GetCollection<Track>("tracks");
 
             var config = new DiscordSocketConfig()
             {
@@ -227,6 +228,14 @@ namespace DiscordBot
                     _ = Task.Run(async () => await arg.UpdateAsync(a =>
                     {
                         a.Content = "Operação cancelada";
+                        a.Components = null;
+                    }));
+                    break;
+
+                case "stop-music":
+                    cts.Cancel();
+                    _ = Task.Run(async () => await arg.UpdateAsync(a =>
+                    {
                         a.Components = null;
                     }));
                     break;
@@ -900,6 +909,22 @@ namespace DiscordBot
             }
         }
 
+        static string GetFirstVideoUrl(string query)
+        {
+            // URL da pesquisa no YouTube
+            string url = $"https://www.youtube.com/results?search_query={query}";
+
+            // Faz a requisição HTTP e extrai os resultados da pesquisa
+            var httpClient = new HttpClient();
+            var html = httpClient.GetStringAsync(url).Result;
+            var htmlDocument = new HtmlDocument();
+
+            htmlDocument.LoadHtml(html);
+            var videoNode = htmlDocument.DocumentNode.SelectSingleNode("//div[@id='contents']//a[@id='video-title']");
+            // Retorna a URL do primeiro resultado da pesquisa
+            return "https://www.youtube.com" + videoNode.Attributes["href"].Value;
+        }
+
         private async Task PlayAudioCommand(SocketMessage arg)
         {
             var channel = ((SocketTextChannel)arg.Channel);
@@ -907,11 +932,16 @@ namespace DiscordBot
             var ademirConfig = await ademirCfg.Find(a => a.GuildId == guildId).FirstOrDefaultAsync();
             var guild = _client.Guilds.First(a => a.Id == guildId);
             var user = guild.GetUser(arg.Author?.Id ?? 0);
+            IUserMessage msg = null;
             string sourceFilename = string.Empty;
+            cts = new CancellationTokenSource();
             try
             {
                 var query = arg.Content.Substring(4);
-                var video = await _youtubeClient.Videos.GetAsync(query);
+                if (!query.Trim().StartsWith("http"))
+                    query = GetFirstVideoUrl(query);
+
+                var video = await _youtubeClient.Videos.GetAsync(query, cts.Token);
                 var embed = new EmbedBuilder()
                    .WithTitle(video.Title)
                    .WithDescription($"Duração: {video.Duration}")
@@ -920,26 +950,36 @@ namespace DiscordBot
                        new EmbedFieldBuilder().WithName("Autor").WithValue(video.Author)
                    })
                    .Build();
-                await channel.SendMessageAsync($"Tocando agora:", embed: embed);
-                var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id);
+
+                var components = new ComponentBuilder()
+                    .WithButton("Parar", "stop-music", ButtonStyle.Danger)
+                    .Build();
+
+                msg = await channel.SendMessageAsync($"Tocando agora:", embed: embed, components: components);
+                var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken: cts.Token);
                 var audioStreamInfo = streamInfoSet.GetAudioOnlyStreams().OrderByDescending(a => a.Bitrate).FirstOrDefault();
                 sourceFilename = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{audioStreamInfo.Container}");
-                await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename);
-                
+                await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename, cancellationToken: cts.Token);
+
                 var voiceChannel = user.VoiceChannel;
-                if (voiceChannel != null)
+                if (voiceChannel != null && !cts.Token.IsCancellationRequested)
                 {
                     _audioClient = await voiceChannel.ConnectAsync(selfDeaf: true);
-                    
+
                     using (var ffmpeg = CreateStream(sourceFilename, (ademirConfig?.GlobalVolume ?? 100)))
                     using (var output = ffmpeg.StandardOutput.BaseStream)
                     using (var discord = _audioClient.CreatePCMStream(AudioApplication.Music))
                     {
                         await _audioClient.SetSpeakingAsync(true);
-                        try { await output.CopyToAsync(discord); }
+                        try { await output.CopyToAsync(discord, cts.Token); }
                         finally { await discord.FlushAsync(); }
                     }
+
                 }
+            }
+            catch (OperationCanceledException)
+            {
+
             }
             catch (Exception ex)
             {
@@ -947,6 +987,11 @@ namespace DiscordBot
             }
             finally
             {
+                if (!cts.IsCancellationRequested)
+                    cts.Cancel();
+
+                await msg.ModifyAsync(a => a.Components = null);
+
                 if (!string.IsNullOrEmpty(sourceFilename))
                 {
                     File.Delete(sourceFilename);
@@ -957,7 +1002,7 @@ namespace DiscordBot
 
         private static Process CreateStream(string path, int volume)
         {
-            var volPercent = (volume/200M).ToString(CultureInfo.InvariantCulture);
+            var volPercent = (volume / 200M).ToString(CultureInfo.InvariantCulture);
             return Process.Start(new ProcessStartInfo
             {
                 FileName = "ffmpeg",
