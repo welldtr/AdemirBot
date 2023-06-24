@@ -861,7 +861,7 @@ namespace DiscordBot
 
             if (arg.Content.StartsWith(">pp"))
             {
-                var _ = Task.Run(async () => await PlayAudioCommand(arg));
+                var _ = Task.Run(async () => await PlayAudioCommand(channel, user, arg.Content.Substring(4)));
             }
 
             if (user == null)
@@ -925,19 +925,14 @@ namespace DiscordBot
             }
         }
 
-        private async Task PlayAudioCommand(SocketMessage arg)
+        private async Task PlayAudioCommand(ITextChannel channel, IGuildUser user, string query)
         {
-            var channel = ((SocketTextChannel)arg.Channel);
-            var guildId = channel.Guild.Id;
-            var ademirConfig = await ademirCfg.Find(a => a.GuildId == guildId).FirstOrDefaultAsync();
-            var guild = _client.Guilds.First(a => a.Id == guildId);
-            var user = guild.GetUser(arg.Author?.Id ?? 0);
+            var ademirConfig = await ademirCfg.Find(a => a.GuildId == channel.GuildId).FirstOrDefaultAsync();
             IUserMessage msg = null;
             string sourceFilename = string.Empty;
             cts = new CancellationTokenSource();
             try
             {
-                var query = arg.Content.Substring(4);
                 if (!query.Trim().StartsWith("http"))
                     query = await GetFirstVideoUrl(query);
 
@@ -970,11 +965,13 @@ namespace DiscordBot
                     using (var output = ffmpeg.StandardOutput.BaseStream)
                     using (var discord = _audioClient.CreatePCMStream(AudioApplication.Music))
                     {
+                        if(ffmpeg.HasExited)
+                        {
+                            cts?.Cancel();
+                        }
                         await _audioClient.SetSpeakingAsync(true);
-                        try { await output.CopyToAsync(discord, cts.Token); }
-                        finally { await discord.FlushAsync(); }
+                        await output.CopyToAsync(discord, cts.Token);
                     }
-
                 }
             }
             catch (OperationCanceledException)
@@ -989,6 +986,9 @@ namespace DiscordBot
             {
                 if (!cts.IsCancellationRequested)
                     cts.Cancel();
+
+                if(_audioClient?.ConnectionState == ConnectionState.Connected)
+                    await _audioClient.StopAsync();
 
                 await msg.ModifyAsync(a => a.Components = null);
 
@@ -1009,7 +1009,9 @@ namespace DiscordBot
                 Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -af \"volume = {volPercent}\" -f s16le -ar 48000 pipe:1",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                
             });
+
         }
 
         private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
