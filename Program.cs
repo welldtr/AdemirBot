@@ -15,6 +15,7 @@ using YoutubeExplode;
 using System.Diagnostics;
 using System.Globalization;
 using HtmlAgilityPack;
+using YoutubeSearchApi.Net.Services;
 
 namespace DiscordBot
 {
@@ -233,7 +234,7 @@ namespace DiscordBot
                     break;
 
                 case "stop-music":
-                    cts.Cancel();
+                    cts?.Cancel();
                     _ = Task.Run(async () => await arg.UpdateAsync(a =>
                     {
                         a.Components = null;
@@ -909,20 +910,19 @@ namespace DiscordBot
             }
         }
 
-        static string GetFirstVideoUrl(string query)
+        static async Task<string> GetFirstVideoUrl(string query)
         {
-            // URL da pesquisa no YouTube
-            string url = $"https://www.youtube.com/results?search_query={query}";
-
-            // Faz a requisição HTTP e extrai os resultados da pesquisa
-            var httpClient = new HttpClient();
-            var html = httpClient.GetStringAsync(url).Result;
-            var htmlDocument = new HtmlDocument();
-
-            htmlDocument.LoadHtml(html);
-            var videoNode = htmlDocument.DocumentNode.SelectSingleNode("//div[@id='contents']//a[@id='video-title']");
-            // Retorna a URL do primeiro resultado da pesquisa
-            return "https://www.youtube.com" + videoNode.Attributes["href"].Value;
+            using (var httpClient = new HttpClient())
+            {
+                var client = new YoutubeSearchClient(httpClient);
+                var responseObjetct = await client.SearchAsync(query);
+                
+                foreach(var video in responseObjetct.Results)
+                {
+                    return video.Url;
+                }
+                return null;
+            }
         }
 
         private async Task PlayAudioCommand(SocketMessage arg)
@@ -939,7 +939,7 @@ namespace DiscordBot
             {
                 var query = arg.Content.Substring(4);
                 if (!query.Trim().StartsWith("http"))
-                    query = GetFirstVideoUrl(query);
+                    query = await GetFirstVideoUrl(query);
 
                 var video = await _youtubeClient.Videos.GetAsync(query, cts.Token);
                 var embed = new EmbedBuilder()
