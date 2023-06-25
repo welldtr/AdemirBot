@@ -1,8 +1,8 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 
-namespace DiscordBot
+namespace DiscordBot.Entities
 {
-    public class Message
+    public class Message : IEntity
     {
         [BsonId]
         public ulong MessageId { get; set; }

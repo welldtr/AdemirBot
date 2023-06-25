@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using LiteDB;
 using Newtonsoft.Json;
 using OpenAI.Managers;
 using OpenAI;
@@ -12,201 +11,128 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Discord.Audio;
 using YoutubeExplode;
-using System.Diagnostics;
-using System.Globalization;
-using HtmlAgilityPack;
-using YoutubeSearchApi.Net.Services;
+using Microsoft.Extensions.DependencyInjection;
+using DiscordBot.Entities;
+using Discord.Commands;
+using Microsoft.Extensions.Logging;
+using Discord.Interactions;
+using DiscordBot.Modules;
+using DiscordBot.Utils;
+using System.Collections.Concurrent;
+using YoutubeExplode.Videos;
+using NAudio.Wave;
+using SpotifyApi.NetCore;
+using SpotifyApi.NetCore.Authorization;
+using System.Net.Http;
 
 namespace DiscordBot
 {
     internal class Program
     {
-        public static Task Main(string[] args) => new Program().MainAsync();
-
-        private DiscordSocketClient _client;
-        private IMongoCollection<BumpConfig> bumpCfg;
-        private IMongoCollection<AdemirConfig> ademirCfg;
-        private string[] premiumGuilds;
-        private IMongoCollection<Membership> memberships;
-        private IMongoCollection<DenunciaConfig> denunciaCfg;
-        private IMongoCollection<Denuncia> denuncias;
-        private IMongoCollection<Message> messagelog;
-        private IMongoCollection<Member> members;
-        private IMongoCollection<Bump> bumps;
-        private IMongoCollection<Macro> macros;
-        private IMongoCollection<Track> tracks;
-        private bool importando = false;
-        private MongoClient mongo;
-        private OpenAIService openAI;
-        private ModalBuilder massbanModal;
-        private ModalBuilder masskickModal;
-        private ModalBuilder macroModal;
-
-        private IAudioClient _audioClient;
+        private readonly IServiceProvider _serviceProvider;
+        private DiscordShardedClient _client;
+        private ILogger<Program> _log;
+        private Context _db;
+        private OpenAIService _openAI;
+        private ConcurrentDictionary<ulong, IAudioClient> _audioClients;
+        private ConcurrentDictionary<ulong, PlaybackState> _playerState;
+        private ConcurrentDictionary<ulong, Video> _currentVideo;
+        private ConcurrentDictionary<ulong, ConcurrentQueue<Video>> _videos;
         private YoutubeClient _youtubeClient;
         private CancellationTokenSource cts;
+        string? mongoServer = Environment.GetEnvironmentVariable("MongoServer");
+        string? gptKey = Environment.GetEnvironmentVariable("ChatGPTKey");
 
-        bool isPremiumGuild(ulong value) => premiumGuilds.Contains(value.ToString());
-
-
-        public async Task MainAsync()
+        public Program()
         {
-            var mongoServer = Environment.GetEnvironmentVariable("MongoServer");
-            _youtubeClient = new YoutubeClient();
-            mongo = new MongoClient(mongoServer);
-            var db = mongo.GetDatabase("ademir");
+            _serviceProvider = CreateProvider();
+            _audioClients = new ConcurrentDictionary<ulong, IAudioClient>();
+            _currentVideo = new ConcurrentDictionary<ulong, Video>();
+            _videos = new ConcurrentDictionary<ulong, ConcurrentQueue<Video>>();
+            _playerState = new ConcurrentDictionary<ulong, PlaybackState>();
+        }
 
-            var gptKey = Environment.GetEnvironmentVariable("ChatGPTKey");
-            openAI = new OpenAIService(new OpenAiOptions()
-            {
-                ApiKey = gptKey!
-            });
-
-            premiumGuilds = Environment.GetEnvironmentVariable("PremiumGuilds")!.Split(',');
-            memberships = db.GetCollection<Membership>("memberships");
-            bumpCfg = db.GetCollection<BumpConfig>("bump_config");
-            ademirCfg = db.GetCollection<AdemirConfig>("ademir_cfg");
-            denunciaCfg = db.GetCollection<DenunciaConfig>("denuncia_config");
-            messagelog = db.GetCollection<Message>("messages");
-            denuncias = db.GetCollection<Denuncia>("denuncias");
-            bumps = db.GetCollection<Bump>("bumps");
-            macros = db.GetCollection<Macro>("macros");
-            tracks = db.GetCollection<Track>("tracks");
-
+        private IServiceProvider CreateProvider()
+        {
             var config = new DiscordSocketConfig()
             {
                 GatewayIntents = GatewayIntents.All
             };
 
-            _client = new DiscordSocketClient(config);
+            var commands = new CommandService(new CommandServiceConfig
+            {
+                LogLevel = LogSeverity.Info,
+                CaseSensitiveCommands = false,
+            });
 
-            var token = Environment.GetEnvironmentVariable("AdemirAuth");
+            var openAI = new OpenAIService(new OpenAiOptions()
+            {
+                ApiKey = gptKey!
+            });
 
-            await _client.LoginAsync(TokenType.Bot, token);
+            var mongo = new MongoClient(mongoServer);
+            var db = mongo.GetDatabase("ademir");
+
+            var collection = new ServiceCollection()
+               .AddSingleton(db)
+               .AddSingleton(config)
+               .AddSingleton(commands)
+               .AddSingleton(openAI)
+               .AddSingleton<DiscordShardedClient>()
+               .AddSingleton<Context>()
+               .AddLogging();
+
+            return collection.BuildServiceProvider();
+        }
+
+        public static Task Main(string[] args) => new Program().MainAsync();
+
+        public async Task MainAsync()
+        {
+            var provider = CreateProvider();
+            var commands = provider.GetRequiredService<CommandService>();
+            _openAI = provider.GetRequiredService<OpenAIService>();
+            _db = provider.GetRequiredService<Context>();
+            _client = provider.GetRequiredService<DiscordShardedClient>();
+            _log = provider.GetRequiredService<ILogger<Program>>();
+            _youtubeClient = new YoutubeClient();
+
             _client.MessageReceived += _client_MessageReceived;
-            _client.SlashCommandExecuted += SlashCommandHandler;
             _client.UserLeft += _client_UserLeft;
             _client.UserJoined += _client_UserJoined;
-            _client.ModalSubmitted += _client_ModalSubmitted;
             _client.ButtonExecuted += _client_ButtonExecuted;
+            _client.UserVoiceStateUpdated += _client_UserVoiceStateUpdated;
 
-            await _client.StartAsync();
-
-            massbanModal = new ModalBuilder()
-                .WithTitle("Banir Membros em Massa")
-                .WithCustomId("mass_ban")
-                .AddTextInput("Membros", "members", TextInputStyle.Paragraph,
-                    "IDs dos membros a banir", required: true);
-
-            masskickModal = new ModalBuilder()
-                .WithTitle("Expulsar Membros em Massa")
-                .WithCustomId("mass_kick")
-                .AddTextInput("Membros", "members", TextInputStyle.Paragraph,
-                    "IDs dos membros a expulsar", required: true);
-
-            macroModal = new ModalBuilder()
-                .WithTitle("Adicionar Macro")
-                .WithCustomId("macro")
-                .AddTextInput("Nome da Macro", "nome", TextInputStyle.Short,
-                    "Nome da macro usada (ex.: mensagem)", required: true)
-                .AddTextInput("Mensagem da Macro", "mensagem", TextInputStyle.Paragraph,
-                    "Mensagem que deve ser enviada ao digitar %nomedamacro", required: true);
-
-            _client.Ready += async () =>
+            _client.ShardReady += async (shard) =>
             {
-                var denunciarCommand = new SlashCommandBuilder()
-                    .WithName("denunciar")
-                    .WithDescription("Utilize esse comando para denunciar algo que fere as regras do servidor.")
-                    .AddOption("usuario", ApplicationCommandOptionType.User, "Usuário a ser denunciado", isRequired: true)
-                    .AddOption("relato", ApplicationCommandOptionType.String, "Relato da denuncia", isRequired: true)
-                    .AddOption("testemunha", ApplicationCommandOptionType.User, "Testemunha")
-                    .AddOption("print", ApplicationCommandOptionType.Attachment, "Print da conversa")
-                    .AddOption("anonimato", ApplicationCommandOptionType.Boolean, "Postar anonimamente");
-
-                var massBan = new SlashCommandBuilder()
-                    .WithName("massban")
-                    .WithDescription("Utilize esse comando para banir membros em massa.")
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var volume = new SlashCommandBuilder()
-                    .WithName("volume")
-                    .WithDescription("Definir o Volume do Bot")
-                    .AddOption("volume", ApplicationCommandOptionType.Number, "Volume (%)", isRequired: true)
-                    .WithDefaultMemberPermissions(GuildPermission.Connect);
-
-                var massKick = new SlashCommandBuilder()
-                    .WithName("masskick")
-                    .WithDescription("Utilize esse comando para expulsar membros em massa.")
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var dalle = new SlashCommandBuilder()
-                    .WithName("dall-e")
-                    .WithDescription("Pedir ao Dall-e uma imagem com a descrição.")
-                    .AddOption("comando", ApplicationCommandOptionType.String, "Comando do DALL-E", isRequired: true)
-                    .WithDefaultMemberPermissions(GuildPermission.SendMessages);
-
-                var configReward = new SlashCommandBuilder()
-                    .WithName("config-reward")
-                    .WithDescription("Configure as regras das recompensas de bump.")
-                    .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal do Bump", isRequired: true)
-                    .AddOption("bot", ApplicationCommandOptionType.User, "Bot reminder", isRequired: true)
-                    .AddOption("conteudo", ApplicationCommandOptionType.String, "Conteudo da mensagem", isRequired: true)
-                    .AddOption("xp", ApplicationCommandOptionType.Number, "XP por bump", isRequired: true)
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var configAdemir = new SlashCommandBuilder()
-                    .WithName("config-cargo-ademir")
-                    .WithDescription("Configure o cargo que pode usar o Ademir.")
-                    .AddOption("cargo", ApplicationCommandOptionType.Role, "Cargo que pode usar o Ademir", isRequired: true)
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var configDenuncias = new SlashCommandBuilder()
-                    .WithName("config-denuncias")
-                    .WithDescription("Configure onde as denúncias serão postadas.")
-                    .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal de denúncias", isRequired: true)
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var importarHistorico = new SlashCommandBuilder()
-                    .WithName("importar-historico-mensagens")
-                    .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal a analisar", isRequired: true)
-                    .WithDescription("Importa mensagens do histórico até 365 dias")
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var macro = new SlashCommandBuilder()
-                    .WithName("macro")
-                    .WithDescription("Adiciona uma macro ao Ademir como atalho para digitar uma mensagem")
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var excluirMacro = new SlashCommandBuilder()
-                    .WithName("excluir-macro")
-                    .AddOption("macro", ApplicationCommandOptionType.String, "Nome da macro", isRequired: true)
-                    .WithDescription("Excluir a macro especificada")
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var obterUsuariosMenosAtivos = new SlashCommandBuilder()
-                    .WithName("usuarios-inativos")
-                    .WithDescription("Extrair uma lista dos usuários que menos escrevem no chat.")
-                    .AddOption("canal", ApplicationCommandOptionType.Channel, "Canal a analisar", isRequired: true)
-                    .WithDefaultMemberPermissions(GuildPermission.Administrator);
-
-                var guildMessageCommand = new MessageCommandBuilder().WithName("Censurar mensagem");
+                await _client.SetGameAsync($"tudo e todos [{shard.ShardId}]", type: ActivityType.Listening);
+                _log.LogInformation($"Shard Number {shard.ShardId} is connected and ready!");
 
                 try
                 {
-                    await _client.BulkOverwriteGlobalApplicationCommandsAsync(new[] {
-                        denunciarCommand.Build(),
-                        dalle.Build(),
-                        configReward.Build(),
-                        configAdemir.Build(),
-                        configDenuncias.Build(),
-                        importarHistorico.Build(),
-                        obterUsuariosMenosAtivos.Build(),
-                        massBan.Build(),
-                        massKick.Build(),
-                        macro.Build(),
-                        volume.Build(),
-                        excluirMacro.Build(),
-                    });
+                    var _interactionService = new InteractionService(_client.Rest);
+
+                    await _interactionService.AddModuleAsync<BanModule>(provider);
+                    await _interactionService.AddModuleAsync<DallEModule>(provider);
+                    await _interactionService.AddModuleAsync<DenounceModule>(provider);
+                    await _interactionService.AddModuleAsync<InactiveUsersModule>(provider);
+                    await _interactionService.AddModuleAsync<MacroModule>(provider);
+                    await _interactionService.AddModuleAsync<MusicModule>(provider);
+
+                    _interactionService.SlashCommandExecuted += SlashCommandExecuted;
+
+                    _client.InteractionCreated += async (x) =>
+                    {
+                        var ctx = new ShardedInteractionContext(_client, x);
+                        var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider));
+                    };
+
+                    foreach (var guild in _client.Guilds)
+                    {
+                        _videos.TryAdd(guild.Id, new ConcurrentQueue<Video>());
+                        _currentVideo.TryAdd(guild.Id, null);
+                        _playerState[guild.Id] = PlaybackState.Stopped;
+                    }
                 }
                 catch (HttpException exception)
                 {
@@ -217,7 +143,48 @@ namespace DiscordBot
                 Console.WriteLine("Bot is connected!");
             };
 
+            var token = Environment.GetEnvironmentVariable("AdemirAuth");
+            await _client.LoginAsync(TokenType.Bot, token);
+            await _client.StartAsync();
             await Task.Delay(-1);
+        }
+
+        private async Task _client_UserVoiceStateUpdated(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
+        {
+            if (user.Id == _client.CurrentUser.Id && @new.VoiceChannel == null)
+            {
+                _playerState[old.VoiceChannel.Guild.Id] = PlaybackState.Stopped;
+                _videos[old.VoiceChannel.Guild.Id].Clear();
+                if (cts != null && !cts.IsCancellationRequested)
+                    cts.Cancel();
+            }
+        }
+
+        async Task SlashCommandExecuted(SlashCommandInfo arg1, Discord.IInteractionContext arg2, Discord.Interactions.IResult arg3)
+        {
+            if (!arg3.IsSuccess)
+            {
+                switch (arg3.Error)
+                {
+                    case InteractionCommandError.UnmetPrecondition:
+                        await arg2.Interaction.RespondAsync($"Unmet Precondition: {arg3.ErrorReason}");
+                        break;
+                    case InteractionCommandError.UnknownCommand:
+                        await arg2.Interaction.RespondAsync("Unknown command");
+                        break;
+                    case InteractionCommandError.BadArgs:
+                        await arg2.Interaction.RespondAsync("Invalid number or arguments");
+                        break;
+                    case InteractionCommandError.Exception:
+                        await arg2.Interaction.RespondAsync($"Command exception: {arg3.ErrorReason}");
+                        break;
+                    case InteractionCommandError.Unsuccessful:
+                        await arg2.Interaction.RespondAsync("Command could not be executed");
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         private Task _client_ButtonExecuted(SocketMessageComponent arg)
@@ -225,20 +192,41 @@ namespace DiscordBot
             Task _;
             switch (arg.Data.CustomId)
             {
-                case "dismiss":
-                    _ = Task.Run(async () => await arg.UpdateAsync(a =>
-                    {
-                        a.Content = "Operação cancelada";
-                        a.Components = null;
-                    }));
-                    break;
-
                 case "stop-music":
+                    _videos[arg.GuildId ?? 0].Clear();
                     cts?.Cancel();
                     _ = Task.Run(async () => await arg.UpdateAsync(a =>
                     {
                         a.Components = null;
                     }));
+                    break;
+
+                case "skip-music":
+                    cts?.Cancel();
+                    _ = Task.Run(async () => await arg.UpdateAsync(a =>
+                    {
+                        a.Components = null;
+                    }));
+                    break;
+
+                case "download-music":
+                    _ = Task.Run(async () =>
+                    {
+                        var video = _currentVideo[arg.GuildId ?? 0];
+                        await arg.DeferLoadingAsync();
+                        var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);
+                        using (var reader = new AudioFileReader(sourceFilename))
+                        {
+                            using (var writer = new NAudio.Lame.LameMP3FileWriter(sourceFilename + ".mp3", reader.WaveFormat, NAudio.Lame.LAMEPreset.STANDARD))
+                            {
+                                reader.CopyTo(writer);
+                            }
+                        }
+                        var regexName = new Regex(@"[^a-zA-Z0-9_-]");
+                        var fileName = regexName.Replace(video.Title, " ") + ".mp3";
+                        await arg.Channel.SendFileAsync(new FileAttachment(sourceFilename + ".mp3", fileName));
+                        await arg.DeleteOriginalResponseAsync();
+                    });
                     break;
             }
             return Task.CompletedTask;
@@ -250,7 +238,7 @@ namespace DiscordBot
 
             var datejoined = arg.JoinedAt.HasValue ? arg.JoinedAt.Value.DateTime : default;
 
-            await memberships.InsertOneAsync(new Membership
+            await _db.memberships.AddAsync(new Membership
             {
                 GuildId = arg.Guild.Id,
                 MemberId = userId,
@@ -264,13 +252,12 @@ namespace DiscordBot
             var userId = user.Id;
             var guildId = guild.Id;
 
-            var member = (await memberships.FindAsync(a => a.MemberId == userId && a.GuildId == guildId))
-                .FirstOrDefault();
+            var member = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
 
             var dateleft = DateTime.UtcNow;
             if (member == null)
             {
-                await memberships.InsertOneAsync(new Membership
+                await _db.memberships.AddAsync(new Membership
                 {
                     MembershipId = Guid.NewGuid(),
                     GuildId = guildId,
@@ -308,534 +295,8 @@ namespace DiscordBot
                 }
                 member.MemberUserName = user.Username;
                 member.DateLeft = dateleft;
-                await memberships.ReplaceOneAsync(a => a.MembershipId == member.MembershipId, member);
+                await _db.memberships.UpsertAsync(member);
             }
-        }
-
-        private Task _client_ModalSubmitted(SocketModal modal)
-        {
-            Task _;
-            switch (modal.Data.CustomId)
-            {
-                case "mass_ban":
-                    _ = Task.Run(async () => await ProcessarBanirEmMassa(modal));
-                    break;
-
-                case "mass_kick":
-                    _ = Task.Run(async () => await ProcessarExpulsarEmMassa(modal));
-                    break;
-
-                case "macro":
-                    _ = Task.Run(async () => await ProcessarMacro(modal));
-                    break;
-            }
-
-            return Task.CompletedTask;
-        }
-
-        private async Task ProcessarMacro(SocketModal modal)
-        {
-            string nome = modal.Data.Components.First(x => x.CustomId == "nome").Value;
-            string mensagem = modal.Data.Components.First(x => x.CustomId == "mensagem").Value;
-            var macro = await macros.CountDocumentsAsync(a => a.GuildId == modal.GuildId && a.Nome == nome);
-
-            if (macro > 0)
-            {
-                await modal.RespondAsync($"Já existe uma macro com o nome {nome} no server.", ephemeral: true);
-            }
-
-            macros.InsertOne(new Macro
-            {
-                MacroId = Guid.NewGuid(),
-                GuildId = modal.GuildId ?? 0,
-                Nome = nome,
-                Mensagem = mensagem
-            });
-
-            await modal.RespondAsync($"Lembre-se que para acionar a macro você deve digitar %{nome}", ephemeral: true);
-        }
-
-        private async Task ProcessarExpulsarEmMassa(SocketModal modal)
-        {
-            string memberIdsText = modal.Data.Components.First(x => x.CustomId == "members").Value;
-            var memberIds = SplitAndParseMemberIds(memberIdsText);
-            await modal.DeferAsync();
-            foreach (var id in memberIds)
-            {
-                var user = _client.GetGuild(modal.GuildId ?? 0).GetUser(id);
-                if (user != null)
-                    await user.KickAsync();
-            }
-            await modal.Channel.SendMessageAsync($"{memberIds.Length} Usuários Expulsos.");
-        }
-
-        private async Task ProcessarBanirEmMassa(SocketModal modal)
-        {
-            string memberIdsText = modal.Data.Components.First(x => x.CustomId == "members").Value;
-            var memberIds = SplitAndParseMemberIds(memberIdsText);
-            await modal.DeferAsync();
-            foreach (var id in memberIds)
-            {
-                await _client.GetGuild(modal.GuildId ?? 0).AddBanAsync(id);
-            }
-            await modal.Channel.SendMessageAsync($"{memberIds.Length} Usuários Banidos.");
-        }
-
-        private ulong[] SplitAndParseMemberIds(string memberIds)
-        {
-            return memberIds
-                .Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(a => ulong.Parse(a))
-                .ToArray();
-        }
-
-        private Task SlashCommandHandler(SocketSlashCommand command)
-        {
-            Task _;
-
-            switch (command.CommandName)
-            {
-                case "denunciar":
-                    _ = Task.Run(async () => await ProcessarDenuncia(command));
-                    break;
-
-                case "dall-e":
-                    _ = Task.Run(async () => await ProcessarComandoDallE(command));
-                    break;
-
-                case "importar-historico-mensagens":
-                    _ = Task.Run(async () => await ProcessarImportacaoHistorico(command));
-                    break;
-
-                case "config-reward":
-                    _ = Task.Run(async () => await ProcessarBumpReward(command));
-                    break;
-
-                case "config-denuncias":
-                    _ = Task.Run(async () => await ProcessarConfigDenuncias(command));
-                    break;
-
-                case "usuarios-inativos":
-                    _ = Task.Run(async () => await ProcessarUsuariosInativos(command));
-                    break;
-
-                case "config-cargo-ademir":
-                    _ = Task.Run(async () => await ProcessarConfigCargoAdemir(command));
-                    break;
-
-                case "massban":
-                    _ = Task.Run(async () => await ModalBanirEmMassa(command));
-                    break;
-
-                case "masskick":
-                    _ = Task.Run(async () => await ModalExpulsarEmMassa(command));
-                    break;
-
-                case "macro":
-                    _ = Task.Run(async () => await ModalMacro(command));
-                    break;
-
-                case "excluir-macro":
-                    _ = Task.Run(async () => await ExcluirMacro(command));
-                    break;
-
-                case "volume":
-                    _ = Task.Run(async () => await Volume(command));
-                    break;
-            }
-            return Task.CompletedTask;
-        }
-
-        private async Task ExcluirMacro(SocketSlashCommand command)
-        {
-            var nome = (string)command.Data.Options.First(a => a.Name == "macro").Value;
-            await command.DeferAsync(ephemeral: true);
-            var macro = await macros
-                .FindOneAndDeleteAsync(a => a.GuildId == command.GuildId && a.Nome == nome);
-
-            if (macro == null)
-                await command.ModifyOriginalResponseAsync(a => a.Content = "Essa macro não existe.");
-            else
-                await command.ModifyOriginalResponseAsync(a => a.Content = "Macro excluída.");
-        }
-        private async Task Volume(SocketSlashCommand command)
-        {
-            var volume = Convert.ToInt32(command.Data.Options.First(a => a.Name == "volume").Value);
-            await command.DeferAsync(ephemeral: true);
-
-            if (volume > 0 && volume < 110)
-            {
-                var cfg = await ademirCfg.Find(a => a.GuildId == command.GuildId).FirstAsync();
-                cfg.GlobalVolume = volume;
-                await ademirCfg.ReplaceOneAsync(a => a.GuildId == command.GuildId, cfg);
-                await command.ModifyOriginalResponseAsync(a => a.Content = $"Volume definido em {volume}% para a próxima execução.");
-            }
-            else
-            {
-                await command.ModifyOriginalResponseAsync(a => a.Content = "Volume inválido [0~110%]");
-            }
-        }
-
-        private async Task ModalMacro(SocketSlashCommand command)
-        {
-            await command.RespondWithModalAsync(macroModal.Build());
-        }
-
-        private async Task ModalExpulsarEmMassa(SocketSlashCommand command)
-        {
-            await command.RespondWithModalAsync(masskickModal.Build());
-        }
-
-        private async Task ModalBanirEmMassa(SocketSlashCommand command)
-        {
-            await command.RespondWithModalAsync(massbanModal.Build());
-        }
-
-        private async Task ProcessarComandoDallE(SocketSlashCommand command)
-        {
-            var guild = ((SocketTextChannel)command.Channel).Guild;
-            var me = guild.Users.First(a => a.Id == command.User.Id);
-            if (guild.Id != 1055161583841595412 && !(isPremiumGuild(command.GuildId ?? 0) && me.PremiumSince.HasValue))
-            {
-                await command.RespondAsync($"Funcionalidade premium. Booste o servidor {guild.Name} para usar.", ephemeral: true);
-                return;
-            }
-
-            var comando = (string)command.Data.Options.First(a => a.Name == "comando").Value;
-            await command.DeferAsync();
-            var imageResult = await openAI.Image.CreateImage(new ImageCreateRequest
-            {
-                Prompt = comando!,
-                N = 1,
-                Size = StaticValues.ImageStatics.Size.Size512,
-                ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Url,
-            });
-
-            var attachments = new List<FileAttachment>();
-            if (imageResult.Successful)
-            {
-                foreach (var img in imageResult.Results)
-                {
-                    var stream = await new HttpClient().GetStreamAsync(img.Url);
-                    attachments.Add(new FileAttachment(stream, $"{command.Id}.jpg"));
-                }
-                await command.ModifyOriginalResponseAsync(a =>
-                {
-                    a.Content = comando;
-                    a.Attachments = attachments.ToArray();
-                });
-            }
-            else
-            {
-                await command.ModifyOriginalResponseAsync(a => a.Content = $"Erro ao processar o comando \"{comando}\"");
-            }
-        }
-
-        private async Task ProcessarDenuncia(SocketSlashCommand command)
-        {
-            var config = (await denunciaCfg.FindAsync(a => a.GuildId == command.GuildId)).FirstOrDefault();
-
-            if (config == null)
-            {
-                await command.RespondAsync($"O canal de denúncias ainda não está configurado.", ephemeral: true);
-                return;
-            }
-
-            await command.RespondAsync($"Não se preocupe, {command.User.Username}. Esta informação será mantida em sigilo.", ephemeral: true);
-
-            var guildId = command.GuildId ?? 0;
-            var guild = _client.Guilds.First(a => a.Id == guildId);
-            var canal = (IMessageChannel)guild.Channels.First(a => a.Id == config.ChannelId);
-
-            var denunciado = (IUser)command.Data.Options.First(a => a.Name == "usuario").Value;
-            var relato = command.Data.Options.First(a => a.Name == "relato");
-            var testemunha = (IUser?)command.Data.Options.FirstOrDefault(a => a.Name == "testemunha")?.Value;
-            var print = (IAttachment?)command.Data.Options.FirstOrDefault(a => a.Name == "print")?.Value;
-            var anonimato = ((bool?)command.Data.Options.FirstOrDefault(a => a.Name == "anonimato")?.Value) ?? false;
-
-            var msg = await canal.SendMessageAsync("", false, new EmbedBuilder()
-            {
-                Fields = new List<EmbedFieldBuilder>
-                {
-                    new EmbedFieldBuilder().WithName("Denunciado").WithIsInline(true).WithValue($"{denunciado.Mention}"),
-                    new EmbedFieldBuilder().WithName("Denúncia").WithValue(relato.Value),
-                },
-                ImageUrl = print?.Url,
-                Description = anonimato ? "" : ($"|| Denúnciado por: {command.User.Mention} " + (testemunha == null ? "" : $"Testemunha: {testemunha.Mention}") + " ||")
-            }.Build());
-
-            await denuncias.InsertOneAsync(new Denuncia
-            {
-                DenunciaId = Guid.NewGuid(),
-                ReportId = msg.Id,
-                GuildId = guildId,
-                DenunciaDate = DateTime.Now,
-                DenunciadoUserId = denunciado.Id,
-                DenuncianteUserId = command.User.Id,
-                PrintUrl = print?.Url,
-                TestemunhaUserId = testemunha?.Id
-            });
-        }
-
-        private async Task ProcessarBumpReward(SocketSlashCommand command)
-        {
-            var admin = _client.Guilds.First(a => a.Id == command.GuildId).GetUser(command.User.Id).GuildPermissions.Administrator;
-
-            if (!admin)
-            {
-                await command.RespondAsync("Apenas administradores podem configurar as recompensas por bump.", ephemeral: true);
-                return;
-            }
-
-            var canal = (IChannel)command.Data.Options.First(a => a.Name == "canal").Value;
-            var bot = (IUser)command.Data.Options.First(a => a.Name == "bot").Value;
-            var conteudo = ((string)command.Data.Options.First(a => a.Name == "conteudo").Value);
-            var xp = (double)command.Data.Options.First(a => a.Name == "xp").Value;
-
-            var config = (await bumpCfg.FindAsync(a => a.GuildId == command.GuildId)).FirstOrDefault();
-
-            if (config == null)
-            {
-                config = new BumpConfig
-                {
-                    BumpConfigId = Guid.NewGuid(),
-                    GuildId = command.GuildId ?? 0,
-                    BumpChannelId = canal.Id,
-                    BumpBotId = bot.Id,
-                    BumpMessageContent = conteudo,
-                    XPPerBump = (int)xp
-                };
-                await bumpCfg.InsertOneAsync(config);
-            }
-            else
-            {
-                config.BumpChannelId = canal.Id;
-                config.BumpBotId = bot.Id;
-                config.BumpMessageContent = conteudo;
-                config.XPPerBump = (int)xp;
-                await bumpCfg.ReplaceOneAsync(a => a.BumpConfigId == config.BumpConfigId, config);
-            }
-            await command.RespondAsync("Recompensas por bump configuradas.", ephemeral: true);
-        }
-
-        private async Task ProcessarConfigDenuncias(SocketSlashCommand command)
-        {
-            var admin = _client.Guilds.First(a => a.Id == command.GuildId)
-                .GetUser(command.User.Id).GuildPermissions.Administrator;
-
-            if (!admin)
-            {
-                await command.RespondAsync("Apenas administradores podem configurar o canal de denuncias.", ephemeral: true);
-                return;
-            }
-
-            var canal = (IChannel)command.Data.Options.First(a => a.Name == "canal").Value;
-
-            var config = (await denunciaCfg.FindAsync(a => a.GuildId == command.GuildId)).FirstOrDefault();
-            if (config == null)
-            {
-                await denunciaCfg.InsertOneAsync(new DenunciaConfig
-                {
-                    DenunciaId = Guid.NewGuid(),
-                    GuildId = command.GuildId ?? 0,
-                    ChannelId = canal.Id
-                });
-            }
-            else
-            {
-                config.ChannelId = canal.Id;
-                await denunciaCfg.ReplaceOneAsync(a => a.DenunciaId == config.DenunciaId, config);
-            }
-
-            await command.RespondAsync("Canal de denúncias configurado.", ephemeral: true);
-        }
-
-        private async Task ProcessarConfigCargoAdemir(SocketSlashCommand command)
-        {
-            var admin = _client.Guilds.First(a => a.Id == command.GuildId)
-                .GetUser(command.User.Id).GuildPermissions.Administrator;
-
-            if (!admin)
-            {
-                await command.RespondAsync("Apenas administradores podem configurar o cargo para usar o Ademir.", ephemeral: true);
-                return;
-            }
-
-            var cargo = (IRole)command.Data.Options.First(a => a.Name == "cargo").Value;
-
-            var config = (await ademirCfg.FindAsync(a => a.GuildId == command.GuildId)).FirstOrDefault();
-            if (config == null)
-            {
-                await ademirCfg.InsertOneAsync(new AdemirConfig
-                {
-                    AdemirConfigId = Guid.NewGuid(),
-                    GuildId = command.GuildId ?? 0,
-                    AdemirRoleId = cargo.Id
-                });
-            }
-            else
-            {
-                config.AdemirRoleId = cargo.Id;
-                await ademirCfg.ReplaceOneAsync(a => a.AdemirConfigId == config.AdemirConfigId, config);
-            }
-
-            await command.RespondAsync("Cargo permitido para o Ademir configurado.", ephemeral: true);
-        }
-
-        private async Task ProcessarImportacaoHistorico(SocketSlashCommand command)
-        {
-            try
-            {
-                if (importando)
-                {
-                    await command.RespondAsync("Importação de histórico de já iniciada anteriormente", ephemeral: false);
-
-                }
-                importando = true;
-                await command.DeferAsync();
-                var guildId = command.GuildId;
-                var guild = _client.Guilds.First(a => a.Id == guildId);
-                var canalId = ((IChannel)command.Data.Options.First(a => a.Name == "canal").Value).Id;
-                var canal = (ISocketMessageChannel)guild.Channels.FirstOrDefault(a => a.Id == canalId)!;
-                var earlierMessage = await messagelog.Find(a => a.ChannelId == canalId && a.MessageLength > 0).SortBy(a => a.MessageDate).FirstOrDefaultAsync();
-                var eagerMessage = await canal.GetMessagesAsync(1).Flatten().FirstOrDefaultAsync();
-                IEnumerable<IMessage> messages = null;
-
-                if (earlierMessage != null)
-                {
-                    messages = new[] { await canal.GetMessageAsync(earlierMessage.MessageId) };
-                }
-                else if (eagerMessage != null)
-                {
-                    messages = new[] { eagerMessage };
-                }
-                else
-                {
-                    await command.ModifyOriginalResponseAsync(a => a.Content = "Canal vazio.");
-                    return;
-                }
-
-                await command.ModifyOriginalResponseAsync(a => a.Content = "Importação de histórico de mensagens iniciada");
-
-                var msg = messages.LastOrDefault();
-                if (msg != null)
-                {
-                    var memberid = (msg.Author?.Id ?? 0);
-                    await messagelog.ReplaceOneAsync(a => a.MessageId == msg.Id, new Message
-                    {
-                        MessageId = msg.Id,
-                        ChannelId = canalId,
-                        GuildId = guildId ?? 0,
-                        MessageDate = msg.Timestamp.UtcDateTime,
-                        UserId = memberid,
-                        MessageLength = msg.Content.Length
-                    }, new ReplaceOptions { IsUpsert = true });
-                }
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        while (messages.Count() > 0 && messages.Last().Timestamp.UtcDateTime >= DateTime.Today.AddDays(-765))
-                        {
-                            messages = await canal
-                                        .GetMessagesAsync(messages.Last(), Direction.Before, 500)
-                                        .FlattenAsync();
-
-                            if (messages.Count() == 0)
-                                break;
-
-                            Console.WriteLine($"Processando o dia {messages.Last().Timestamp.UtcDateTime:dd/MM/yyyy}");
-
-                            await command.ModifyOriginalResponseAsync(a =>
-                            {
-                                a.Flags = MessageFlags.Loading;
-                                a.Content = $"Importando mensagens de {canal.Name} do dia {msg.Timestamp.UtcDateTime:dd/MM/yyyy HH:mm}";
-                            });
-
-                            foreach (var msg in messages)
-                            {
-                                var memberid = (msg.Author?.Id ?? 0);
-                                await messagelog.ReplaceOneAsync(a => a.MessageId == msg.Id, new Message
-                                {
-                                    MessageId = msg.Id,
-                                    ChannelId = canalId,
-                                    GuildId = guildId ?? 0,
-                                    MessageDate = msg.Timestamp.UtcDateTime,
-                                    UserId = memberid,
-                                    MessageLength = msg.Content.Length
-                                }, new ReplaceOptions { IsUpsert = true });
-                                Console.Write(".");
-                            }
-                        }
-
-                        await command.ModifyOriginalResponseAsync(a => a.Content = $"Importação de histórico de mensagens do {canal.Name} terminada.");
-                    }
-                    catch (Exception ex)
-                    {
-                        await command.ModifyOriginalResponseAsync(a =>
-                        {
-                            a.Flags = MessageFlags.Loading;
-                            a.Content = $"Erro ao importar mensagens de {canal.Name}: {ex}";
-                        });
-                        Console.WriteLine(ex.ToString());
-                    }
-                    importando = false;
-                });
-            }
-            catch
-            {
-                importando = false;
-            }
-            importando = false;
-        }
-
-        private async Task ProcessarUsuariosInativos(SocketSlashCommand command)
-        {
-            var guildId = command.GuildId;
-            var guild = _client.Guilds.First(a => a.Id == guildId);
-            var admin = _client.Guilds.First(a => a.Id == command.GuildId)
-                .GetUser(command.User.Id).GuildPermissions.Administrator;
-
-            if (!admin)
-            {
-                await command.RespondAsync("Apenas administradores podem configurar o canal de denuncias.", ephemeral: true);
-                return;
-            }
-
-            var canalId = ((IChannel)command.Data.Options.First(a => a.Name == "canal").Value).Id;
-
-            var canal = (SocketTextChannel)guild.Channels.FirstOrDefault(a => a.Id == canalId)!;
-
-            var usuarios = guild.Users.Where(a => !a.IsBot);
-            var rankMsg = new Dictionary<SocketGuildUser, DateTime>();
-
-            await command.DeferAsync();
-
-            var csv = new StringBuilder();
-
-            var filePath = $"./{Guid.NewGuid()}.csv";
-            csv.AppendLine("ID;Username;Nickname;Message Count;Last Interaction;Joined At");
-            foreach (var user in usuarios)
-            {
-                var query = messagelog
-                        .Find(a => a.UserId == user.Id)
-                        .SortByDescending(a => a.MessageDate);
-
-                var count = await query.CountDocumentsAsync();
-                var lastmessage = await query.FirstOrDefaultAsync();
-
-                var newLine = $"\"\"\"\"{user.Id}\";{user.Username.Replace(";", "\",\"")};{(user.Nickname?.Replace(";", "\",\"") ?? user.Username.Replace(";", "\",\""))};{count};{lastmessage?.MessageDate:dd/MM/yyyy HH:mm};{user?.JoinedAt:dd/MM/yyyy HH:mm}";
-                csv.AppendLine(newLine);
-            }
-
-            await File.WriteAllTextAsync(filePath, csv.ToString());
-
-            await command.ModifyOriginalResponseAsync(a =>
-            {
-                a.Content = "Relatório de Usuários ordenados por data de ultima interação.";
-                a.Attachments = new[] { new FileAttachment(filePath) };
-            });
         }
 
         private async Task _client_MessageReceived(SocketMessage arg)
@@ -844,7 +305,7 @@ namespace DiscordBot
 
 
             if (!arg.Author?.IsBot ?? false)
-                await messagelog.ReplaceOneAsync(a => a.MessageId == arg.Id, new Message
+                await _db.messagelog.UpsertAsync(new Message
                 {
                     MessageId = arg.Id,
                     ChannelId = channel.Id,
@@ -852,7 +313,7 @@ namespace DiscordBot
                     MessageDate = arg.Timestamp.UtcDateTime,
                     UserId = arg.Author?.Id ?? 0,
                     MessageLength = arg.Content.Length
-                }, options: new ReplaceOptions { IsUpsert = true });
+                });
 
             var guildId = channel.Guild.Id;
             var guild = _client.Guilds.First(a => a.Id == guildId);
@@ -861,7 +322,8 @@ namespace DiscordBot
 
             if (arg.Content.StartsWith(">pp"))
             {
-                var _ = Task.Run(async () => await PlayAudioCommand(channel, user, arg.Content.Substring(4)));
+                var query = arg.Content.Substring(4);
+                var _ = Task.Run(async () => await PlayAudioCommand(channel, user, query));
             }
 
             if (user == null)
@@ -871,7 +333,7 @@ namespace DiscordBot
 
             try
             {
-                if (isPremiumGuild(guildId))
+                if (guild.IsPremium())
                 {
                     if ((arg.Channel as IThreadChannel) != null && ((IThreadChannel)arg.Channel).OwnerId == _client.CurrentUser.Id && arg.Author.Id != _client.CurrentUser.Id)
                     {
@@ -898,9 +360,8 @@ namespace DiscordBot
             await VerificarSeMensagemDeBump(arg);
             if (user.GuildPermissions.Administrator && arg.Content.StartsWith("%") && arg.Content.Length > 1 && !arg.Content.Contains(' '))
             {
-                var macro = await macros
-                    .Find(a => a.GuildId == guildId && a.Nome == arg.Content.Substring(1))
-                    .FirstOrDefaultAsync();
+                var macro = await _db.macros
+                    .FindOneAsync(a => a.GuildId == guildId && a.Nome == arg.Content.Substring(1));
 
                 if (macro != null)
                 {
@@ -910,108 +371,157 @@ namespace DiscordBot
             }
         }
 
-        static async Task<string> GetFirstVideoUrl(string query)
-        {
-            using (var httpClient = new HttpClient())
-            {
-                var client = new YoutubeSearchClient(httpClient);
-                var responseObjetct = await client.SearchAsync(query);
-                
-                foreach(var video in responseObjetct.Results)
-                {
-                    return video.Url;
-                }
-                return null;
-            }
-        }
-
         private async Task PlayAudioCommand(ITextChannel channel, IGuildUser user, string query)
         {
-            var ademirConfig = await ademirCfg.Find(a => a.GuildId == channel.GuildId).FirstOrDefaultAsync();
+            var ademirConfig = await _db.ademirCfg.GetByIdAsync(channel.GuildId);
             IUserMessage msg = null;
             string sourceFilename = string.Empty;
-            cts = new CancellationTokenSource();
+            if (cts?.IsCancellationRequested ?? true)
+                cts = new CancellationTokenSource();
+            var token = cts.Token;
             try
             {
                 if (!query.Trim().StartsWith("http"))
-                    query = await GetFirstVideoUrl(query);
+                {
+                    query = await Youtube.GetFirstVideoUrl(query);
+                }
 
-                var video = await _youtubeClient.Videos.GetAsync(query, cts.Token);
-                var embed = new EmbedBuilder()
-                   .WithTitle(video.Title)
-                   .WithDescription($"Duração: {video.Duration}")
-                   .WithImageUrl(video.Thumbnails.FirstOrDefault()?.Url)
-                   .WithFields(new[] {
-                       new EmbedFieldBuilder().WithName("Autor").WithValue(video.Author)
-                   })
-                   .Build();
+                Video video = null;
+                if (query.Trim().StartsWith("https://open.spotify.com/playlist/"))
+                {
+                    var regex = new Regex(@"https\:\/\/open\.spotify\.com\/playlist\/([a-zA-Z0-9]+)");
+                    using var httpClient = new HttpClient();
+                    var accounts = new AccountsService(httpClient);
+                    var pls = new PlaylistsApi(httpClient, accounts);
+                    var id = regex.Match(query.Trim()).Groups[1].Value;
+                    var playlist = await pls.GetTracks(id);
+                    var tracks = playlist.Items;
+                    var videos = new ConcurrentDictionary<int, Video>();
+                    Parallel.For(0, tracks.Count(), async(i) => {                    
+                        query = await Youtube.GetFirstVideoUrl($"{tracks[i]?.Track.Name} - {tracks[i]?.Track.Artists.FirstOrDefault()?.Name}");
+                        video = await _youtubeClient.Videos.GetAsync(query, token);
+                        videos[i] = video;
+                    });
+
+                    foreach(var v in videos)
+                        _videos[channel.GuildId].Enqueue(v);
+
+                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                           .WithTitle($"{tracks.Count()} músicas adicionadas à fila.")
+                           .Build());
+
+                    _videos[channel.GuildId].TryDequeue(out video);
+
+                }
+                else
+                {
+                    video = await _youtubeClient.Videos.GetAsync(query, token);
+                }
+
+                if (_playerState[channel.GuildId] != PlaybackState.Stopped)
+                {
+                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                               .WithTitle("Adicionada à fila:")
+                               .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
+                               .Build());
+                    _videos[channel.GuildId].Enqueue(video);
+                    return;
+                }
+
+                _videos[channel.GuildId].Enqueue(video);
 
                 var components = new ComponentBuilder()
                     .WithButton("Parar", "stop-music", ButtonStyle.Danger)
+                    .WithButton("Avançar", "skip-music", ButtonStyle.Primary)
+                    .WithButton("Baixar", "download-music", ButtonStyle.Success)
                     .Build();
-
-                msg = await channel.SendMessageAsync($"Tocando agora:", embed: embed, components: components);
-                var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken: cts.Token);
-                var audioStreamInfo = streamInfoSet.GetAudioOnlyStreams().OrderByDescending(a => a.Bitrate).FirstOrDefault();
-                sourceFilename = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{audioStreamInfo.Container}");
-                await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename, cancellationToken: cts.Token);
-
                 var voiceChannel = user.VoiceChannel;
-                if (voiceChannel != null && !cts.Token.IsCancellationRequested)
+                if (voiceChannel != null && !token.IsCancellationRequested)
                 {
-                    _audioClient = await voiceChannel.ConnectAsync(selfDeaf: true);
-
-                    using (var ffmpeg = CreateStream(sourceFilename, (ademirConfig?.GlobalVolume ?? 100)))
-                    using (var output = ffmpeg.StandardOutput.BaseStream)
-                    using (var discord = _audioClient.CreatePCMStream(AudioApplication.Music))
+                    while (_videos[channel.GuildId].TryDequeue(out video))
                     {
-                        if(ffmpeg.HasExited)
+                        _currentVideo[channel.GuildId] = video;
+                        var embed = new EmbedBuilder()
+                           .WithColor(Color.Red)
+                           .WithAuthor("Tocando Agora ♪")
+                           .WithDescription($"[{video.Title}]({video.Url})\n`00:00 / {video.Duration:mm\\:ss}`")
+                           .WithThumbnailUrl(video.Thumbnails.FirstOrDefault()?.Url)
+                           .WithFields(new[] {
+                           new EmbedFieldBuilder().WithName("Autor").WithValue(video.Author)
+                           })
+                           .Build();
+                        msg = await channel.SendMessageAsync(embed: embed, components: components);
+                        sourceFilename = await _youtubeClient.ExtractAsync(video, token);
+
+                        if (_audioClients.GetValueOrDefault(channel.GuildId)?.ConnectionState != ConnectionState.Connected)
+                            _audioClients[channel.GuildId] = await voiceChannel.ConnectAsync(selfDeaf: true);
+
+                        var volume = ademirConfig?.GlobalVolume ?? 100;
+
+                        using (var ffmpeg = FFmpeg.CreateStream(sourceFilename, volume))
+                        using (var output = ffmpeg?.StandardOutput.BaseStream)
+                        using (var discord = _audioClients.GetValueOrDefault(channel.GuildId)?
+                                                                .CreatePCMStream(AudioApplication.Music))
                         {
-                            cts?.Cancel();
+                            if (output == null)
+                            {
+                                cts?.Cancel();
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    _playerState[channel.GuildId] = PlaybackState.Playing;
+                                    await _audioClients.GetValueOrDefault(channel.GuildId)!.SetSpeakingAsync(true);
+                                    await output.CopyToAsync(discord, token);
+                                }
+                                catch (OperationCanceledException)
+                                {
+                                    cts = new CancellationTokenSource();
+                                    token = cts.Token;
+                                }
+                                await msg.ModifyAsync(a => a.Components = new ComponentBuilder().Build());
+                            }
                         }
-                        await _audioClient.SetSpeakingAsync(true);
-                        await output.CopyToAsync(discord, cts.Token);
+
                     }
                 }
+
+                _playerState[channel.GuildId] = PlaybackState.Stopped;
             }
             catch (OperationCanceledException)
             {
-
+                _playerState[channel.GuildId] = PlaybackState.Stopped;
             }
             catch (Exception ex)
             {
+                _playerState[channel.GuildId] = PlaybackState.Stopped;
                 await channel.SendMessageAsync($"Erro ao tocar musica: {ex}");
             }
             finally
             {
-                if (!cts.IsCancellationRequested)
-                    cts.Cancel();
-
-                if(_audioClient?.ConnectionState == ConnectionState.Connected)
-                    await _audioClient.StopAsync();
-
-                await msg.ModifyAsync(a => a.Components = null);
+                if (msg != null)
+                {
+                    await msg.ModifyAsync(a => a.Components = new ComponentBuilder().Build());
+                }
 
                 if (!string.IsNullOrEmpty(sourceFilename))
                 {
                     File.Delete(sourceFilename);
                 }
-                await channel.SendMessageAsync($"Fila terminada.");
+
             }
-        }
 
-        private static Process CreateStream(string path, int volume)
-        {
-            var volPercent = (volume / 200M).ToString(CultureInfo.InvariantCulture);
-            return Process.Start(new ProcessStartInfo
-            {
-                FileName = "ffmpeg",
-                Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -af \"volume = {volPercent}\" -f s16le -ar 48000 pipe:1",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                
-            });
+            await channel.SendMessageAsync(embed: new EmbedBuilder()
+               .WithTitle("Fila terminada")
+               .Build());
 
+            _playerState[channel.GuildId] = PlaybackState.Stopped;
+            await Task.Delay(30000);
+
+            if (token.IsCancellationRequested)
+                if (_audioClients[channel.GuildId]?.ConnectionState == ConnectionState.Connected)
+                    await _audioClients[channel.GuildId].StopAsync();
         }
 
         private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
@@ -1021,7 +531,7 @@ namespace DiscordBot
             var msgRefer = new MessageReference(arg.Id, channelId);
             var guild = ((SocketTextChannel)channel).Guild;
             var me = guild.Users.First(a => a.Id == arg.Author.Id);
-            var ademirConfig = (await ademirCfg.FindAsync(a => a.GuildId == guild.Id)).FirstOrDefault();
+            var ademirConfig = (await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id));
             var role = guild.Roles.FirstOrDefault(a => a.Id == (ademirConfig?.AdemirRoleId ?? 0));
 
             var isUserEnabled = me.PremiumSince.HasValue
@@ -1040,7 +550,8 @@ namespace DiscordBot
 
             if (string.IsNullOrWhiteSpace(arg.Content.Replace($"<@{_client.CurrentUser.Id}>", "")))
             {
-                await arg.AddReactionAsync(new Emoji("🥱"));
+                if (arg.Author?.Id != _client.CurrentUser.Id)
+                    await arg.AddReactionAsync(new Emoji("🥱"));
                 return;
             }
             var regexName = new Regex(@"[^a-zA-Z0-9_-]");
@@ -1080,7 +591,7 @@ namespace DiscordBot
 
             if ((channel as IThreadChannel) == null && messagecount == 3)
             {
-                var result = await openAI.Completions.CreateCompletion(
+                var result = await _openAI.Completions.CreateCompletion(
                 new CompletionCreateRequest()
                 {
                     Prompt = $"De acordo com o chat de discord abaixo:\n\n{chatString}\n\nCriar um nome de Tópico curto para esta conversa",
@@ -1126,7 +637,7 @@ namespace DiscordBot
             );
 
             await channel.TriggerTypingAsync();
-            var completionResult = await openAI.ChatCompletion.CreateCompletion(
+            var completionResult = await _openAI.ChatCompletion.CreateCompletion(
                 new ChatCompletionCreateRequest()
                 {
                     Messages = msgs,
@@ -1150,7 +661,7 @@ namespace DiscordBot
                             var pedido = choice.Message.Content.Split("\n", StringSplitOptions.RemoveEmptyEntries)
                                 .FirstOrDefault(a => a.Contains(">>"))?.Replace(">>", "");
 
-                            var imageResult = await openAI.Image.CreateImage(new ImageCreateRequest
+                            var imageResult = await _openAI.Image.CreateImage(new ImageCreateRequest
                             {
                                 Prompt = pedido!,
                                 N = 1,
@@ -1198,7 +709,7 @@ namespace DiscordBot
         {
             var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
             var guild = _client.Guilds.First(a => a.Id == guildId);
-            var config = (await bumpCfg.FindAsync(a => a.GuildId == guildId)).FirstOrDefault();
+            var config = (await _db.bumpCfg.FindOneAsync(a => a.GuildId == guildId));
 
             if (config == null)
             {
@@ -1216,7 +727,7 @@ namespace DiscordBot
                     await mentionedUser.SendMessageAsync($"Você ganhou {config.XPPerBump}xp por bumpar o servidor {guild.Name}");
                     Console.WriteLine($"{mentionedUser.Username} ganhou {config.XPPerBump}xp.");
 
-                    await bumps.InsertOneAsync(new Bump
+                    await _db.bumps.AddAsync(new Bump
                     {
                         BumpId = Guid.NewGuid(),
                         BumpDate = arg.Timestamp.DateTime,
