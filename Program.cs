@@ -24,6 +24,8 @@ using NAudio.Wave;
 using SpotifyApi.NetCore;
 using SpotifyApi.NetCore.Authorization;
 using System.Net.Http;
+using SpotifyExplode;
+using YoutubeExplode.Exceptions;
 
 namespace DiscordBot
 {
@@ -224,7 +226,7 @@ namespace DiscordBot
                         }
                         var regexName = new Regex(@"[^a-zA-Z0-9_-]");
                         var fileName = regexName.Replace(video.Title, " ") + ".mp3";
-                        await arg.Channel.SendFileAsync(new FileAttachment(sourceFilename + ".mp3", fileName));
+                        await arg.User.SendFileAsync(new FileAttachment(sourceFilename + ".mp3", fileName));
                         await arg.DeleteOriginalResponseAsync();
                     });
                     break;
@@ -387,31 +389,61 @@ namespace DiscordBot
                 }
 
                 Video video = null;
-                if (query.Trim().StartsWith("https://open.spotify.com/playlist/"))
+                if (query.Trim().StartsWith("https://open.spotify.com/"))
                 {
-                    var regex = new Regex(@"https\:\/\/open\.spotify\.com\/playlist\/([a-zA-Z0-9]+)");
-                    using var httpClient = new HttpClient();
-                    var accounts = new AccountsService(httpClient);
-                    var pls = new PlaylistsApi(httpClient, accounts);
-                    var id = regex.Match(query.Trim()).Groups[1].Value;
-                    var playlist = await pls.GetTracks(id);
-                    var tracks = playlist.Items;
-                    var videos = new ConcurrentDictionary<int, Video>();
-                    Parallel.For(0, tracks.Count(), async(i) => {                    
-                        query = await Youtube.GetFirstVideoUrl($"{tracks[i]?.Track.Name} - {tracks[i]?.Track.Artists.FirstOrDefault()?.Name}");
-                        video = await _youtubeClient.Videos.GetAsync(query, token);
-                        videos[i] = video;
-                    });
+                    var spotify = new SpotifyClient();
 
-                    foreach(var v in videos)
-                        _videos[channel.GuildId].Enqueue(v);
+                    var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
 
-                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
-                           .WithTitle($"{tracks.Count()} músicas adicionadas à fila.")
-                           .Build());
+                    var type = regex.Match(query.Trim()).Groups[2].Value;
+                    var id = regex.Match(query.Trim()).Groups[3].Value;
+                    switch (type)
+                    {
+                        case "playlist":
+                            var playlistTracks = await spotify.Playlists.GetAllTracksAsync(id);
+                            var playListvideos = new Video[playlistTracks.Count];
+                            var downloads = Enumerable.Range(0, playlistTracks.Count).Select(i => Task.Run(async () =>
+                            {
+                                var youtubeId2 = await spotify.Tracks.GetYoutubeIdAsync(playlistTracks[i].Url);
+                                video = await _youtubeClient.Videos.GetAsync(VideoId.Parse(youtubeId2), token);
+                                playListvideos[i] = video;
+                            }));
+                            Task.WaitAll(downloads.ToArray());
 
-                    _videos[channel.GuildId].TryDequeue(out video);
+                            foreach (var v in playListvideos)
+                                _videos[channel.GuildId].Enqueue(v);
 
+                            await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                               .WithTitle($"{playlistTracks.Count} musicas adicionadas à fila:")
+                               .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
+                               .Build());
+                            break;
+
+                        case "album":
+                            var albumTracks = await spotify.Albums.GetAllTracksAsync(id);
+                            var videos = new Video[albumTracks.Count];
+                            var albumDownloads = Enumerable.Range(0, albumTracks.Count).Select(i => Task.Run(async () =>
+                            {
+                                var youtubeId2 = await spotify.Tracks.GetYoutubeIdAsync(albumTracks[i].Url);
+                                video = await _youtubeClient.Videos.GetAsync(VideoId.Parse(youtubeId2), token);
+                                videos[i] = video;
+                            }));
+                            Task.WaitAll(albumDownloads.ToArray());
+
+                            foreach (var v in videos)
+                                _videos[channel.GuildId].Enqueue(v);
+
+                            await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                               .WithTitle($"{albumTracks.Count} musicas adicionadas à fila:")
+                               .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
+                               .Build());
+                            break;
+
+                        case "track":
+                            var youtubeId3 = await spotify.Tracks.GetYoutubeIdAsync(query.Trim());
+                            video = await _youtubeClient.Videos.GetAsync(VideoId.Parse(youtubeId3), token);
+                            break;
+                    }
                 }
                 else
                 {
@@ -441,17 +473,28 @@ namespace DiscordBot
                     while (_videos[channel.GuildId].TryDequeue(out video))
                     {
                         _currentVideo[channel.GuildId] = video;
-                        var embed = new EmbedBuilder()
-                           .WithColor(Color.Red)
-                           .WithAuthor("Tocando Agora ♪")
-                           .WithDescription($"[{video.Title}]({video.Url})\n`00:00 / {video.Duration:mm\\:ss}`")
-                           .WithThumbnailUrl(video.Thumbnails.FirstOrDefault()?.Url)
-                           .WithFields(new[] {
+                        try
+                        {
+                            sourceFilename = await _youtubeClient.ExtractAsync(video, token);
+                            var embed = new EmbedBuilder()
+                               .WithColor(Color.Red)
+                               .WithAuthor("Tocando Agora ♪")
+                               .WithDescription($"[{video.Title}]({video.Url})\n`00:00 / {video.Duration:mm\\:ss}`")
+                               .WithThumbnailUrl(video.Thumbnails.FirstOrDefault()?.Url)
+                               .WithFields(new[] {
                            new EmbedFieldBuilder().WithName("Autor").WithValue(video.Author)
-                           })
-                           .Build();
-                        msg = await channel.SendMessageAsync(embed: embed, components: components);
-                        sourceFilename = await _youtubeClient.ExtractAsync(video, token);
+                               })
+                               .Build();
+                            msg = await channel.SendMessageAsync(embed: embed, components: components);
+                        }
+                        catch (VideoUnplayableException ex)
+                        {
+                            await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                                       .WithTitle("Esta música não está disponível:")
+                                       .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
+                                       .Build());
+                            continue;
+                        }
 
                         if (_audioClients.GetValueOrDefault(channel.GuildId)?.ConnectionState != ConnectionState.Connected)
                             _audioClients[channel.GuildId] = await voiceChannel.ConnectAsync(selfDeaf: true);

@@ -1,8 +1,7 @@
 ﻿using YoutubeExplode.Videos;
 using YoutubeExplode;
 using YoutubeSearchApi.Net.Services;
-using SpotifyApi.NetCore.Authorization;
-using SpotifyApi.NetCore;
+using YoutubeExplode.Exceptions;
 
 namespace DiscordBot.Utils
 {
@@ -24,11 +23,34 @@ namespace DiscordBot.Utils
         }
         public static async Task<string> ExtractAsync(this YoutubeClient _youtubeClient, Video video, CancellationToken cancellationToken)
         {
-            var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken: cancellationToken);
-            var audioStreamInfo = streamInfoSet.GetAudioOnlyStreams().OrderByDescending(a => a.Bitrate).FirstOrDefault();
-            var sourceFilename = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{audioStreamInfo.Container}");
-            await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename, cancellationToken: cancellationToken);
-            return sourceFilename;
+            try
+            {
+                var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken: cancellationToken);
+                var audioStreamInfo = streamInfoSet.GetAudioOnlyStreams().OrderByDescending(a => a.Bitrate).FirstOrDefault();
+                var sourceFilename = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{audioStreamInfo.Container}");
+                await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename, cancellationToken: cancellationToken);
+                return sourceFilename;
+            }
+            catch (VideoUnplayableException)
+            {
+                await foreach (var result in _youtubeClient.Search.GetResultsAsync(video.Title))
+                {
+                    try
+                    {
+                        var responseObjetct = await _youtubeClient.Videos.GetAsync(result.Url);
+                        var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(responseObjetct.Id, cancellationToken: cancellationToken);
+                        var audioStreamInfo = streamInfoSet.GetAudioOnlyStreams().OrderByDescending(a => a.Bitrate).FirstOrDefault();
+                        var sourceFilename = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{audioStreamInfo.Container}");
+                        await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename, cancellationToken: cancellationToken);
+                        return sourceFilename;
+                    }
+                    catch (VideoUnplayableException)
+                    {
+                        continue;
+                    }
+                }
+                throw;
+            }
         }
     }
 }
