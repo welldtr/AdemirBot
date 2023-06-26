@@ -1,4 +1,4 @@
-﻿using DiscordBot.Entities;
+﻿using DiscordBot.Domain.Entities;
 using MongoDB.Driver;
 using System.Linq.Expressions;
 

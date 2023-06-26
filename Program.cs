@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 using Discord.Audio;
 using YoutubeExplode;
 using Microsoft.Extensions.DependencyInjection;
-using DiscordBot.Entities;
+using DiscordBot.Domain.Entities;
 using Discord.Commands;
 using Microsoft.Extensions.Logging;
 using Discord.Interactions;
@@ -20,12 +20,9 @@ using DiscordBot.Modules;
 using DiscordBot.Utils;
 using System.Collections.Concurrent;
 using YoutubeExplode.Videos;
-using NAudio.Wave;
-using SpotifyApi.NetCore;
-using SpotifyApi.NetCore.Authorization;
-using System.Net.Http;
 using SpotifyExplode;
 using YoutubeExplode.Exceptions;
+using DiscordBot.Domain;
 
 namespace DiscordBot
 {
@@ -217,17 +214,13 @@ namespace DiscordBot
                         var video = _currentVideo[arg.GuildId ?? 0];
                         await arg.DeferLoadingAsync();
                         var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);
-                        using (var reader = new AudioFileReader(sourceFilename))
-                        {
-                            using (var writer = new NAudio.Lame.LameMP3FileWriter(sourceFilename + ".mp3", reader.WaveFormat, NAudio.Lame.LAMEPreset.STANDARD))
-                            {
-                                reader.CopyTo(writer);
-                            }
-                        }
                         var regexName = new Regex(@"[^a-zA-Z0-9_-]");
                         var fileName = regexName.Replace(video.Title, " ") + ".mp3";
-                        await arg.User.SendFileAsync(new FileAttachment(sourceFilename + ".mp3", fileName));
+                        var attachment = await FFmpeg.CreateMp3Attachment(sourceFilename, fileName);
+                        await arg.User.SendFileAsync(attachment);
                         await arg.DeleteOriginalResponseAsync();
+                        File.Delete(sourceFilename);
+                        File.Delete(sourceFilename + ".mp3");
                     });
                     break;
             }

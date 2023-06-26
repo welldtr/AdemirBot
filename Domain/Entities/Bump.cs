@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 
-namespace DiscordBot.Entities
+namespace DiscordBot.Domain.Entities
 {
     public class Bump : IEntity
     {
