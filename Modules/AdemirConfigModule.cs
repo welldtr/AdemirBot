@@ -60,7 +60,7 @@ namespace DiscordBot.Modules
                 return;
             }
 
-            var config = (await db.bumpCfg.GetByIdAsync(Context.Guild.Id));
+            var config = (await db.bumpCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
 
             if (config == null)
             {

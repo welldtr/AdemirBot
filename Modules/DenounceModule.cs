@@ -31,7 +31,7 @@ namespace DiscordBot.Modules
                 return;
             }
 
-            var config = await db.denunciaCfg.GetByIdAsync(Context.Guild.Id);
+            var config = await db.denunciaCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id);
             if (config == null)
             {
                 await db.denunciaCfg.AddAsync(new DenunciaConfig
@@ -58,7 +58,7 @@ namespace DiscordBot.Modules
             [Summary(description: "Print da conversa")] IAttachment print = default,
             [Summary(description: "Postar anonimamente")] bool anonimato = default)
         {
-            var config = await db.denunciaCfg.GetByIdAsync(Context.Guild.Id);
+            var config = await db.denunciaCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id);
 
             if (config == null)
             {
