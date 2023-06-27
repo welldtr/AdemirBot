@@ -22,7 +22,7 @@ namespace DiscordBot.Modules
 
             if (volume > 0 && volume < 110)
             {
-                var cfg = await db.ademirCfg.GetByIdAsync(Context.Guild.Id);
+                var cfg = await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id);
 
                 if (cfg == null)
                 {
