@@ -23,7 +23,6 @@ using YoutubeExplode.Videos;
 using SpotifyExplode;
 using YoutubeExplode.Exceptions;
 using DiscordBot.Domain;
-using System.Security.Cryptography;
 
 namespace DiscordBot
 {
@@ -50,6 +49,7 @@ namespace DiscordBot
             _currentVideo = new ConcurrentDictionary<ulong, Video>();
             _videos = new ConcurrentDictionary<ulong, ConcurrentQueue<Video>>();
             _playerState = new ConcurrentDictionary<ulong, PlaybackState>();
+            _cts = new ConcurrentDictionary<ulong, CancellationTokenSource>();
         }
 
         private IServiceProvider CreateProvider()
