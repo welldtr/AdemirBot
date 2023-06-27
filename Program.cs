@@ -79,7 +79,11 @@ namespace DiscordBot
                .AddSingleton(openAI)
                .AddSingleton<DiscordShardedClient>()
                .AddSingleton<Context>()
-               .AddLogging();
+               .AddLogging(b =>
+               {
+                   b.AddConsole();
+                   b.SetMinimumLevel(LogLevel.Information);
+               });
 
             return collection.BuildServiceProvider();
         }
@@ -166,19 +170,19 @@ namespace DiscordBot
                 switch (arg3.Error)
                 {
                     case InteractionCommandError.UnmetPrecondition:
-                        await arg2.Interaction.RespondAsync($"Unmet Precondition: {arg3.ErrorReason}");
+                        await arg2.Interaction.RespondAsync($"Unmet Precondition: {arg3.ErrorReason}", ephemeral: true);
                         break;
                     case InteractionCommandError.UnknownCommand:
-                        await arg2.Interaction.RespondAsync("Unknown command");
+                        await arg2.Interaction.RespondAsync("Unknown command", ephemeral: true);
                         break;
                     case InteractionCommandError.BadArgs:
-                        await arg2.Interaction.RespondAsync("Invalid number or arguments");
+                        await arg2.Interaction.RespondAsync("Invalid number or arguments", ephemeral: true);
                         break;
                     case InteractionCommandError.Exception:
-                        await arg2.Interaction.RespondAsync($"Command exception: {arg3.ErrorReason}");
+                        await arg2.Interaction.RespondAsync($"Command exception: {arg3.ErrorReason}", ephemeral: true);
                         break;
                     case InteractionCommandError.Unsuccessful:
-                        await arg2.Interaction.RespondAsync("Command could not be executed");
+                        await arg2.Interaction.RespondAsync("Command could not be executed", ephemeral: true);
                         break;
                     default:
                         break;
@@ -560,6 +564,45 @@ namespace DiscordBot
                     await _audioClients[channel.GuildId].StopAsync();
         }
 
+        private async Task GetRepliedMessages(ITextChannel channel, IMessage message, List<ChatMessage> msgs)
+        {
+            var regexName = new Regex(@"[^a-zA-Z0-9_-]");
+            var guild = _client.GetGuild(channel.GuildId);
+            while (message.Reference != null && message.Reference.MessageId.IsSpecified)
+            {
+                if (channel.Id != message.Reference.ChannelId)
+                    channel = (ITextChannel)guild.GetChannel(message.Reference.ChannelId);
+
+                message = await channel.GetMessageAsync(message.Reference.MessageId.Value!);
+                var me = guild.Users.First(a => a.Id == (message?.Author?.Id ?? 0));
+                var autor = (me.Id == _client.CurrentUser.Id) ? "assistant" : "user";
+                var nome = regexName.Replace(message.Author.Id == _client.CurrentUser.Id ? "Ademir" : me.DisplayName, "");
+                if (message.Type == MessageType.Default)
+                    msgs.Insert(0, new ChatMessage(autor, message.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
+            }
+        }
+
+        private async Task GetThreadMessages(IThreadChannel thread, IMessage message, List<ChatMessage> msgs)
+        {
+            var regexName = new Regex(@"[^a-zA-Z0-9_-]");
+            var guild = _client.GetGuild(thread.GuildId);
+
+            var msgsThread = await thread.GetMessagesAsync(message.Id, Direction.Before).FlattenAsync();
+            foreach (var m in msgsThread)
+            {
+                var me = guild.Users.First(a => a.Id == (m?.Author?.Id ?? 0));
+                var autor = (m.Id == _client.CurrentUser.Id ? "assistant" : "user");
+                var nome = regexName.Replace(me.Id == _client.CurrentUser.Id ? "Ademir" : me.DisplayName, "");
+                if(m.Type == MessageType.Default)
+                    msgs.Insert(0, new ChatMessage(autor, m.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
+            }
+
+            var firstMsg = msgsThread.LastOrDefault();
+            var ch = (ITextChannel)guild.GetChannel(firstMsg!.Reference.ChannelId);
+            await GetRepliedMessages(ch, firstMsg, msgs);
+        }
+
+
         private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
         {
             var channel = (ITextChannel)arg.Channel;
@@ -590,6 +633,7 @@ namespace DiscordBot
                     await arg.AddReactionAsync(new Emoji("🥱"));
                 return;
             }
+
             var regexName = new Regex(@"[^a-zA-Z0-9_-]");
             var attachmentContent = (arg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(arg.Attachments.First(a => a.ContentType.StartsWith("text/plain")).Url);
             var content = (arg.Content + attachmentContent).Replace($"<@{_client.CurrentUser.Id}>", "Ademir");
@@ -597,35 +641,19 @@ namespace DiscordBot
             var m = (IMessage)arg;
             var msgs = new List<ChatMessage>() { new ChatMessage("user", content, regexName.Replace(me.DisplayName, "")) };
 
-            int messagecount = 1;
-            while (m.Reference != null && m.Reference.MessageId.IsSpecified)
-            {
-                messagecount++;
-                m = await m.Channel.GetMessageAsync(m.Reference.MessageId.Value!);
-                var me2 = guild.Users.First(a => a.Id == (m?.Author?.Id ?? 0));
-                var autor = (arg.Author.Id == _client.CurrentUser.Id ? "assistant" : "user");
-                var nome = regexName.Replace(arg.Author.Id == _client.CurrentUser.Id ? "Ademir" : me.DisplayName, "");
-                msgs.Insert(0, new ChatMessage(autor, m.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
-            }
+            await GetRepliedMessages(channel, m, msgs);
 
             if ((channel as IThreadChannel) != null)
             {
                 msgRefer = null;
-                var msgsThread = await m.Channel.GetMessagesAsync(arg.Id, Direction.Before).FlattenAsync();
-                foreach (var m2 in msgsThread)
-                {
-                    var me2 = guild.Users.First(a => a.Id == (m2?.Author?.Id ?? 0));
-                    var autor = (arg.Author.Id == _client.CurrentUser.Id ? "assistant" : "user");
-                    var nome = regexName.Replace(arg.Author.Id == _client.CurrentUser.Id ? "Ademir" : me.DisplayName, "");
-                    msgs.Insert(0, new ChatMessage(autor, m2.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
-                }
+                await GetThreadMessages((channel as IThreadChannel)!, m, msgs);
             }
 
             StringBuilder chatString = new StringBuilder();
             foreach (var msg in msgs)
                 chatString.AppendLine($"({msg.Name ?? "Regras"}) {msg.Content}");
 
-            if ((channel as IThreadChannel) == null && messagecount == 3)
+            if ((channel as IThreadChannel) == null && msgs.Count == 3)
             {
                 var result = await _openAI.Completions.CreateCompletion(
                 new CompletionCreateRequest()
