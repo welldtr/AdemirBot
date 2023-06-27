@@ -23,6 +23,7 @@ using YoutubeExplode.Videos;
 using SpotifyExplode;
 using YoutubeExplode.Exceptions;
 using DiscordBot.Domain;
+using SpotifyExplode.Users;
 
 namespace DiscordBot
 {
@@ -374,7 +375,7 @@ namespace DiscordBot
 
         private async Task PlayAudioCommand(ITextChannel channel, IGuildUser user, string query)
         {
-            var ademirConfig = await _db.ademirCfg.GetByIdAsync(channel.GuildId);
+            var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
             IUserMessage msg = null;
             string sourceFilename = string.Empty;
             if (_cts[channel.GuildId]?.IsCancellationRequested ?? true)
