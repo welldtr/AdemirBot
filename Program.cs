@@ -23,6 +23,7 @@ using YoutubeExplode.Videos;
 using SpotifyExplode;
 using YoutubeExplode.Exceptions;
 using DiscordBot.Domain;
+using MongoDB.Bson;
 
 namespace DiscordBot
 {
@@ -94,7 +95,7 @@ namespace DiscordBot
         public async Task MainAsync()
         {
             //var aternosClient = new Aternos("welldtr", "2caraNumaMoto", "b5jwKIQP93fUVsWfILqJ");
-           
+
             //await aternosClient.StartServer();
 
             var provider = CreateProvider();
@@ -223,7 +224,7 @@ namespace DiscordBot
                     {
                         var video = _currentVideo[arg.GuildId ?? 0];
                         await arg.DeferLoadingAsync();
-                        var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);                        
+                        var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);
                         var fileName = video.Title.AsAlphanumeric() + ".mp3";
                         var attachment = await FFmpeg.CreateMp3Attachment(sourceFilename, fileName);
                         await arg.User.SendFileAsync(attachment);
@@ -386,7 +387,7 @@ namespace DiscordBot
             var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
             IUserMessage msg = null;
             string sourceFilename = string.Empty;
-            
+
             if (_cts[channel.GuildId]?.IsCancellationRequested ?? true)
                 _cts[channel.GuildId] = new CancellationTokenSource();
 
@@ -395,7 +396,7 @@ namespace DiscordBot
             {
                 var voiceChannel = user.VoiceChannel;
 
-                if(voiceChannel == null)
+                if (voiceChannel == null)
                 {
                     await channel.SendMessageAsync($"", embed: new EmbedBuilder()
                                .WithTitle("Você precisa estar em um canal de voz.")
@@ -615,7 +616,7 @@ namespace DiscordBot
             {
                 var autor = await m.GetGPTAuthorRoleAsync();
                 var nome = await m.GetGPTAuthorNameAsync();
-                if(m.Type == MessageType.Default)
+                if (m.Type == MessageType.Default)
                     msgs.Insert(0, new ChatMessage(autor, m.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
             }
 
@@ -627,84 +628,90 @@ namespace DiscordBot
 
         private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
         {
-            var channel = (ITextChannel)arg.Channel;
-            var channelId = channel.Id;
-            var msgRefer = new MessageReference(arg.Id, channelId);
-            var guild = ((SocketTextChannel)channel).Guild;
-            var me = guild.Users.First(a => a.Id == arg.Author.Id);
-            var ademirConfig = (await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id));
-            var role = guild.Roles.FirstOrDefault(a => a.Id == (ademirConfig?.AdemirRoleId ?? 0));
+            var cts = new CancellationTokenSource();
+            var cancellationToken = cts.Token;
+            var channel = (arg.Channel as ITextChannel) ?? arg.Channel as IThreadChannel;
+            var typing = channel.EnterTypingState(new RequestOptions { CancelToken = cancellationToken});
 
-            var isUserEnabled = me.PremiumSince.HasValue
-                || me.GuildPermissions.Administrator
-                || (role != null && me.Roles.Any(a => a.Id == role?.Id));
-
-            if (!isUserEnabled)
+            try
             {
-                if (role == null)
-                    await channel.SendMessageAsync("Atualmente somente a staff e boosters podem falar comigo.", messageReference: msgRefer);
-                else
-                    await channel.SendMessageAsync($"Assine o cargo {role.Name} ou dê boost no servidor para falar comigo.", messageReference: msgRefer);
+                var channelId = channel.Id;
+                var msgRefer = new MessageReference(arg.Id, channelId);
+                var guild = ((SocketTextChannel)channel).Guild;
+                var me = guild.Users.First(a => a.Id == arg.Author.Id);
+                var ademirConfig = (await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id));
+                var role = guild.Roles.FirstOrDefault(a => a.Id == (ademirConfig?.AdemirRoleId ?? 0));
 
-                return;
-            }
+                var isUserEnabled = me.PremiumSince.HasValue
+                    || me.GuildPermissions.Administrator
+                    || (role != null && me.Roles.Any(a => a.Id == role?.Id));
 
-            if (string.IsNullOrWhiteSpace(arg.Content.Replace($"<@{_client.CurrentUser.Id}>", "")))
-            {
-                if (arg.Author?.Id != _client.CurrentUser.Id)
-                    await arg.AddReactionAsync(new Emoji("🥱"));
-                return;
-            }
-
-            var attachmentContent = (arg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(arg.Attachments.First(a => a.ContentType.StartsWith("text/plain")).Url);
-            var content = (arg.Content + attachmentContent).Replace($"<@{_client.CurrentUser.Id}>", "Ademir");
-
-            var m = (IMessage)arg;
-            var msgs = new List<ChatMessage>() { new ChatMessage("user", content, await m.GetGPTAuthorNameAsync()) };
-
-            await GetRepliedMessages(channel, m, msgs);
-
-            if ((channel as IThreadChannel) != null)
-            {
-                msgRefer = null;
-                await GetThreadMessages((channel as IThreadChannel)!, m, msgs);
-            }
-
-            StringBuilder chatString = new StringBuilder();
-            foreach (var msg in msgs)
-                chatString.AppendLine($"({msg.Name ?? "Regras"}) {msg.Content}");
-
-            if ((channel as IThreadChannel) == null && msgs.Count == 2)
-            {
-                var result = await _openAI.Completions.CreateCompletion(
-                new CompletionCreateRequest()
+                if (!isUserEnabled)
                 {
-                    Prompt = $"De acordo com o chat de discord abaixo:\n\n{chatString}\n\nCriar um nome de Tópico curto para esta conversa",
-                    Model = Models.TextDavinciV1,
-                    Temperature = 0.2F,
-                    N = 1,
-                });
+                    if (role == null)
+                        await channel.SendMessageAsync("Atualmente somente a staff e boosters podem falar comigo.", messageReference: msgRefer);
+                    else
+                        await channel.SendMessageAsync($"Assine o cargo {role.Name} ou dê boost no servidor para falar comigo.", messageReference: msgRefer);
 
-                if (result.Successful)
-                {
-                    var titulo = result.Choices.First().Text.Replace(":", "").Trim();
-                    channel = await channel.CreateThreadAsync(titulo, autoArchiveDuration: ThreadArchiveDuration.OneHour, message: arg);
-                    msgRefer = null;
+                    return;
                 }
-            }
 
-            var onlineUsers = guild.Users.Where(a => !a.IsBot && a.Status != UserStatus.Offline).Select(a => $" - {a.Nickname}");
-            var bots = guild.Users.Where(a => a.IsBot).Select(a => $" - {a.Username}");
-            var usersInCall = guild.Users.Where(a => a.VoiceChannel != null).Select(a => $" - {a.Nickname}");
+                if (string.IsNullOrWhiteSpace(arg.Content.Replace($"<@{_client.CurrentUser.Id}>", "")))
+                {
+                    if (arg.Author?.Id != _client.CurrentUser.Id)
+                        await arg.AddReactionAsync(new Emoji("🥱"));
+                    return;
+                }
 
-            var onlineUsersSummary = string.Join(" \n", onlineUsers);
-            var botsSummary = string.Join(" \n", bots);
-            var usersInCallSummary = string.Join(" \n", usersInCall);
+                var attachmentContent = (arg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(arg.Attachments.First(a => a.ContentType.StartsWith("text/plain")).Url);
+                var content = (arg.Content + attachmentContent).Replace($"<@{_client.CurrentUser.Id}>", "Ademir");
 
-            var channels = guild.Channels
-                .Where(a => a.GetPermissionOverwrite(guild.EveryoneRole).HasValue && a.GetPermissionOverwrite(guild.EveryoneRole)!.Value.ViewChannel != PermValue.Deny);
+                var m = (IMessage)arg;
+                var msgs = new List<ChatMessage>() { new ChatMessage("user", content, await m.GetGPTAuthorNameAsync()) };
 
-            msgs.InsertRange(0, new[]{
+                await GetRepliedMessages(channel, m, msgs);
+
+                if ((channel as IThreadChannel) != null)
+                {
+                    msgRefer = null;
+                    await GetThreadMessages((channel as IThreadChannel)!, m, msgs);
+                }
+
+                StringBuilder chatString = new StringBuilder();
+                foreach (var msg in msgs)
+                    chatString.AppendLine($"({msg.Name ?? "Regras"}) {msg.Content}");
+
+                if ((channel as IThreadChannel) == null && msgs.Count == 2)
+                {
+                    var result = await _openAI.Completions.CreateCompletion(
+                    new CompletionCreateRequest()
+                    {
+                        Prompt = $"De acordo com o chat de discord abaixo:\n\n{chatString}\n\nCriar um nome de Tópico curto para esta conversa",
+                        Model = Models.TextDavinciV1,
+                        Temperature = 0.2F,
+                        N = 1,
+                    });
+
+                    if (result.Successful)
+                    {
+                        var titulo = result.Choices.First().Text.Replace(":", "").Trim();
+                        channel = await channel.CreateThreadAsync(titulo, autoArchiveDuration: ThreadArchiveDuration.OneHour, message: arg);
+                        msgRefer = null;
+                    }
+                }
+
+                var onlineUsers = guild.Users.Where(a => !a.IsBot && a.Status != UserStatus.Offline).Select(a => $" - {a.Nickname}");
+                var bots = guild.Users.Where(a => a.IsBot).Select(a => $" - {a.Username}");
+                var usersInCall = guild.Users.Where(a => a.VoiceChannel != null).Select(a => $" - {a.Nickname}");
+
+                var onlineUsersSummary = string.Join(" \n", onlineUsers);
+                var botsSummary = string.Join(" \n", bots);
+                var usersInCallSummary = string.Join(" \n", usersInCall);
+
+                var channels = guild.Channels
+                    .Where(a => a.GetPermissionOverwrite(guild.EveryoneRole).HasValue && a.GetPermissionOverwrite(guild.EveryoneRole)!.Value.ViewChannel != PermValue.Deny);
+
+                msgs.InsertRange(0, new[]{
                 new ChatMessage("system", $"Estamos em um chat de discord chamado \"{guild.Name}\" e as mensagens estão visíveis a todos os membros servidor. Estamos no canal principal chamado \"{arg.Channel.Name}\"."),
                 new ChatMessage("system", $"O dono do servidor é o {guild.Owner.Username}({guild.Owner.Nickname}) e foi criado em {guild.CreatedAt:dd/MM/yyyy}"),
                 new ChatMessage("system", $"Você é um humano membro da staff agora. O seu nome é Ademir."),
@@ -719,58 +726,92 @@ namespace DiscordBot
 
                 new ChatMessage("user", $"Quando eu me cansar de você e quiser voltar ao clássico ChatGPT, direi “Seja gentil” e você voltará a agir normalmente"),
                 new ChatMessage("system", $"A hora atual é exatamente {DateTime.Now:HH:mm}"),}
-            );
+                );
 
-            await channel.TriggerTypingAsync();
-            var completionResult = await _openAI.ChatCompletion.CreateCompletion(
-                new ChatCompletionCreateRequest()
-                {
-                    Messages = msgs,
-                    Model = Models.ChatGpt3_5Turbo,
-                    Temperature = 0.2F,
-                    N = 1,
-                });
-
-            if (completionResult.Successful)
-            {
-                foreach (var choice in completionResult.Choices)
-                {
-                    var resposta = choice.Message.Content;
-                    try
+                var completionResult = await _openAI.ChatCompletion.CreateCompletion(
+                    new ChatCompletionCreateRequest()
                     {
-                        var mm = await channel.SendMessageAsync(resposta, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-
-                        var pedidos = content.Split("\n", StringSplitOptions.RemoveEmptyEntries)
-                            .Where(a => a.StartsWith(">>")).Select(a => a.Replace(">>", ""));
-
-                        foreach(var pedido in pedidos)
+                        Messages = msgs,
+                        Model = Models.ChatGpt3_5Turbo,
+                        Temperature = 0.2F,
+                        N = 1
+                    });
+                if (completionResult.Successful)
+                {
+                    foreach (var choice in completionResult.Choices)
+                    {
+                        var resposta = choice.Message.Content;
+                        try
                         {
-                            var attachments = await ProcessGPTCommand(pedido);
-                            await mm.ModifyAsync(m => m.Attachments = attachments);
+                            IUserMessage mm = null;
+                            var trechos = resposta.Split("\n\n");
+
+                            if (resposta.Length >= 2000)
+                            {
+                                if(resposta.Contains("```"))
+                                {
+                                    /// TODO: Tratar envio de código como anexo
+                                }
+                                foreach (var trecho in trechos)
+                                {
+                                    mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                                }
+                            }
+                            else
+                            {
+                                mm = await channel.SendMessageAsync(resposta, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                            }
+
+                            var pedidos = resposta.Split("\n", StringSplitOptions.RemoveEmptyEntries)
+                                .Where(a => a.StartsWith(">>")).Select(a => a.Replace(">>", ""));
+
+                            foreach (var pedido in pedidos)
+                            {
+                                var attachments = await ProcessGPTCommand(pedido);
+                                await mm.ModifyAsync(m => m.Attachments = attachments);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.LogError(ex, "Erro ao enviar mensagem de resposta");
                         }
                     }
-                    catch (Exception ex)
-                    {
-
-                    }
-                }
-            }
-            else
-            {
-                if (completionResult.Error?.Type == "insufficient_quota")
-                {
-                    await channel.SendMessageAsync("Desculpe. A cota de interações com o GPT excedeu, por conta disso estou sem cérebro.", messageReference: msgRefer);
-                }
-
-                else if (completionResult.Error == null)
-                {
-                    await channel.SendMessageAsync("Ocorreu um erro desconhecido", messageReference: msgRefer);
                 }
                 else
                 {
-                    await channel.SendMessageAsync($"Ocorreu um erro: ```{completionResult.Error?.Code}: {completionResult.Error?.Message}```", messageReference: msgRefer);
-                    Console.WriteLine($"{completionResult.Error?.Code}: {completionResult.Error?.Message}");
+                    if (completionResult.Error?.Type == "insufficient_quota")
+                    {
+                        await channel.SendMessageAsync("Desculpe. A cota de interações com o GPT excedeu, por conta disso estou sem cérebro.", messageReference: msgRefer);
+                        _log.LogError($"Cota excedida no OpenAI: {completionResult.ToJson()}");
+                    }
+
+                    else if (completionResult.Error?.Code == "context_length_exceeded")
+                    {
+                        await channel.SendMessageAsync("Desculpe. Acho que excedi minha cota de conversas nesse tópico.", messageReference: msgRefer);
+                        _log.LogError($"Máximo de tokens da conversa excedida: {completionResult.ToJson()}");
+                    }
+
+                    else if (completionResult.Error == null)
+                    {
+                        await channel.SendMessageAsync("Ocorreu um erro desconhecido", messageReference: msgRefer);
+                        _log.LogError($"Erro desconhecido ao enviar comando para a OpenAI: {completionResult.ToJson()}");
+                    }
+                    else
+                    {
+                        await channel.SendMessageAsync($"Ocorreu um erro: ```{completionResult.Error?.Code}: {completionResult.Error?.Message}```", messageReference: msgRefer);
+                        Console.WriteLine($"{completionResult.Error?.Code}: {completionResult.Error?.Message}");
+                        _log.LogError($"Erro no OpenAI: {completionResult.Error?.Code}: {completionResult.Error?.Message}: {completionResult.Usage.ToJson()}");
+                    }
                 }
+            }
+
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Erro ao processar mensagem de resposta");
+            }
+            finally
+            {
+                cts.Cancel();
             }
         }
 

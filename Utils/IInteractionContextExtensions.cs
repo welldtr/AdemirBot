@@ -50,7 +50,7 @@ namespace DiscordBot.Utils
         {
             var channel = (ITextChannel)msg.Channel;
             if (msg.Channel.Id != msg.Reference.ChannelId)
-                channel = (ITextChannel)channel.Guild.GetChannelAsync(msg.Reference.ChannelId);
+                channel = (ITextChannel) await channel.Guild.GetChannelAsync(msg.Reference.ChannelId);
 
             var msgRefer = await channel.GetMessageAsync(msg.Reference.MessageId.Value!);
             return msgRefer;
