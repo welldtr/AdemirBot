@@ -23,7 +23,6 @@ using YoutubeExplode.Videos;
 using SpotifyExplode;
 using YoutubeExplode.Exceptions;
 using DiscordBot.Domain;
-using SpotifyExplode.Users;
 
 namespace DiscordBot
 {
@@ -94,6 +93,10 @@ namespace DiscordBot
 
         public async Task MainAsync()
         {
+            //var aternosClient = new Aternos("welldtr", "2caraNumaMoto", "b5jwKIQP93fUVsWfILqJ");
+           
+            //await aternosClient.StartServer();
+
             var provider = CreateProvider();
             var commands = provider.GetRequiredService<CommandService>();
             _openAI = provider.GetRequiredService<OpenAIService>();
@@ -220,9 +223,8 @@ namespace DiscordBot
                     {
                         var video = _currentVideo[arg.GuildId ?? 0];
                         await arg.DeferLoadingAsync();
-                        var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);
-                        var regexName = new Regex(@"[^a-zA-Z0-9_-]");
-                        var fileName = regexName.Replace(video.Title, " ") + ".mp3";
+                        var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);                        
+                        var fileName = video.Title.AsAlphanumeric() + ".mp3";
                         var attachment = await FFmpeg.CreateMp3Attachment(sourceFilename, fileName);
                         await arg.User.SendFileAsync(attachment);
                         await arg.DeleteOriginalResponseAsync();
@@ -569,17 +571,15 @@ namespace DiscordBot
 
         private async Task GetRepliedMessages(ITextChannel channel, IMessage message, List<ChatMessage> msgs)
         {
-            var regexName = new Regex(@"[^a-zA-Z0-9_-]");
             var guild = _client.GetGuild(channel.GuildId);
             while (message.Reference != null && message.Reference.MessageId.IsSpecified)
             {
                 if (channel.Id != message.Reference.ChannelId)
                     channel = (ITextChannel)guild.GetChannel(message.Reference.ChannelId);
 
-                message = await channel.GetMessageAsync(message.Reference.MessageId.Value!);
-                var me = guild.Users.First(a => a.Id == (message?.Author?.Id ?? 0));
-                var autor = (me.Id == _client.CurrentUser.Id) ? "assistant" : "user";
-                var nome = regexName.Replace(message.Author.Id == _client.CurrentUser.Id ? "Ademir" : me.DisplayName, "");
+                message = await message.GetReferenceAsync();
+                var autor = await message.GetGPTAuthorRoleAsync();
+                var nome = await message.GetGPTAuthorNameAsync();
                 if (message.Type == MessageType.Default)
                     msgs.Insert(0, new ChatMessage(autor, message.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
             }
@@ -587,15 +587,13 @@ namespace DiscordBot
 
         private async Task GetThreadMessages(IThreadChannel thread, IMessage message, List<ChatMessage> msgs)
         {
-            var regexName = new Regex(@"[^a-zA-Z0-9_-]");
             var guild = _client.GetGuild(thread.GuildId);
 
             var msgsThread = await thread.GetMessagesAsync(message.Id, Direction.Before).FlattenAsync();
             foreach (var m in msgsThread)
             {
-                var me = guild.Users.First(a => a.Id == (m?.Author?.Id ?? 0));
-                var autor = (m.Id == _client.CurrentUser.Id ? "assistant" : "user");
-                var nome = regexName.Replace(me.Id == _client.CurrentUser.Id ? "Ademir" : me.DisplayName, "");
+                var autor = await m.GetGPTAuthorRoleAsync();
+                var nome = await m.GetGPTAuthorNameAsync();
                 if(m.Type == MessageType.Default)
                     msgs.Insert(0, new ChatMessage(autor, m.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
             }
@@ -637,12 +635,11 @@ namespace DiscordBot
                 return;
             }
 
-            var regexName = new Regex(@"[^a-zA-Z0-9_-]");
             var attachmentContent = (arg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(arg.Attachments.First(a => a.ContentType.StartsWith("text/plain")).Url);
             var content = (arg.Content + attachmentContent).Replace($"<@{_client.CurrentUser.Id}>", "Ademir");
 
             var m = (IMessage)arg;
-            var msgs = new List<ChatMessage>() { new ChatMessage("user", content, regexName.Replace(me.DisplayName, "")) };
+            var msgs = new List<ChatMessage>() { new ChatMessage("user", content, await m.GetGPTAuthorNameAsync()) };
 
             await GetRepliedMessages(channel, m, msgs);
 
@@ -718,34 +715,18 @@ namespace DiscordBot
                 foreach (var choice in completionResult.Choices)
                 {
                     var resposta = choice.Message.Content;
-                    var embeds = new List<Embed>();
                     try
                     {
-                        var mm = await channel.SendMessageAsync(resposta, embeds: embeds.ToArray(), messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                        var mm = await channel.SendMessageAsync(resposta, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
 
-                        if (choice.Message.Content.Contains(">>"))
+                        var pedidos = content.Split("\n", StringSplitOptions.RemoveEmptyEntries)
+                            .Where(a => a.StartsWith(">>")).Select(a => a.Replace(">>", ""));
+
+                        foreach(var pedido in pedidos)
                         {
-                            var pedido = choice.Message.Content.Split("\n", StringSplitOptions.RemoveEmptyEntries)
-                                .FirstOrDefault(a => a.Contains(">>"))?.Replace(">>", "");
-
-                            var imageResult = await _openAI.Image.CreateImage(new ImageCreateRequest
-                            {
-                                Prompt = pedido!,
-                                N = 1,
-                                Size = StaticValues.ImageStatics.Size.Size512,
-                                ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Url,
-                            });
-
-                            resposta = resposta.Replace($">>{pedido}", "");
-
-                            if (imageResult.Successful)
-                            {
-                                foreach (var img in imageResult.Results)
-                                    embeds.Add(new EmbedBuilder().WithImageUrl(img.Url).Build());
-                            }
+                            var attachments = await ProcessGPTCommand(pedido);
+                            await mm.ModifyAsync(m => m.Attachments = attachments);
                         }
-
-                        await mm.ModifyAsync(m => m.Embeds = embeds.ToArray());
                     }
                     catch (Exception ex)
                     {
@@ -770,6 +751,25 @@ namespace DiscordBot
                     Console.WriteLine($"{completionResult.Error?.Code}: {completionResult.Error?.Message}");
                 }
             }
+        }
+
+        private async Task<List<FileAttachment>> ProcessGPTCommand(string pedido)
+        {
+            var imageResult = await _openAI.Image.CreateImage(new ImageCreateRequest
+            {
+                Prompt = pedido!,
+                N = 1,
+                Size = StaticValues.ImageStatics.Size.Size512,
+                ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Url,
+            });
+
+            var attachments = new List<FileAttachment>();
+            if (imageResult.Successful)
+            {
+                foreach (var img in imageResult.Results)
+                    attachments.Add(new FileAttachment(img.Url));
+            }
+            return attachments;
         }
 
         private async Task VerificarSeMensagemDeBump(SocketMessage arg)

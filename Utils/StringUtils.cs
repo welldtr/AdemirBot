@@ -1,10 +1,8 @@
-﻿using DiscordBot.Domain.Entities;
-using DiscordBot.Repository;
-using MongoDB.Driver;
+﻿using System.Text.RegularExpressions;
 
 namespace DiscordBot.Utils
 {
-    public class StringUtils
+    public static class StringUtils
     {
         public static ulong[] SplitAndParseMemberIds(string memberIds)
         {
@@ -13,13 +11,11 @@ namespace DiscordBot.Utils
                 .Select(a => ulong.Parse(a))
                 .ToArray();
         }
-    }
 
-    public static class MongoUtils
-    {
-        public static MongoRepository<T> GetRepository<T>(this IMongoDatabase db, string name) where T: IEntity
+        public static string AsAlphanumeric(this string entrada)
         {
-            return new MongoRepository<T>(db.GetCollection<T>(name));
+            var r = new Regex(@"[^a-zA-Z0-9_-]");
+            return r.Replace(entrada, string.Empty);
         }
     }
 }
