@@ -307,7 +307,6 @@ namespace DiscordBot
         {
             var channel = ((SocketTextChannel)arg.Channel);
 
-
             if (!arg.Author?.IsBot ?? false)
                 await _db.messagelog.UpsertAsync(new Message
                 {
@@ -362,10 +361,17 @@ namespace DiscordBot
             }
 
             await VerificarSeMensagemDeBump(arg);
+            await VerificarSeMacro(arg);
+        }
+
+        private async Task VerificarSeMacro(SocketMessage arg)
+        {
+            var channel = arg.GetTextChannel();
+            var user = await arg.GetAuthorGuildUserAsync();
             if (user.GuildPermissions.Administrator && arg.Content.StartsWith("%") && arg.Content.Length > 1 && !arg.Content.Contains(' '))
             {
                 var macro = await _db.macros
-                    .FindOneAsync(a => a.GuildId == guildId && a.Nome == arg.Content.Substring(1));
+                    .FindOneAsync(a => a.GuildId == arg.GetGuildId() && a.Nome == arg.Content.Substring(1));
 
                 if (macro != null)
                 {
@@ -380,11 +386,23 @@ namespace DiscordBot
             var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
             IUserMessage msg = null;
             string sourceFilename = string.Empty;
+            
             if (_cts[channel.GuildId]?.IsCancellationRequested ?? true)
                 _cts[channel.GuildId] = new CancellationTokenSource();
+
             var token = _cts[channel.GuildId].Token;
             try
             {
+                var voiceChannel = user.VoiceChannel;
+
+                if(voiceChannel == null)
+                {
+                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                               .WithTitle("Você precisa estar em um canal de voz.")
+                               .Build());
+                    return;
+                }
+
                 if (!query.Trim().StartsWith("http"))
                 {
                     query = await Youtube.GetFirstVideoUrl(query);
@@ -469,7 +487,7 @@ namespace DiscordBot
                     .WithButton("Avançar", "skip-music", ButtonStyle.Primary)
                     .WithButton("Baixar", "download-music", ButtonStyle.Success)
                     .Build();
-                var voiceChannel = user.VoiceChannel;
+
                 if (voiceChannel != null && !token.IsCancellationRequested)
                 {
                     while (_videos[channel.GuildId].TryDequeue(out video))
@@ -537,6 +555,9 @@ namespace DiscordBot
             catch (OperationCanceledException)
             {
                 _playerState[channel.GuildId] = PlaybackState.Stopped;
+                await channel.SendMessageAsync(embed: new EmbedBuilder()
+                   .WithTitle("Desconectado.")
+                   .Build());
             }
             catch (Exception ex)
             {
@@ -565,7 +586,7 @@ namespace DiscordBot
             await Task.Delay(30000);
 
             if (token.IsCancellationRequested)
-                if (_audioClients[channel.GuildId]?.ConnectionState == ConnectionState.Connected)
+                if (_audioClients[channel.GuildId]?.ConnectionState == ConnectionState.Connected || _playerState[channel.GuildId] == PlaybackState.Stopped)
                     await _audioClients[channel.GuildId].StopAsync();
         }
 
