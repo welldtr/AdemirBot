@@ -36,19 +36,20 @@ namespace DiscordBot
         private OpenAIService _openAI;
         private ConcurrentDictionary<ulong, IAudioClient> _audioClients;
         private ConcurrentDictionary<ulong, PlaybackState> _playerState;
-        private ConcurrentDictionary<ulong, Video> _currentVideo;
-        private ConcurrentDictionary<ulong, ConcurrentQueue<Video>> _videos;
+        private ConcurrentDictionary<ulong, Track> _currentTrack;
+        private ConcurrentDictionary<ulong, ConcurrentQueue<Track>> _tracks;
         private ConcurrentDictionary<ulong, CancellationTokenSource> _cts;
         private YoutubeClient _youtubeClient;
         string? mongoServer = Environment.GetEnvironmentVariable("MongoServer");
         string? gptKey = Environment.GetEnvironmentVariable("ChatGPTKey");
+        new Dictionary<string, Emote> emote;
 
         public Program()
         {
             _serviceProvider = CreateProvider();
             _audioClients = new ConcurrentDictionary<ulong, IAudioClient>();
-            _currentVideo = new ConcurrentDictionary<ulong, Video>();
-            _videos = new ConcurrentDictionary<ulong, ConcurrentQueue<Video>>();
+            _currentTrack = new ConcurrentDictionary<ulong, Track>();
+            _tracks = new ConcurrentDictionary<ulong, ConcurrentQueue<Track>>();
             _playerState = new ConcurrentDictionary<ulong, PlaybackState>();
             _cts = new ConcurrentDictionary<ulong, CancellationTokenSource>();
         }
@@ -138,11 +139,20 @@ namespace DiscordBot
 
                     foreach (var guild in _client.Guilds)
                     {
-                        _videos.TryAdd(guild.Id, new ConcurrentQueue<Video>());
-                        _currentVideo.TryAdd(guild.Id, null);
+                        _tracks.TryAdd(guild.Id, new ConcurrentQueue<Track>());
+                        _currentTrack.TryAdd(guild.Id, null);
                         _playerState[guild.Id] = PlaybackState.Stopped;
                         _cts[guild.Id] = null;
                     }
+
+                    emote = new Dictionary<string, Emote>()
+                    {
+                        {"stop", Emote.Parse("<:stop:1123770944784179210>") },
+                        {"play", Emote.Parse("<:play:1123770947984437259>") },
+                        {"pause", Emote.Parse("<:pause:1123770941235794033>") },
+                        {"skip", Emote.Parse("<:skip:1123771732243787887>") },
+                        {"download", Emote.Parse("<:download:1123771345667358720>") },
+                    };
                 }
                 catch (HttpException exception)
                 {
@@ -164,9 +174,7 @@ namespace DiscordBot
             if (user.Id == _client.CurrentUser.Id && @new.VoiceChannel == null)
             {
                 _playerState[old.VoiceChannel.Guild.Id] = PlaybackState.Stopped;
-                _videos[old.VoiceChannel.Guild.Id].Clear();
-                if (_cts != null && !_cts[old.VoiceChannel.Guild.Id].IsCancellationRequested)
-                    _cts[old.VoiceChannel.Guild.Id].Cancel();
+                _tracks[old.VoiceChannel.Guild.Id].Clear();
             }
         }
 
@@ -197,44 +205,63 @@ namespace DiscordBot
             }
         }
 
-        private Task _client_ButtonExecuted(SocketMessageComponent arg)
+        private async Task _client_ButtonExecuted(SocketMessageComponent arg)
         {
             Task _;
             switch (arg.Data.CustomId)
             {
                 case "stop-music":
-                    _videos[arg.GuildId ?? 0].Clear();
-                    _cts[arg.GuildId ?? 0]?.Cancel();
+                    await StopMusic(arg.GuildId ?? 0);
                     _ = Task.Run(async () => await arg.UpdateAsync(a =>
                     {
                         a.Components = null;
                     }));
+                    await arg.DeferAsync();
                     break;
 
                 case "skip-music":
-                    _cts[arg.GuildId ?? 0]?.Cancel();
                     _ = Task.Run(async () => await arg.UpdateAsync(a =>
                     {
                         a.Components = null;
                     }));
+                    await SkipMusic(arg.GuildId ?? 0);
+                    await arg.DeferAsync();
+                    break;
+
+                case "pause-music":
+                    await PauseMusic(arg.GuildId ?? 0);
+                    
+                    await arg.UpdateAsync(a =>
+                    {
+                        a.Components = new ComponentBuilder()
+                            .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"], disabled: _playerState[arg.GuildId ?? 0] == PlaybackState.Paused)
+                            .WithButton(null, "pause-music", _playerState[arg.GuildId ?? 0] == PlaybackState.Playing ? ButtonStyle.Secondary : ButtonStyle.Success, _playerState[arg.GuildId ?? 0] == PlaybackState.Playing ? emote["pause"] : emote["play"])
+                            .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"], disabled: _playerState[arg.GuildId ?? 0] == PlaybackState.Paused)
+                            .WithButton(null, "download-music", ButtonStyle.Success, emote["download"])
+                            .Build();
+
+                    });
+
+                    await arg.DeferAsync();
                     break;
 
                 case "download-music":
-                    _ = Task.Run(async () =>
-                    {
-                        var video = _currentVideo[arg.GuildId ?? 0];
-                        await arg.DeferLoadingAsync();
-                        var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);
-                        var fileName = video.Title.AsAlphanumeric() + ".mp3";
-                        var attachment = await FFmpeg.CreateMp3Attachment(sourceFilename, fileName);
-                        await arg.User.SendFileAsync(attachment);
-                        await arg.DeleteOriginalResponseAsync();
-                        File.Delete(sourceFilename);
-                        File.Delete(sourceFilename + ".mp3");
-                    });
+                    _ = Task.Run(async () => await DownloadAtachment(arg));
                     break;
             }
-            return Task.CompletedTask;
+        }
+
+        private async Task DownloadAtachment(SocketMessageComponent arg)
+        {
+            var video = _currentTrack[arg.GuildId ?? 0];
+            await arg.DeferLoadingAsync();
+            var sourceFilename = await _youtubeClient.ExtractAsync(video, CancellationToken.None);
+            var fileName = video.Title.AsAlphanumeric() + ".mp3";
+            var attachment = await FFmpeg.CreateMp3Attachment(sourceFilename, fileName);
+            await arg.User.SendFileAsync(attachment);
+            await arg.DeleteOriginalResponseAsync();
+            File.Delete(sourceFilename);
+            File.Delete(sourceFilename + ".mp3");
         }
 
         private async Task _client_UserJoined(SocketGuildUser arg)
@@ -324,10 +351,30 @@ namespace DiscordBot
 
             var user = guild.GetUser(arg.Author?.Id ?? 0);
 
-            if (arg.Content.StartsWith(">pp"))
+
+            if (arg.Content == (">>skip"))
             {
-                var query = arg.Content.Substring(4);
-                var _ = Task.Run(async () => await PlayAudioCommand(channel, user, query));
+                var _ = Task.Run(async () => await SkipMusic(guildId));
+            }
+
+            else if (arg.Content == (">>pause"))
+            {
+                var _ = Task.Run(async () => await PauseMusic(guildId));
+            }
+
+            else if (arg.Content == (">>stop"))
+            {
+                var _ = Task.Run(async () => await StopMusic(guildId));
+            }
+
+            else if (arg.Content == (">>quit"))
+            {
+                var _ = Task.Run(async () => await QuitVoice(guildId));
+            }
+            else if (arg.Content.StartsWith(">>"))
+            {
+                var query = arg.Content.Substring(2);
+                var _ = Task.Run(async () => await PlayMusic(channel, user, query));
             }
 
             if (user == null)
@@ -365,6 +412,31 @@ namespace DiscordBot
             await VerificarSeMacro(arg);
         }
 
+        private Task PauseMusic(ulong guildId)
+        {
+            _playerState[guildId] = _playerState[guildId] == PlaybackState.Playing ? PlaybackState.Paused : PlaybackState.Playing;
+            return Task.CompletedTask;
+        }
+
+        private async Task QuitVoice(ulong guildId)
+        {
+            await _audioClients[guildId].StopAsync();
+        }
+
+        private Task StopMusic(ulong guildId)
+        {
+            _tracks[guildId].Clear();
+            _cts[guildId]?.Cancel();
+            return Task.CompletedTask;
+        }
+
+        private Task SkipMusic(ulong guildId)
+        {
+            _cts[guildId]?.Cancel();
+            _cts[guildId] = new CancellationTokenSource();
+            return Task.CompletedTask;
+        }
+
         private async Task VerificarSeMacro(SocketMessage arg)
         {
             var channel = arg.GetTextChannel();
@@ -382,9 +454,8 @@ namespace DiscordBot
             }
         }
 
-        private async Task PlayAudioCommand(ITextChannel channel, IGuildUser user, string query)
+        private async Task PlayMusic(ITextChannel channel, IGuildUser user, string query)
         {
-            var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
             IUserMessage msg = null;
             string sourceFilename = string.Empty;
 
@@ -398,7 +469,7 @@ namespace DiscordBot
 
                 if (voiceChannel == null)
                 {
-                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                    await channel.SendMessageAsync(embed: new EmbedBuilder()
                                .WithTitle("Você precisa estar em um canal de voz.")
                                .Build());
                     return;
@@ -409,101 +480,78 @@ namespace DiscordBot
                     query = await Youtube.GetFirstVideoUrl(query);
                 }
 
-                Video video = null;
+                Track track = null;
                 if (query.Trim().StartsWith("https://open.spotify.com/"))
                 {
-                    var spotify = new SpotifyClient();
 
-                    var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
+                    var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
 
-                    var type = regex.Match(query.Trim()).Groups[2].Value;
-                    var id = regex.Match(query.Trim()).Groups[3].Value;
-                    switch (type)
-                    {
-                        case "playlist":
-                            var playlistTracks = await spotify.Playlists.GetAllTracksAsync(id);
-                            var playListvideos = new Video[playlistTracks.Count];
-                            var downloads = Enumerable.Range(0, playlistTracks.Count).Select(i => Task.Run(async () =>
-                            {
-                                var youtubeId2 = await spotify.Tracks.GetYoutubeIdAsync(playlistTracks[i].Url);
-                                video = await _youtubeClient.Videos.GetAsync(VideoId.Parse(youtubeId2), token);
-                                playListvideos[i] = video;
-                            }));
-                            Task.WaitAll(downloads.ToArray());
+                    var type = regex.Match(query.Trim()).Groups[1].Value;
+                    var id = regex.Match(query.Trim()).Groups[2].Value;
 
-                            foreach (var v in playListvideos)
-                                _videos[channel.GuildId].Enqueue(v);
+                    var videos = await GetListOfVideosOnSpotify(id, type);
+                    EnqueueVideos(channel.GuildId, videos);
 
-                            await channel.SendMessageAsync($"", embed: new EmbedBuilder()
-                               .WithTitle($"{playlistTracks.Count} musicas adicionadas à fila:")
-                               .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
+                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
+                               .WithTitle($"{videos.Length} musicas adicionadas à fila:")
                                .Build());
-                            break;
 
-                        case "album":
-                            var albumTracks = await spotify.Albums.GetAllTracksAsync(id);
-                            var videos = new Video[albumTracks.Count];
-                            var albumDownloads = Enumerable.Range(0, albumTracks.Count).Select(i => Task.Run(async () =>
-                            {
-                                var youtubeId2 = await spotify.Tracks.GetYoutubeIdAsync(albumTracks[i].Url);
-                                video = await _youtubeClient.Videos.GetAsync(VideoId.Parse(youtubeId2), token);
-                                videos[i] = video;
-                            }));
-                            Task.WaitAll(albumDownloads.ToArray());
-
-                            foreach (var v in videos)
-                                _videos[channel.GuildId].Enqueue(v);
-
-                            await channel.SendMessageAsync($"", embed: new EmbedBuilder()
-                               .WithTitle($"{albumTracks.Count} musicas adicionadas à fila:")
-                               .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
-                               .Build());
-                            break;
-
-                        case "track":
-                            var youtubeId3 = await spotify.Tracks.GetYoutubeIdAsync(query.Trim());
-                            video = await _youtubeClient.Videos.GetAsync(VideoId.Parse(youtubeId3), token);
-                            break;
-                    }
+                    track = videos.FirstOrDefault();
                 }
                 else
                 {
-                    video = await _youtubeClient.Videos.GetAsync(query, token);
+                    var video = await _youtubeClient.Videos.GetAsync(query);
+                    track = new Track
+                    {
+                        Origin = "YouTube",
+                        Author = video.Author.ChannelTitle,
+                        Title = video.Title,
+                        AppendDate = DateTime.UtcNow,
+                        Duration = video.Duration ?? TimeSpan.Zero,
+                        VideoId = video.Id,
+                        UserId = user.Id,
+                        Url = video.Url,
+                        GuildId = channel.GuildId,
+                        ThumbUrl = video.Thumbnails.FirstOrDefault()?.Url
+                    };
                 }
 
                 if (_playerState[channel.GuildId] != PlaybackState.Stopped)
                 {
                     await channel.SendMessageAsync($"", embed: new EmbedBuilder()
                                .WithTitle("Adicionada à fila:")
-                               .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
+                               .WithDescription($"{track.Title} - {track.Author} Duração: {track.Duration}")
                                .Build());
-                    _videos[channel.GuildId].Enqueue(video);
+                    _tracks[channel.GuildId].Enqueue(track);
                     return;
                 }
 
-                _videos[channel.GuildId].Enqueue(video);
+                _tracks[channel.GuildId].Enqueue(track);
 
                 var components = new ComponentBuilder()
-                    .WithButton("Parar", "stop-music", ButtonStyle.Danger)
-                    .WithButton("Avançar", "skip-music", ButtonStyle.Primary)
-                    .WithButton("Baixar", "download-music", ButtonStyle.Success)
+                    .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"])
+                    .WithButton(null, "pause-music", ButtonStyle.Secondary, emote["pause"])
+                    .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"])
+                    .WithButton(null, "download-music", ButtonStyle.Success, emote["download"])
                     .Build();
 
                 if (voiceChannel != null && !token.IsCancellationRequested)
                 {
-                    while (_videos[channel.GuildId].TryDequeue(out video))
+                    while (_tracks[channel.GuildId].TryDequeue(out track))
                     {
-                        _currentVideo[channel.GuildId] = video;
+                        var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
+                        _currentTrack[channel.GuildId] = track;
                         try
                         {
-                            sourceFilename = await _youtubeClient.ExtractAsync(video, token);
+                            sourceFilename = await _youtubeClient.ExtractAsync(track, token);
                             var embed = new EmbedBuilder()
                                .WithColor(Color.Red)
                                .WithAuthor("Tocando Agora ♪")
-                               .WithDescription($"[{video.Title}]({video.Url})\n`00:00 / {video.Duration:mm\\:ss}`")
-                               .WithThumbnailUrl(video.Thumbnails.FirstOrDefault()?.Url)
+                               .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration:mm\\:ss}`")
+                               .WithThumbnailUrl(track.ThumbUrl)
+                               .WithFooter($"Pedida por {user.DisplayName}", user.GetDisplayAvatarUrl())
                                .WithFields(new[] {
-                           new EmbedFieldBuilder().WithName("Autor").WithValue(video.Author)
+                           new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
                                })
                                .Build();
                             msg = await channel.SendMessageAsync(embed: embed, components: components);
@@ -512,7 +560,7 @@ namespace DiscordBot
                         {
                             await channel.SendMessageAsync($"", embed: new EmbedBuilder()
                                        .WithTitle("Esta música não está disponível:")
-                                       .WithDescription($"{video.Title} - {video.Author} Duração: {video.Duration}")
+                                       .WithDescription($"{track.Title} - {track.Author} Duração: {track.Duration:mm\\:ss}")
                                        .Build());
                             continue;
                         }
@@ -537,7 +585,41 @@ namespace DiscordBot
                                 {
                                     _playerState[channel.GuildId] = PlaybackState.Playing;
                                     await _audioClients.GetValueOrDefault(channel.GuildId)!.SetSpeakingAsync(true);
-                                    await output.CopyToAsync(discord, token);
+
+                                    int blockSize = 81920;
+                                    byte[] buffer = new byte[blockSize];
+                                    while (true)
+                                    {
+                                        if (token.IsCancellationRequested)
+                                        {
+                                            _cts[channel.GuildId] = new CancellationTokenSource();
+                                            token = _cts[channel.GuildId].Token;
+                                            break;
+                                        }
+
+                                        if (_playerState[channel.GuildId] == PlaybackState.Paused)
+                                            continue;
+
+
+                                        var byteCount = await output.ReadAsync(buffer, 0, blockSize);
+
+
+                                        if (byteCount <= 0)
+                                        {
+                                            _cts[channel.GuildId] = new CancellationTokenSource();
+                                            token = _cts[channel.GuildId].Token;
+                                            break;
+                                        }
+
+                                        try
+                                        {
+                                            await discord.WriteAsync(buffer, 0, byteCount);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            await discord?.FlushAsync();
+                                        }
+                                    }
                                 }
                                 catch (OperationCanceledException)
                                 {
@@ -583,12 +665,55 @@ namespace DiscordBot
                .WithTitle("Fila terminada")
                .Build());
 
+            _tracks[channel.GuildId].Clear();
             _playerState[channel.GuildId] = PlaybackState.Stopped;
             await Task.Delay(30000);
 
             if (token.IsCancellationRequested)
                 if (_audioClients[channel.GuildId]?.ConnectionState == ConnectionState.Connected || _playerState[channel.GuildId] == PlaybackState.Stopped)
                     await _audioClients[channel.GuildId].StopAsync();
+        }
+
+        private void EnqueueVideos(ulong guildId, Track[] videos)
+        {
+            foreach (var v in videos)
+                _tracks[guildId].Enqueue(v);
+        }
+
+        delegate ValueTask<List<SpotifyExplode.Tracks.Track>> SpotifyApi(string id);
+        private async Task<Track[]> GetListOfVideosOnSpotify(string id, string type, CancellationToken token = default)
+        {
+            var spotify = new SpotifyClient();
+            var apis = new Dictionary<string, SpotifyApi>()
+            {
+                { "track", async(i) => new List<SpotifyExplode.Tracks.Track> { await spotify.Tracks.GetAsync(i) } },
+                { "playlist", async(i) => await spotify.Playlists.GetAllTracksAsync(i) },
+                { "album", async(i) => await spotify.Albums.GetAllTracksAsync(i) }
+            };
+
+            var spotifyTracks = await apis[type](id);
+            var playListTracks = new Track[spotifyTracks.Count];
+            var downloads = Enumerable.Range(0, spotifyTracks.Count).Select(i => Task.Run(async () =>
+            {
+                var youtubeId = await spotify.Tracks.GetYoutubeIdAsync(spotifyTracks[i].Url);
+                var video = await _youtubeClient.Videos.GetAsync(VideoId.Parse(youtubeId!), token);
+                var track = await spotify.Tracks.GetAsync(spotifyTracks[i].Id);
+                playListTracks[i] = new Track
+                {
+                    Origin = "Spotify",
+                    Url = spotifyTracks[i].Url,
+                    AppendDate = DateTime.UtcNow,
+                    Duration = TimeSpan.FromMilliseconds(spotifyTracks[i].DurationMs),
+                    TrackId = id,
+                    VideoId = video.Url,
+                    Title = spotifyTracks[i].Title,
+                    Author = string.Join(", ", spotifyTracks[i].Artists.Select(a => a.Name)),
+                    ThumbUrl = track.Album.Images.FirstOrDefault()?.Url,
+                };
+            }));
+
+            Task.WaitAll(downloads.ToArray());
+            return playListTracks;
         }
 
         private async Task GetRepliedMessages(ITextChannel channel, IMessage message, List<ChatMessage> msgs)
@@ -631,7 +756,7 @@ namespace DiscordBot
             var cts = new CancellationTokenSource();
             var cancellationToken = cts.Token;
             var channel = (arg.Channel as ITextChannel) ?? arg.Channel as IThreadChannel;
-            var typing = channel.EnterTypingState(new RequestOptions { CancelToken = cancellationToken});
+            var typing = channel.EnterTypingState(new RequestOptions { CancelToken = cancellationToken });
 
             try
             {
@@ -748,7 +873,7 @@ namespace DiscordBot
 
                             if (resposta.Length >= 2000)
                             {
-                                if(resposta.Contains("```"))
+                                if (resposta.Contains("```"))
                                 {
                                     /// TODO: Tratar envio de código como anexo
                                 }

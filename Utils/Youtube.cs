@@ -2,6 +2,7 @@
 using YoutubeExplode;
 using YoutubeSearchApi.Net.Services;
 using YoutubeExplode.Exceptions;
+using DiscordBot.Domain.Entities;
 
 namespace DiscordBot.Utils
 {
@@ -21,11 +22,11 @@ namespace DiscordBot.Utils
                 return null;
             }
         }
-        public static async Task<string> ExtractAsync(this YoutubeClient _youtubeClient, Video video, CancellationToken cancellationToken)
+        public static async Task<string> ExtractAsync(this YoutubeClient _youtubeClient, Track track, CancellationToken cancellationToken)
         {
             try
             {
-                var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(video.Id, cancellationToken: cancellationToken);
+                var streamInfoSet = await _youtubeClient.Videos.Streams.GetManifestAsync(track.VideoId, cancellationToken: cancellationToken);
                 var audioStreamInfo = streamInfoSet.GetAudioOnlyStreams().OrderByDescending(a => a.Bitrate).FirstOrDefault();
                 var sourceFilename = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.{audioStreamInfo.Container}");
                 await _youtubeClient.Videos.Streams.DownloadAsync(audioStreamInfo, sourceFilename, cancellationToken: cancellationToken);
@@ -33,7 +34,7 @@ namespace DiscordBot.Utils
             }
             catch (VideoUnplayableException)
             {
-                await foreach (var result in _youtubeClient.Search.GetResultsAsync(video.Title))
+                await foreach (var result in _youtubeClient.Search.GetResultsAsync(track.Title))
                 {
                     try
                     {
