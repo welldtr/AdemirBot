@@ -485,7 +485,6 @@ namespace DiscordBot
                 Track track = null;
                 if (query.Trim().StartsWith("https://open.spotify.com/"))
                 {
-
                     var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
 
                     var type = regex.Match(query.Trim()).Groups[1].Value;
@@ -539,7 +538,7 @@ namespace DiscordBot
 
                 if (voiceChannel != null && !token.IsCancellationRequested)
                 {
-                    while (_tracks[channel.GuildId].TryDequeue(out track))
+                    while (_tracks[channel.GuildId].TryDequeue(out track) && track != null)
                     {
                         var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
                         _currentTrack[channel.GuildId] = track;
@@ -553,7 +552,7 @@ namespace DiscordBot
                                .WithThumbnailUrl(track.ThumbUrl)
                                .WithFooter($"Pedida por {user.DisplayName}", user.GetDisplayAvatarUrl())
                                .WithFields(new[] {
-                           new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
+                                    new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
                                })
                                .Build();
                             msg = await channel.SendMessageAsync(embed: embed, components: components);
@@ -602,9 +601,7 @@ namespace DiscordBot
                                         if (_playerState[channel.GuildId] == PlaybackState.Paused)
                                             continue;
 
-
                                         var byteCount = await output.ReadAsync(buffer, 0, blockSize);
-
 
                                         if (byteCount <= 0)
                                         {
@@ -660,7 +657,6 @@ namespace DiscordBot
                 {
                     File.Delete(sourceFilename);
                 }
-
             }
 
             await channel.SendMessageAsync(embed: new EmbedBuilder()
