@@ -24,6 +24,8 @@ using SpotifyExplode;
 using YoutubeExplode.Exceptions;
 using DiscordBot.Domain;
 using MongoDB.Bson;
+using System.Reactive.Joins;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace DiscordBot
 {
@@ -230,7 +232,7 @@ namespace DiscordBot
 
                 case "pause-music":
                     await PauseMusic(arg.GuildId ?? 0);
-                    
+
                     await arg.UpdateAsync(a =>
                     {
                         a.Components = new ComponentBuilder()
@@ -875,11 +877,45 @@ namespace DiscordBot
                             {
                                 if (resposta.Contains("```"))
                                 {
-                                    /// TODO: Tratar envio de código como anexo
+                                    var start = 0;
+                                    MatchCollection textmatches = Regex.Matches(resposta, @"```(?'lang'\S*)\s*(?'code'[\s\S]*?)\s*```", RegexOptions.Singleline);
+                                    foreach (Match match in textmatches)
+                                    {
+                                        var substr = match.Index - start;
+                                        var prevText = resposta.Substring(start, substr);
+                                        start = match.Index + match.Length;
+                                        var lang = match.Groups["lang"].Value;
+                                        var code = match.Groups["code"].Value;
+                                        string trecho = $"```{lang}\n{code}```";
+
+                                        if (!string.IsNullOrWhiteSpace(prevText))
+                                        {
+                                            mm = await channel.SendMessageAsync(prevText, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                                            msgRefer = (channel is IThreadChannel ? msgRefer : new MessageReference(mm.Id));
+                                        }
+
+                                        if (trecho.Length > 2000)
+                                        {
+                                            var fileStream = new MemoryStream(Encoding.UTF8.GetBytes(code));
+                                            mm = await channel.SendFileAsync(new FileAttachment(fileStream, $"message.{lang}"));
+                                        }
+                                        else
+                                        {
+                                            mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                                        }
+                                    }
+                                    if (start < resposta.Length - 1)
+                                    {
+                                        mm = await channel.SendMessageAsync(resposta.Substring(start), messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                                    }
                                 }
-                                foreach (var trecho in trechos)
+                                else
                                 {
-                                    mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                                    foreach (var trecho in trechos)
+                                    {
+                                        mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                                        msgRefer = (channel is IThreadChannel ? msgRefer : new MessageReference(mm.Id));
+                                    }
                                 }
                             }
                             else
