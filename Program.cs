@@ -20,7 +20,7 @@ namespace DiscordBot
 
         public Program()
         {
-            _serviceProvider = CreateProvider();
+            CreateProvider();
         }
 
         private IServiceProvider CreateProvider()
