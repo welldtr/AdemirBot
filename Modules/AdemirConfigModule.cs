@@ -11,7 +11,7 @@ namespace DiscordBot.Modules
         private readonly DiscordShardedClient _client;
         private readonly Context db;
 
-        public DenounceModule(DiscordShardedClient client, Context context)
+        public AdemirConfigModule(DiscordShardedClient client, Context context)
         {
             _client = client;
             db = context;
