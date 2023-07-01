@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
-using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Services
@@ -33,7 +32,7 @@ namespace DiscordBot.Services
 
         private async Task _client_MessageReceived(SocketMessage arg)
         {
-            await VerificarSeMacro(arg);
+            await LogMessage(arg);
         }
 
         private async Task _client_UserJoined(SocketGuildUser arg)
@@ -111,21 +110,20 @@ namespace DiscordBot.Services
             });
         }
 
-        private async Task VerificarSeMacro(SocketMessage arg)
+        private async Task LogMessage(SocketMessage arg)
         {
-            var channel = arg.GetTextChannel();
-            var user = await arg.GetAuthorGuildUserAsync();
-            if (user.GuildPermissions.Administrator && arg.Content.StartsWith("%") && arg.Content.Length > 1 && !arg.Content.Contains(' '))
-            {
-                var macro = await _db.macros
-                    .FindOneAsync(a => a.GuildId == arg.GetGuildId() && a.Nome == arg.Content.Substring(1));
+            var channel = ((SocketTextChannel)arg.Channel);
 
-                if (macro != null)
+            if (!arg.Author?.IsBot ?? false)
+                await _db.messagelog.UpsertAsync(new Message
                 {
-                    await channel.SendMessageAsync(macro.Mensagem, allowedMentions: AllowedMentions.None);
-                    await channel.DeleteMessageAsync(arg);
-                }
-            }
+                    MessageId = arg.Id,
+                    ChannelId = channel.Id,
+                    GuildId = channel.Guild.Id,
+                    MessageDate = arg.Timestamp.UtcDateTime,
+                    UserId = arg.Author?.Id ?? 0,
+                    MessageLength = arg.Content.Length
+                });
         }
     }
 }

@@ -5,8 +5,6 @@ using DiscordBot.Domain.Entities;
 using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
-using SpotifyExplode.Users;
-using System;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using YoutubeExplode;

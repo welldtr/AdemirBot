@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using DiscordBot.Domain.Entities;
 using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
 using OpenAI.Managers;
@@ -8,7 +7,6 @@ using OpenAI.ObjectModels.RequestModels;
 using OpenAI.ObjectModels;
 using System.Text.RegularExpressions;
 using System.Text;
-using System;
 using MongoDB.Bson;
 
 namespace DiscordBot.Services
