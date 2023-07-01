@@ -11,6 +11,12 @@ namespace DiscordBot.Modules
         private readonly DiscordShardedClient _client;
         private readonly Context db;
 
+        public DenounceModule(DiscordShardedClient client, Context context)
+        {
+            _client = client;
+            db = context;
+        }
+        
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("config-cargo-ademir", "Configurar cargo que pode falar com o Ademir.")]
         public async Task ConfigCargoAdemir(
