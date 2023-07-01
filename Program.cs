@@ -26,6 +26,7 @@ using DiscordBot.Domain;
 using MongoDB.Bson;
 using System.Reactive.Joins;
 using YoutubeExplode.Videos.ClosedCaptions;
+using System;
 
 namespace DiscordBot
 {
@@ -38,18 +39,22 @@ namespace DiscordBot
         private OpenAIService _openAI;
         private ConcurrentDictionary<ulong, IAudioClient> _audioClients;
         private ConcurrentDictionary<ulong, PlaybackState> _playerState;
+        private ConcurrentDictionary<ulong, float> _decorrido;
         private ConcurrentDictionary<ulong, Track> _currentTrack;
         private ConcurrentDictionary<ulong, ConcurrentQueue<Track>> _tracks;
         private ConcurrentDictionary<ulong, CancellationTokenSource> _cts;
         private YoutubeClient _youtubeClient;
         string? mongoServer = Environment.GetEnvironmentVariable("MongoServer");
         string? gptKey = Environment.GetEnvironmentVariable("ChatGPTKey");
+        private ConcurrentDictionary<ulong, Func<TimeSpan, Task>> _positionFunc;
         new Dictionary<string, Emote> emote;
 
         public Program()
         {
             _serviceProvider = CreateProvider();
             _audioClients = new ConcurrentDictionary<ulong, IAudioClient>();
+            _positionFunc = new ConcurrentDictionary<ulong, Func<TimeSpan, Task>>();
+            _decorrido = new ConcurrentDictionary<ulong, float>();
             _currentTrack = new ConcurrentDictionary<ulong, Track>();
             _tracks = new ConcurrentDictionary<ulong, ConcurrentQueue<Track>>();
             _playerState = new ConcurrentDictionary<ulong, PlaybackState>();
@@ -124,13 +129,14 @@ namespace DiscordBot
                 {
                     var _interactionService = new InteractionService(_client.Rest);
 
-                    await _interactionService.AddModuleAsync<BanModule>(provider);
-                    await _interactionService.AddModuleAsync<DallEModule>(provider);
-                    await _interactionService.AddModuleAsync<DenounceModule>(provider);
-                    await _interactionService.AddModuleAsync<InactiveUsersModule>(provider);
-                    await _interactionService.AddModuleAsync<MacroModule>(provider);
-                    await _interactionService.AddModuleAsync<MusicModule>(provider);
-
+                    await _interactionService.AddModulesGloballyAsync(true,
+                        await _interactionService.AddModuleAsync<BanModule>(provider),
+                        await _interactionService.AddModuleAsync<DallEModule>(provider),
+                        await _interactionService.AddModuleAsync<DenounceModule>(provider),
+                        await _interactionService.AddModuleAsync<InactiveUsersModule>(provider),
+                        await _interactionService.AddModuleAsync<MacroModule>(provider),
+                        await _interactionService.AddModuleAsync<MusicModule>(provider)
+                    );
                     _interactionService.SlashCommandExecuted += SlashCommandExecuted;
 
                     _client.InteractionCreated += async (x) =>
@@ -139,12 +145,32 @@ namespace DiscordBot
                         var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider));
                     };
 
+                    var _ = Task.Run(async () =>
+                    {
+                        while (true)
+                        {
+
+                            try
+                            {
+                                foreach (var guild in _client.Guilds)
+                                {
+                                    await _positionFunc[guild.Id](TimeSpan.FromSeconds(_decorrido[guild.Id]));
+                                    Console.WriteLine($"{TimeSpan.FromSeconds(_decorrido[guild.Id]):mm\\:ss}");
+                                }
+                            }
+                            catch (Exception ex) { }
+                            await Task.Delay(1000);
+                        }
+                    });
+
                     foreach (var guild in _client.Guilds)
                     {
                         _tracks.TryAdd(guild.Id, new ConcurrentQueue<Track>());
                         _currentTrack.TryAdd(guild.Id, null);
                         _playerState[guild.Id] = PlaybackState.Stopped;
                         _cts[guild.Id] = null;
+                        _positionFunc[guild.Id] = (a) => Task.CompletedTask;
+                        _decorrido[guild.Id] = float.NegativeInfinity;
                     }
 
                     emote = new Dictionary<string, Emote>()
@@ -553,10 +579,12 @@ namespace DiscordBot
                                .WithThumbnailUrl(track.ThumbUrl)
                                .WithFooter($"Pedida por {user.DisplayName}", user.GetDisplayAvatarUrl())
                                .WithFields(new[] {
-                           new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
-                               })
-                               .Build();
-                            msg = await channel.SendMessageAsync(embed: embed, components: components);
+                                   new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
+                               });
+
+                            var modFunc = async(TimeSpan position) => await msg.ModifyAsync(a => a.Embed = embed.WithDescription($"[{track.Title}]({position:mm\\:ss})\n`00:00 / {track.Duration:mm\\:ss}`").Build());
+                            _positionFunc[channel.GuildId] = modFunc;
+                            msg = await channel.SendMessageAsync(embed: embed.Build(), components: components);
                         }
                         catch (VideoUnplayableException ex)
                         {
@@ -572,7 +600,7 @@ namespace DiscordBot
 
                         var volume = ademirConfig?.GlobalVolume ?? 100;
 
-                        using (var ffmpeg = FFmpeg.CreateStream(sourceFilename, volume))
+                        using (var ffmpeg = FFmpeg.CreateStream(sourceFilename, 100))
                         using (var output = ffmpeg?.StandardOutput.BaseStream)
                         using (var discord = _audioClients.GetValueOrDefault(channel.GuildId)?
                                                                 .CreatePCMStream(AudioApplication.Music))
@@ -585,13 +613,17 @@ namespace DiscordBot
                             {
                                 try
                                 {
+                                    var ellapsed = DateTime.Now - ffmpeg?.StartTime;
                                     _playerState[channel.GuildId] = PlaybackState.Playing;
                                     await _audioClients.GetValueOrDefault(channel.GuildId)!.SetSpeakingAsync(true);
-
-                                    int blockSize = 81920;
+                                    float decorrido = 0;
+                                    int blockSize = 4800;
                                     byte[] buffer = new byte[blockSize];
                                     while (true)
                                     {
+                                        int sampleRate = 48000;
+                                        decorrido += (float)blockSize / (2 * sampleRate); // Duração em segundos
+                                        _decorrido[channel.GuildId] = decorrido/2;
                                         if (token.IsCancellationRequested)
                                         {
                                             _cts[channel.GuildId] = new CancellationTokenSource();
@@ -602,9 +634,7 @@ namespace DiscordBot
                                         if (_playerState[channel.GuildId] == PlaybackState.Paused)
                                             continue;
 
-
                                         var byteCount = await output.ReadAsync(buffer, 0, blockSize);
-
 
                                         if (byteCount <= 0)
                                         {
@@ -615,11 +645,20 @@ namespace DiscordBot
 
                                         try
                                         {
-                                            await discord.WriteAsync(buffer, 0, byteCount);
+                                            for (int i = 0; i < blockSize / 2; i++)
+                                            {
+                                                short sample = (short)((buffer[i * 2 + 1] << 8) | buffer[i * 2]);
+                                                double gain = (volume / 100f);
+                                                sample = (short)(sample * gain + 0.5);
+                                                buffer[i * 2 + 1] = (byte)(sample >> 8);
+                                                buffer[i * 2] = (byte)(sample & 0xff);
+                                            }
+                                            await discord!.WriteAsync(buffer, 0, byteCount);
                                         }
                                         catch (Exception e)
                                         {
-                                            await discord?.FlushAsync();
+                                            _log.LogError(e, "Erro ao processar bloco de audio.");
+                                            await discord!.FlushAsync();
                                         }
                                     }
                                 }
@@ -636,10 +675,12 @@ namespace DiscordBot
                 }
 
                 _playerState[channel.GuildId] = PlaybackState.Stopped;
+                _decorrido[channel.GuildId] = float.NegativeInfinity;
             }
             catch (OperationCanceledException)
             {
                 _playerState[channel.GuildId] = PlaybackState.Stopped;
+                _decorrido[channel.GuildId] = float.NegativeInfinity;
                 await channel.SendMessageAsync(embed: new EmbedBuilder()
                    .WithTitle("Desconectado.")
                    .Build());
@@ -647,6 +688,7 @@ namespace DiscordBot
             catch (Exception ex)
             {
                 _playerState[channel.GuildId] = PlaybackState.Stopped;
+                _decorrido[channel.GuildId] = float.NegativeInfinity;
                 await channel.SendMessageAsync($"Erro ao tocar musica: {ex}");
             }
             finally
@@ -669,6 +711,7 @@ namespace DiscordBot
 
             _tracks[channel.GuildId].Clear();
             _playerState[channel.GuildId] = PlaybackState.Stopped;
+            _decorrido[channel.GuildId] = float.NegativeInfinity;
             await Task.Delay(30000);
 
             if (token.IsCancellationRequested)
