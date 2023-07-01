@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace DiscordBot.Utils
 {
-    public class FFmpeg
+    public static class FFmpeg
     {
         public static Process? CreateStream(string path)
         {
