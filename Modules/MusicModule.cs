@@ -24,7 +24,7 @@ namespace DiscordBot.Modules
             if (volume > 0 && volume < 110)
             {
                 await svc.SetVolume(Context.Guild.Id, volume);
-                await ModifyOriginalResponseAsync(a => a.Content = $"Volume definido em {volume}% para a próxima execução.");
+                await ModifyOriginalResponseAsync(a => a.Content = $"Volume definido em {volume}%");
             }
             else
             {
@@ -36,7 +36,7 @@ namespace DiscordBot.Modules
         public async Task StopMusic()
         {
             await svc.StopMusic(Context.Guild.Id);
-            _ = Task.Run(async () => await (Context.Interaction as IComponentInteraction)!.UpdateAsync(a =>
+            _ = Task.Run(async () => await ((SocketMessageComponent)Context.Interaction)!.UpdateAsync(a =>
             {
                 a.Components = null;
             }));
@@ -47,7 +47,7 @@ namespace DiscordBot.Modules
         public async Task SkipMusic()
         {
             await svc.SkipMusic(Context.Guild.Id);
-            _ = Task.Run(async () => await (Context.Interaction as IComponentInteraction)!.UpdateAsync(a =>
+            _ = Task.Run(async () => await ((SocketMessageComponent)Context.Interaction)!.UpdateAsync(a =>
             {
                 a.Components = null;
             }));
@@ -58,14 +58,14 @@ namespace DiscordBot.Modules
         public async Task PauseMusic()
         {
             await svc.PauseMusic(Context.Guild.Id);     
-            await svc.UpdateControlsForMessage((SocketMessageComponent)((IComponentInteraction)Context.Interaction).Message);
+            await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
             await Context.Interaction.DeferAsync();
         }
 
         [ComponentInteraction("download-music", false, RunMode.Async)]
         public async Task DownloadMusic()
         {
-            await svc.DownloadAtachment((SocketMessageComponent)((IComponentInteraction)Context.Interaction).Message);
+            await svc.DownloadAtachment((SocketMessageComponent)Context.Interaction);
             await Context.Interaction.DeferAsync();
         }
     }

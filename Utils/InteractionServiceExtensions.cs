@@ -4,6 +4,8 @@ using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using Discord.Net;
 using Newtonsoft.Json;
+using Discord;
+using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Utils
 {
@@ -14,6 +16,10 @@ namespace DiscordBot.Utils
             try
             {
                 var _client = provider.GetRequiredService<DiscordShardedClient>();
+                var commands = provider.GetRequiredService<Discord.Commands.CommandService>();
+                
+                var _log = provider.GetRequiredService<ILogger<Program>>();
+                provider.ActivateAllDiscordServices();
 
                 var _interactionService = new InteractionService(_client.Rest);
 
@@ -21,6 +27,15 @@ namespace DiscordBot.Utils
 
                 _client.ShardReady += async (shard) =>
                 {
+                    await _client.SetGameAsync($"tudo e todos [{shard.ShardId}]", type: ActivityType.Listening);
+                    _log.LogInformation($"Shard Number {shard.ShardId} is connected and ready!");
+
+                    _client.InteractionCreated += async (x) =>
+                    {
+                        var ctx = new ShardedInteractionContext(_client, x);
+                        var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, provider));
+                    };
+
                     await _interactionService.AddModulesGloballyAsync(true,
                                 await _interactionService.AddModuleAsync<AdemirConfigModule>(provider),
                                 await _interactionService.AddModuleAsync<BanModule>(provider),
@@ -30,12 +45,6 @@ namespace DiscordBot.Utils
                                 await _interactionService.AddModuleAsync<MacroModule>(provider),
                                 await _interactionService.AddModuleAsync<MusicModule>(provider)
                             );
-
-                    _client.InteractionCreated += async (x) =>
-                    {
-                        var ctx = new ShardedInteractionContext(_client, x);
-                        var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, provider));
-                    };
                 };
             }
             catch (HttpException exception)

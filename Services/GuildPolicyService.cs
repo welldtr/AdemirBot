@@ -3,12 +3,10 @@ using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
-using static MongoDB.Bson.Serialization.Serializers.SerializerHelper;
-using System;
 
 namespace DiscordBot.Services
 {
-    public class GuildPolicyService
+    public class GuildPolicyService : Service
     {
         private Context _db;
         private DiscordShardedClient _client;
@@ -19,6 +17,10 @@ namespace DiscordBot.Services
             _db = context;
             _client = client;
             _log = logger;
+        }
+
+        public override void Activate()
+        {
             BindEventListeners();
         }
 

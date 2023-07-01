@@ -3,7 +3,7 @@ using DiscordBot.Domain.Entities;
 
 namespace DiscordBot.Services
 {
-    public class MacroService
+    public class MacroService : Service
     {
         private Context _db;
         private DiscordShardedClient _client;
@@ -12,10 +12,14 @@ namespace DiscordBot.Services
         {
             _db = context;
             _client = client;
+        }
+
+        public override void Activate()
+        {
             BindEventListeners();
         }
 
-        private void BindEventListeners()
+        public void BindEventListeners()
         {
             _client.MessageReceived += _client_MessageReceived;
         }

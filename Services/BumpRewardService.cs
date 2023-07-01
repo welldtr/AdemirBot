@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DiscordBot.Services
 {
-    public class BumpRewardService
+    public class BumpRewardService : Service
     {
         private Context _db;
         private DiscordShardedClient _client;
@@ -16,6 +16,10 @@ namespace DiscordBot.Services
             _db = context;
             _client = client;
             _log = logger;
+        }
+
+        public override void Activate()
+        {
             BindEventListeners();
         }
 

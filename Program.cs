@@ -51,11 +51,7 @@ namespace DiscordBot
                .AddSingleton(openAI)
                .AddSingleton<DiscordShardedClient>()
                .AddSingleton<Context>()
-               .AddSingleton<AudioService>()
-               .AddSingleton<BumpRewardService>()
-               .AddSingleton<ChatGPTAssistantService>()
-               .AddSingleton<MacroService>()
-               .AddSingleton<GuildPolicyService>()
+               .AddDiscordServices()
                .AddLogging(b =>
                {
                    b.AddConsole();
@@ -72,17 +68,8 @@ namespace DiscordBot
             //await aternosClient.StartServer();
 
             var provider = CreateProvider();
-            var commands = provider.GetRequiredService<CommandService>();
-            _client = provider.GetRequiredService<DiscordShardedClient>();
-            _log = provider.GetRequiredService<ILogger<Program>>();
+            _client = provider.GetRequiredService<DiscordShardedClient>();           
             await provider.InitializeInteractionModulesAsync();
-
-            _client.ShardReady += async (shard) =>
-            {
-                await _client.SetGameAsync($"tudo e todos [{shard.ShardId}]", type: ActivityType.Listening);
-                _log.LogInformation($"Shard Number {shard.ShardId} is connected and ready!");
-            };
-
             var token = Environment.GetEnvironmentVariable("AdemirAuth");
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();

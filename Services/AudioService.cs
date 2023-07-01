@@ -14,7 +14,7 @@ using YoutubeExplode.Exceptions;
 
 namespace DiscordBot.Services
 {
-    public class AudioService
+    public class AudioService : Service
     {
         private Context _db;
         private DiscordShardedClient _client;
@@ -34,6 +34,10 @@ namespace DiscordBot.Services
             _db = context;
             _client = client;
             _log = logger;
+        }
+
+        public override void Activate()
+        {
             InitializeDictionaries();
             BindEventListeners();
         }
@@ -160,10 +164,6 @@ namespace DiscordBot.Services
 
         public async Task SetVolume(ulong guildId, int volume)
         {
-            for (int i = 0; i < 5; i++)
-                if (_volume.TryUpdate(guildId, volume, _volume[guildId]))
-                    break;
-
             var cfg = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guildId);
 
             if (cfg == null)
@@ -180,6 +180,13 @@ namespace DiscordBot.Services
             }
 
             await _db.ademirCfg.UpsertAsync(cfg);
+
+            await Task.Run(() =>
+            {
+                for (int i = 0; i < 5; i++)
+                    if (_volume.TryUpdate(guildId, volume, _volume[guildId]))
+                        break;
+            });
         }
 
         public Task PauseMusic(ulong guildId)
@@ -394,7 +401,7 @@ namespace DiscordBot.Services
                     await _audioClients[channel.GuildId].StopAsync();
         }
 
-        private async Task ProcessarBuffer(ulong guildId, Stream output, AudioOutStream discord, CancellationToken token = default)
+        private async Task ProcessarBuffer(ulong guildId, Stream output, AudioOutStream discord, CancellationToken token)
         {
             float decorrido = 0;
             int blockSize = 4800;
@@ -404,9 +411,7 @@ namespace DiscordBot.Services
                 int sampleRate = 48000;
                 if (token.IsCancellationRequested)
                 {
-                    _cts[guildId] = new CancellationTokenSource();
-                    token = _cts[guildId].Token;
-                    break;
+                    throw new TaskCanceledException();
                 }
 
                 if (_playerState[guildId] == PlaybackState.Paused)
@@ -419,8 +424,6 @@ namespace DiscordBot.Services
 
                 if (byteCount <= 0)
                 {
-                    _cts[guildId] = new CancellationTokenSource();
-                    token = _cts[guildId].Token;
                     break;
                 }
 

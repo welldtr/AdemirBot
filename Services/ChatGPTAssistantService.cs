@@ -13,7 +13,7 @@ using MongoDB.Bson;
 
 namespace DiscordBot.Services
 {
-    public class ChatGPTAssistantService
+    public class ChatGPTAssistantService : Service
     {
         private Context _db;
         private DiscordShardedClient _client;
@@ -26,6 +26,10 @@ namespace DiscordBot.Services
             _client = client;
             _log = logger;
             _openAI = openAI;
+        }
+
+        public override void Activate()
+        {
             BindEventListeners();
         }
 
