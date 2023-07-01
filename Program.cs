@@ -222,7 +222,7 @@ namespace DiscordBot
                         await arg2.Interaction.RespondAsync("Invalid number or arguments", ephemeral: true);
                         break;
                     case InteractionCommandError.Exception:
-                        await arg2.Interaction.RespondAsync($"Command exception: {arg3.ErrorReason}", ephemeral: true);
+                        await arg2.Interaction.RespondAsync($"Command exception: {arg3}", ephemeral: true);
                         break;
                     case InteractionCommandError.Unsuccessful:
                         await arg2.Interaction.RespondAsync("Command could not be executed", ephemeral: true);
