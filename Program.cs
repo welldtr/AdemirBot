@@ -511,7 +511,6 @@ namespace DiscordBot
                 Track track = null;
                 if (query.Trim().StartsWith("https://open.spotify.com/"))
                 {
-
                     var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
 
                     var type = regex.Match(query.Trim()).Groups[1].Value;
@@ -565,7 +564,7 @@ namespace DiscordBot
 
                 if (voiceChannel != null && !token.IsCancellationRequested)
                 {
-                    while (_tracks[channel.GuildId].TryDequeue(out track))
+                    while (_tracks[channel.GuildId].TryDequeue(out track) && track != null)
                     {
                         var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
                         _currentTrack[channel.GuildId] = track;
@@ -702,7 +701,6 @@ namespace DiscordBot
                 {
                     File.Delete(sourceFilename);
                 }
-
             }
 
             await channel.SendMessageAsync(embed: new EmbedBuilder()
