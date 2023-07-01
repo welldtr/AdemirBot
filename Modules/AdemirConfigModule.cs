@@ -1,4 +1,4 @@
-﻿using Discord;
+using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
@@ -22,15 +22,6 @@ namespace DiscordBot.Modules
         public async Task ConfigCargoAdemir(
             [Summary(description: "Cargo permitido falar com o Ademir")] IRole cargo)
         {
-            var admin = _client.Guilds.First(a => a.Id == Context.Guild.Id)
-                .GetUser(Context.User.Id).GuildPermissions.Administrator;
-
-            if (!admin)
-            {
-                await RespondAsync("Apenas administradores podem configurar o cargo para usar o Ademir.", ephemeral: true);
-                return;
-            }
-
             var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
             if (config == null)
             {
