@@ -102,7 +102,6 @@ namespace DiscordBot
 
         public async Task MainAsync()
         {
-            //var aternosClient = new Aternos("welldtr", "2caraNumaMoto", "b5jwKIQP93fUVsWfILqJ");
 
             //await aternosClient.StartServer();
 
