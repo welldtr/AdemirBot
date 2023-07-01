@@ -581,7 +581,7 @@ namespace DiscordBot
                                    new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
                                });
 
-                            var modFunc = async(TimeSpan position) => await msg.ModifyAsync(a => a.Embed = embed.WithDescription($"[{track.Title}]\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build());
+                            var modFunc = async(TimeSpan position) => await msg.ModifyAsync(a => a.Embed = embed.WithDescription($"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build());
                             _positionFunc[channel.GuildId] = modFunc;
                             msg = await channel.SendMessageAsync(embed: embed.Build(), components: components);
                         }
