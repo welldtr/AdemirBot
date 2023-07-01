@@ -20,6 +20,7 @@ namespace DiscordBot
 
         public Program()
         {
+            AppDomain.CurrentDomain.SetData("REGEX_DEFAULT_MATCH_TIMEOUT", TimeSpan.FromSeconds(2));
             CreateProvider();
         }
 
