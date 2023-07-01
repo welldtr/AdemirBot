@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using MongoDB.Driver;
 
@@ -8,12 +7,10 @@ namespace DiscordBot.Modules
 {
     public class DenounceModule : InteractionModuleBase
     {
-        private readonly DiscordShardedClient _client;
         private readonly Context db;
 
-        public DenounceModule(DiscordShardedClient client, Context context)
+        public DenounceModule(Context context)
         {
-            _client = client;
             db = context;
         }
 
@@ -22,15 +19,6 @@ namespace DiscordBot.Modules
         public async Task ConfigDenuncias(
             [Summary(description: "Canal de denúncias")] IChannel canal)
         {
-            var admin = _client.Guilds.First(a => a.Id == Context.Guild.Id)
-                .GetUser(Context.User.Id).GuildPermissions.Administrator;
-
-            if (!admin)
-            {
-                await RespondAsync("Apenas administradores podem configurar o canal de denuncias.", ephemeral: true);
-                return;
-            }
-
             var config = await db.denunciaCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id);
             if (config == null)
             {
@@ -68,8 +56,8 @@ namespace DiscordBot.Modules
             await RespondAsync($"Não se preocupe, {Context.User.Username}. Esta informação será mantida em sigilo.", ephemeral: true);
 
             var guildId = Context.Guild.Id;
-            var guild = _client.Guilds.First(a => a.Id == guildId);
-            var canal = (IMessageChannel)guild.Channels.First(a => a.Id == config.ChannelId);
+            var channels = await Context.Guild.GetChannelsAsync();
+            var canal = (IMessageChannel)channels.First(a => a.Id == config.ChannelId);
 
             var denunciado = usuario;
 

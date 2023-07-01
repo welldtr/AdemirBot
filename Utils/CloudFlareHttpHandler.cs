@@ -15,12 +15,12 @@ public partial class CloudflareHttpHandler : HttpClientHandler
 
         var response = task.Result;
 
-        if (base.CookieContainer.GetCookieHeader(request.RequestUri).Contains("cf_clearance"))
+        if (base.CookieContainer.GetCookieHeader(request.RequestUri!).Contains("cf_clearance"))
             return task;
 
         IEnumerable<string> values;
 
-        if (response.Headers.TryGetValues("refresh", out values) && values.FirstOrDefault().Contains("URL=/cdn-cgi/") && response.Headers.Server.ToString() == "cloudflare-nginx")
+        if (response.Headers.TryGetValues("refresh", out values!) && (values.FirstOrDefault()?.Contains("URL=/cdn-cgi/") ?? false) && response.Headers.Server.ToString() == "cloudflare-nginx")
         {
             Console.WriteLine("Solving cloudflare challenge . . . ");
 
@@ -46,7 +46,7 @@ public partial class CloudflareHttpHandler : HttpClientHandler
             vars = Regex.Match(function, regex[1], RegexOptions.Multiline).Value;
             calc = Regex.Match(function, regex[2], RegexOptions.Singleline).Value
                 .Replace("a.value", "var result")
-                .Replace("t.length", (request.RequestUri.Host.Length).ToString()); ;
+                .Replace("t.length", (request.RequestUri?.Host.Length).ToString()); ;
 
             object result;
             using (var engine = new V8ScriptEngine())
@@ -56,7 +56,7 @@ public partial class CloudflareHttpHandler : HttpClientHandler
 
             var requestUri = request.RequestUri;
 
-            request.RequestUri = new Uri(requestUri, String.Format("cdn-cgi/l/chk_jschl?jschl_vc={0}&pass={1}&jschl_answer={2}", jschl_vc, pass, result.ToString()));
+            request.RequestUri = new Uri(requestUri!, String.Format("cdn-cgi/l/chk_jschl?jschl_vc={0}&pass={1}&jschl_answer={2}", jschl_vc, pass, result.ToString()));
 
             base.SendAsync(request, cancellationToken).Wait();
 

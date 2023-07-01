@@ -1,7 +1,9 @@
-﻿using Discord;
+﻿using Amazon.Runtime.Internal.Util;
+using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using System.Text;
 
@@ -9,14 +11,14 @@ namespace DiscordBot.Modules
 {
     public class InactiveUsersModule : InteractionModuleBase
     {
-        private readonly DiscordShardedClient _client;
         private readonly Context db;
+        private readonly ILogger<InactiveUsersModule> _log;
         private bool importando = false;
 
-        public InactiveUsersModule(DiscordShardedClient client, Context context)
+        public InactiveUsersModule(Context context, ILogger<InactiveUsersModule> logger)
         {
-            _client = client;
             db = context;
+            _log = logger;
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -86,7 +88,7 @@ namespace DiscordBot.Modules
                             if (messages.Count() == 0)
                                 break;
 
-                            Console.WriteLine($"Processando o dia {messages.Last().Timestamp.UtcDateTime:dd/MM/yyyy}");
+                            _log.LogInformation($"Processando o dia {messages.Last().Timestamp.UtcDateTime:dd/MM/yyyy}");
 
                             await ModifyOriginalResponseAsync(a =>
                             {
@@ -106,7 +108,6 @@ namespace DiscordBot.Modules
                                     UserId = memberid,
                                     MessageLength = msg.Content.Length
                                 });
-                                Console.Write(".");
                             }
                         }
 
@@ -119,7 +120,7 @@ namespace DiscordBot.Modules
                             a.Flags = MessageFlags.Loading;
                             a.Content = $"Erro ao importar mensagens de {canal.Name}: {ex}";
                         });
-                        Console.WriteLine(ex.ToString());
+                        _log.LogError(ex, $"Erro ao importar mensagens de {canal.Name}");
                     }
                     importando = false;
                 });
@@ -137,9 +138,8 @@ namespace DiscordBot.Modules
             [Summary(description: "Canal a analisar")] IChannel canal)
         {
             var guildId = Context.Guild.Id;
-            var guild = _client.Guilds.First(a => a.Id == guildId);
-            var admin = _client.Guilds.First(a => a.Id == Context.Guild.Id)
-                .GetUser(Context.User.Id).GuildPermissions.Administrator;
+            var guild = Context.Guild;
+            var admin = (await guild.GetUserAsync(Context.User.Id)).GuildPermissions.Administrator;
 
             if (!admin)
             {
@@ -147,7 +147,7 @@ namespace DiscordBot.Modules
                 return;
             }
 
-            var usuarios = guild.Users.Where(a => !a.IsBot);
+            var usuarios = (await guild.GetUsersAsync()).Where(a => !a.IsBot);
             var rankMsg = new Dictionary<SocketGuildUser, DateTime>();
 
             await DeferAsync();

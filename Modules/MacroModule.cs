@@ -2,7 +2,6 @@
 using Discord.Interactions;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Modules.Modals;
-using MongoDB.Driver;
 
 namespace DiscordBot.Modules
 {

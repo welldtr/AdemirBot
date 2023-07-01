@@ -1,4 +1,4 @@
-﻿namespace DiscordBot.Domain
+﻿namespace DiscordBot.Domain.ValueObjects
 {
     public enum PlaybackState
     {

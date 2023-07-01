@@ -1,14 +1,12 @@
 ﻿using Discord;
 using System.Diagnostics;
-using System.Globalization;
 
 namespace DiscordBot.Utils
 {
     public class FFmpeg
     {
-        public static Process? CreateStream(string path, int volume)
+        public static Process? CreateStream(string path)
         {
-            var volPercent = (volume / 200M).ToString(CultureInfo.InvariantCulture);
             return Process.Start(new ProcessStartInfo
             {
                 FileName = "ffmpeg",

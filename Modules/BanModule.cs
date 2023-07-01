@@ -1,6 +1,5 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using DiscordBot.Utils;
 using DiscordBot.Modules.Modals;
 
@@ -8,13 +7,6 @@ namespace DiscordBot.Modules
 {
     public class BanModule : InteractionModuleBase
     {
-        private readonly DiscordShardedClient _client;
-
-        public BanModule(DiscordShardedClient client)
-        {
-            _client = client;
-        }
-
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("massban", "Banir membros em massa.")]
         public async Task MassBan()
@@ -32,7 +24,7 @@ namespace DiscordBot.Modules
             await DeferAsync();
             foreach (var id in memberIds)
             {
-                await _client.GetGuild(Context.Guild.Id).AddBanAsync(id);
+                await (await Context.Client.GetGuildAsync(Context.Guild.Id)).AddBanAsync(id);
             }
             await Context.Channel.SendMessageAsync($"{memberIds.Length} Usuários Banidos.");
         }
@@ -44,7 +36,7 @@ namespace DiscordBot.Modules
             await DeferAsync();
             foreach (var id in memberIds)
             {
-                var user = _client.GetGuild(Context.Guild.Id).GetUser(id);
+                var user = await (await Context.Client.GetGuildAsync(Context.Guild.Id)).GetUserAsync(id);
                 if (user != null)
                     await user.KickAsync();
             }

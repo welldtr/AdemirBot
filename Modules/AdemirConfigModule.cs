@@ -1,19 +1,15 @@
 using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
-using MongoDB.Driver;
 
 namespace DiscordBot.Modules
 {
     public class AdemirConfigModule : InteractionModuleBase
     {
-        private readonly DiscordShardedClient _client;
         private readonly Context db;
 
-        public AdemirConfigModule(DiscordShardedClient client, Context context)
+        public AdemirConfigModule(Context context)
         {
-            _client = client;
             db = context;
         }
         
@@ -49,14 +45,6 @@ namespace DiscordBot.Modules
             [Summary(description: "Conteudo da mensagem")] string conteudo,
             [Summary(description: "XP por bump")] long xp)
         {
-            var admin = _client.Guilds.First(a => a.Id == Context.Guild.Id).GetUser(Context.User.Id).GuildPermissions.Administrator;
-
-            if (!admin)
-            {
-                await RespondAsync("Apenas administradores podem configurar as recompensas por bump.", ephemeral: true);
-                return;
-            }
-
             var config = (await db.bumpCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
 
             if (config == null)
