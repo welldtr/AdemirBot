@@ -130,6 +130,7 @@ namespace DiscordBot
                     var _interactionService = new InteractionService(_client.Rest);
 
                     await _interactionService.AddModulesGloballyAsync(true,
+                        await _interactionService.AddModuleAsync<AdemirConfigModule>(provider),
                         await _interactionService.AddModuleAsync<BanModule>(provider),
                         await _interactionService.AddModuleAsync<DallEModule>(provider),
                         await _interactionService.AddModuleAsync<DenounceModule>(provider),
@@ -819,7 +820,7 @@ namespace DiscordBot
                     if (role == null)
                         await channel.SendMessageAsync("Atualmente somente a staff e boosters podem falar comigo.", messageReference: msgRefer);
                     else
-                        await channel.SendMessageAsync($"Assine o cargo {role.Name} ou dê boost no servidor para falar comigo.", messageReference: msgRefer);
+                        await channel.SendMessageAsync($"Consiga o cargo {role.Name} ou dê boost no servidor para falar comigo.", messageReference: msgRefer);
 
                     return;
                 }
