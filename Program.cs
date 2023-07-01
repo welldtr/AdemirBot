@@ -567,24 +567,24 @@ namespace DiscordBot
                 {
                     while (_tracks[channel.GuildId].TryDequeue(out track) && track != null)
                     {
+                        _positionFunc[channel.GuildId] = (a) => Task.CompletedTask;
+                        var embed = new EmbedBuilder()
+                           .WithColor(Color.Red)
+                           .WithAuthor("Tocando Agora ♪")
+                           .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration:mm\\:ss}`")
+                           .WithThumbnailUrl(track.ThumbUrl)
+                           .WithFooter($"Pedida por {user.DisplayName}", user.GetDisplayAvatarUrl())
+                           .WithFields(new[] {
+                                   new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
+                           });
+
                         var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
                         _currentTrack[channel.GuildId] = track;
                         try
                         {
                             sourceFilename = await _youtubeClient.ExtractAsync(track, token);
-                            var embed = new EmbedBuilder()
-                               .WithColor(Color.Red)
-                               .WithAuthor("Tocando Agora ♪")
-                               .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration:mm\\:ss}`")
-                               .WithThumbnailUrl(track.ThumbUrl)
-                               .WithFooter($"Pedida por {user.DisplayName}", user.GetDisplayAvatarUrl())
-                               .WithFields(new[] {
-                                   new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
-                               });
-
-                            var modFunc = async(TimeSpan position) => await msg.ModifyAsync(a => a.Embed = embed.WithDescription($"[{track.Title}]({position:mm\\:ss})\n`00:00 / {track.Duration:mm\\:ss}`").Build());
-                            _positionFunc[channel.GuildId] = modFunc;
                             msg = await channel.SendMessageAsync(embed: embed.Build(), components: components);
+                           
                         }
                         catch (VideoUnplayableException ex)
                         {
@@ -605,6 +605,8 @@ namespace DiscordBot
                         using (var discord = _audioClients.GetValueOrDefault(channel.GuildId)?
                                                                 .CreatePCMStream(AudioApplication.Music))
                         {
+                            var modFunc = async (TimeSpan position) => await msg.ModifyAsync(a => a.Embed = embed.WithDescription($"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build());
+                            _positionFunc[channel.GuildId] = modFunc;
                             if (output == null)
                             {
                                 _cts[channel.GuildId]?.Cancel();
@@ -622,8 +624,6 @@ namespace DiscordBot
                                     while (true)
                                     {
                                         int sampleRate = 48000;
-                                        decorrido += (float)blockSize / (2 * sampleRate); // Duração em segundos
-                                        _decorrido[channel.GuildId] = decorrido/2;
                                         if (token.IsCancellationRequested)
                                         {
                                             _cts[channel.GuildId] = new CancellationTokenSource();
@@ -633,6 +633,9 @@ namespace DiscordBot
 
                                         if (_playerState[channel.GuildId] == PlaybackState.Paused)
                                             continue;
+
+                                        decorrido += (float)blockSize / (2 * sampleRate); // Duração em segundos
+                                        _decorrido[channel.GuildId] = decorrido / 2;
 
                                         var byteCount = await output.ReadAsync(buffer, 0, blockSize);
 
