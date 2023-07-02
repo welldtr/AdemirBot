@@ -98,7 +98,7 @@ namespace DiscordBot.Services
                     if (role == null)
                         await channel.SendMessageAsync("Atualmente somente a staff e boosters podem falar comigo.", messageReference: msgRefer);
                     else
-                        await channel.SendMessageAsync($"Sou um bot criado para incentivar o crescimento e a interação (principalmente entre os membros) do servidor. Adquira o cargo <@?{role.Id}> ou dê boost no servidor para poder ter acesso a conversas comigo.", messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                        await channel.SendMessageAsync($"Sou um bot criado para incentivar o crescimento e a interação (principalmente entre os membros) do servidor. Adquira o cargo <@&{role.Id}> ou dê boost no servidor para poder ter acesso a conversas comigo.", messageReference: msgRefer, allowedMentions: AllowedMentions.None);
 
                     return;
                 }
