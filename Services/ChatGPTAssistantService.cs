@@ -75,6 +75,9 @@ namespace DiscordBot.Services
 
         private async Task ProcessarMensagemNoChatGPT(SocketMessage arg)
         {
+            if (arg.Author.IsBot)
+                return;
+
             var cts = new CancellationTokenSource();
             var cancellationToken = cts.Token;
             var channel = (arg.Channel as ITextChannel) ?? arg.Channel as IThreadChannel;
