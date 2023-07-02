@@ -7,20 +7,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord.Commands;
 using Microsoft.Extensions.Logging;
 using DiscordBot.Utils;
-using DiscordBot.Services;
 
 namespace DiscordBot
 {
     internal class Program
     {
         private DiscordShardedClient _client;
-        private ILogger<Program> _log;
         private string? mongoServer = Environment.GetEnvironmentVariable("MongoServer");
         private string? gptKey = Environment.GetEnvironmentVariable("ChatGPTKey");
 
         public Program()
         {
-            AppDomain.CurrentDomain.SetData("REGEX_DEFAULT_MATCH_TIMEOUT", TimeSpan.FromSeconds(2));
             CreateProvider();
         }
 

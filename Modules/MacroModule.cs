@@ -7,7 +7,8 @@ using System.Text.RegularExpressions;
 namespace DiscordBot.Modules
 {
     public class MacroModule : InteractionModuleBase
-    {        private readonly Context db;
+    {
+        private readonly Context db;
 
         public MacroModule(Context context)
         {
@@ -55,31 +56,37 @@ namespace DiscordBot.Modules
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("editar-macro", "Editar a macro")]
-        public async Task EditMacro([Summary(description: "Nome da macro")] string nome) => 
-            await Context.Interaction.RespondWithModalAsync<EditMacroModal>($"edit-macro:{nome}", modifyModal: (m) =>
+        public async Task EditMacro([Summary(description: "Nome da macro")] string nome)
+        {
+            var macro = await db.macros.FindOneAsync(a => a.GuildId == Context.Guild.Id && a.Nome == nome);
+
+            if (macro == null)
             {
-                m.Title = $"Editar Macro {nome}";                
+                await RespondAsync($"Não existe uma macro com o nome {nome} no server.", ephemeral: true);
+                return;
+            }
+
+            await Context.Interaction.RespondWithModalAsync($"edit-macro:{nome}", new EditMacroModal
+            {
+                Title = $"Editar macro: %{nome}",
+                Mensagem = macro.Mensagem
             });
+        }
 
         [ModalInteraction(@"edit-macro:*", TreatAsRegex = true)]
         public async Task MacroEditResponse(EditMacroModal modal)
         {
             string id = ((IModalInteraction)Context.Interaction).Data.CustomId;
             var nome = Regex.Match(id, @"edit-macro:(\w+)").Groups[1].Value;
-            var macro = await db.macros.Count(a => a.GuildId == Context.Guild.Id && a.Nome == nome);
+            var macro = await db.macros.FindOneAsync(a => a.GuildId == Context.Guild.Id && a.Nome == nome);
 
-            if (macro == 0)
+            if (macro == null)
             {
                 await RespondAsync($"Não existe uma macro com o nome {nome} no server.", ephemeral: true);
+                return;
             }
-
-            await db.macros.UpsertAsync(new Macro
-            {
-                MacroId = Guid.NewGuid(),
-                GuildId = Context.Guild.Id,
-                Nome = nome,
-                Mensagem = modal.Mensagem
-            });
+            macro.Mensagem = modal.Mensagem;
+            await db.macros.UpsertAsync(macro);
 
             await RespondAsync($"Lembre-se que para acionar a macro você deve digitar %{nome}", ephemeral: true);
         }

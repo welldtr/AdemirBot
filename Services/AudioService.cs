@@ -139,13 +139,11 @@ namespace DiscordBot.Services
             {
                 while (true)
                 {
-
                     try
                     {
                         foreach (var guild in _client.Guilds)
                         {
                             await _positionFunc[guild.Id](TimeSpan.FromSeconds(_decorrido[guild.Id]));
-                            Console.WriteLine($"{TimeSpan.FromSeconds(_decorrido[guild.Id]):mm\\:ss} ({_volume[guild.Id]}%)");
                         }
                     }
                     catch (Exception) { ; }
@@ -154,10 +152,15 @@ namespace DiscordBot.Services
             });
         }
 
-        private void EnqueueTracks(ulong guildId, Track[] videos)
+        private async Task EnqueueTracks(ITextChannel channel, Track[] tracks)
         {
-            foreach (var v in videos)
-                _tracks[guildId].Enqueue(v);
+            if (tracks.Length > 1)
+                await channel.SendEmbedText($"{tracks.Length} musicas adicionadas à fila:");
+            else if (tracks.Length > 0)
+                await channel.SendEmbedText("Adicionada à fila:", $"{tracks[0].Title} - {tracks[0].Author} Duração: {tracks[0].Duration}");
+
+            foreach (var v in tracks)
+                _tracks[channel.GuildId].Enqueue(v);
         }
 
         public async Task SetVolume(ulong guildId, int volume)
@@ -247,80 +250,34 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                if (!query.Trim().StartsWith("http"))
-                {
-                    query = await Youtube.GetFirstVideoUrl(query);
-                }
-
-                Track track = null;
-                if (query.Trim().StartsWith("https://open.spotify.com/"))
-                {
-                    var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
-
-                    var type = regex.Match(query.Trim()).Groups[1].Value;
-                    var id = regex.Match(query.Trim()).Groups[2].Value;
-
-                    var tracks = await Spotify.GetListOfTracksAsync(id, type);
-                    EnqueueTracks(channel.GuildId, tracks);
-
-                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
-                               .WithTitle($"{tracks.Length} musicas adicionadas à fila:")
-                               .Build());
-
-                    track = tracks.FirstOrDefault();
-                }
-                else
-                {
-                    track = await Youtube.GetTrackAsync(query);
-                }
+                await ResolveQuery(query, channel);
 
                 if (_playerState[channel.GuildId] != PlaybackState.Stopped)
                 {
-                    await channel.SendMessageAsync($"", embed: new EmbedBuilder()
-                               .WithTitle("Adicionada à fila:")
-                               .WithDescription($"{track.Title} - {track.Author} Duração: {track.Duration}")
-                               .Build());
-                    _tracks[channel.GuildId].Enqueue(track);
                     return;
                 }
 
-                _tracks[channel.GuildId].Enqueue(track);
-
-                var components = new ComponentBuilder()
-                    .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"])
-                    .WithButton(null, "pause-music", ButtonStyle.Secondary, emote["pause"])
-                    .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"])
-                    .WithButton(null, "download-music", ButtonStyle.Success, emote["download"])
-                    .Build();
+                var components = GetAudioControls(PlaybackState.Playing);
 
                 if (voiceChannel != null && !token.IsCancellationRequested)
                 {
-                    while (_tracks[channel.GuildId].TryDequeue(out track) && track != null)
+                    while (_tracks[channel.GuildId].TryDequeue(out Track track) && track != null)
                     {
                         _positionFunc[channel.GuildId] = (a) => Task.CompletedTask;
-                        var embed = new EmbedBuilder()
-                           .WithColor(Color.Red)
-                           .WithAuthor("Tocando Agora ♪")
-                           .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration:mm\\:ss}`")
-                           .WithThumbnailUrl(track.ThumbUrl)
-                           .WithFooter($"Pedida por {user.DisplayName}", user.GetDisplayAvatarUrl())
-                           .WithFields(new[] {
-                                   new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
-                           });
-
+                        var queuedBy = await channel.Guild.GetUserAsync(track.UserId);
+                        var banner = PlayerBanner(track, queuedBy);
                         _currentTrack[channel.GuildId] = track;
+
                         try
                         {
                             sourceFilename = await new YoutubeClient().ExtractAsync(track, token);
-                            msg = await channel.SendMessageAsync(embed: embed.Build(), components: components);
-
+                            msg = await channel.SendMessageAsync(embed: banner.Build(), components: components);
                         }
                         catch (VideoUnplayableException ex)
                         {
-                            await channel.SendMessageAsync($"", embed: new EmbedBuilder()
-                                       .WithTitle("Esta música não está disponível:")
-                                       .WithDescription($"{track.Title} - {track.Author} Duração: {track.Duration:mm\\:ss}")
-                                       .Build());
+                            await channel.SendEmbedText(
+                                "Esta música não está disponível:", 
+                                $"{track.Title} - {track.Author} Duração: {track.Duration:mm\\:ss}");
                             continue;
                         }
 
@@ -332,7 +289,11 @@ namespace DiscordBot.Services
                         using (var discord = _audioClients.GetValueOrDefault(channel.GuildId)?
                                                                 .CreatePCMStream(AudioApplication.Music))
                         {
-                            var modFunc = async (TimeSpan position) => await msg.ModifyAsync(a => a.Embed = embed.WithDescription($"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build());
+                            var modFunc = async (TimeSpan position) => await msg.ModifyAsync(a => {
+                                a.Embed = banner.WithDescription(
+                                    $"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build();
+                            });
+
                             _positionFunc[channel.GuildId] = modFunc;
                             if (output == null)
                             {
@@ -385,9 +346,7 @@ namespace DiscordBot.Services
                 }
             }
 
-            await channel.SendMessageAsync(embed: new EmbedBuilder()
-               .WithTitle("Fila terminada")
-               .Build());
+            await channel.SendEmbedText("Fila terminada");
 
             _tracks[channel.GuildId].Clear();
             _playerState[channel.GuildId] = PlaybackState.Stopped;
@@ -397,6 +356,59 @@ namespace DiscordBot.Services
             if (token.IsCancellationRequested)
                 if (_audioClients[channel.GuildId]?.ConnectionState == ConnectionState.Connected || _playerState[channel.GuildId] == PlaybackState.Stopped)
                     await _audioClients[channel.GuildId].StopAsync();
+        }
+
+        private async Task ResolveQuery(string query, ITextChannel channel)
+        {
+            if (!query.Trim().StartsWith("http"))
+            {
+                query = await Youtube.GetFirstVideoUrl(query);
+            }
+
+            Track[] tracks;
+            if (query.Trim().StartsWith("https://open.spotify.com/"))
+            {
+                tracks = await GetSpotifyTracks(query);
+            }
+            else
+            {
+                tracks = new[] { await Youtube.GetTrackAsync(query) };
+            }
+
+            await EnqueueTracks(channel, tracks);
+        }
+
+        private EmbedBuilder PlayerBanner(Track track, IGuildUser queuedBy)
+        {
+            return new EmbedBuilder()
+                .WithColor(Color.Red)
+                .WithAuthor("Tocando Agora ♪")
+                .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration:mm\\:ss}`")
+                .WithThumbnailUrl(track.ThumbUrl)
+                .WithFooter($"Pedida por {queuedBy.DisplayName}", queuedBy.GetDisplayAvatarUrl())
+                .WithFields(new[] {
+                    new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
+                });
+        }
+
+        private async Task<Track[]> GetSpotifyTracks(string query)
+        {
+            var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
+            var type = regex.Match(query.Trim()).Groups[1].Value;
+            var id = regex.Match(query.Trim()).Groups[2].Value;
+            var tracks = await Spotify.GetListOfTracksAsync(id, type);
+            return tracks;
+        }
+
+        private MessageComponent GetAudioControls(PlaybackState state)
+        {
+            var paused = state == PlaybackState.Paused;
+            return new ComponentBuilder()
+                .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"], disabled: paused)
+                .WithButton(null, "pause-music", paused ? ButtonStyle.Success : ButtonStyle.Secondary , paused ? emote["play"] : emote["pause"])
+                .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"], disabled: paused)
+                .WithButton(null, "download-music", ButtonStyle.Success, emote["download"])
+                .Build();
         }
 
         private async Task ProcessarBuffer(ulong guildId, Stream output, AudioOutStream discord, CancellationToken token)
@@ -416,7 +428,7 @@ namespace DiscordBot.Services
                     continue;
 
                 var byteCount = await output.ReadAsync(buffer, 0, blockSize);
-
+                
                 decorrido += (float)byteCount / (2 * sampleRate);
                 _decorrido[guildId] = decorrido / 2;
 
@@ -452,16 +464,8 @@ namespace DiscordBot.Services
 
         public async Task UpdateControlsForMessage(SocketMessageComponent arg)
         {
-            await arg.UpdateAsync(a =>
-            {
-                a.Components = new ComponentBuilder()
-                    .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"], disabled: _playerState[arg.GuildId ?? 0] == PlaybackState.Paused)
-                    .WithButton(null, "pause-music", _playerState[arg.GuildId ?? 0] == PlaybackState.Playing ? ButtonStyle.Secondary : ButtonStyle.Success, _playerState[arg.GuildId ?? 0] == PlaybackState.Playing ? emote["pause"] : emote["play"])
-                    .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"], disabled: _playerState[arg.GuildId ?? 0] == PlaybackState.Paused)
-                    .WithButton(null, "download-music", ButtonStyle.Success, emote["download"])
-                    .Build();
-
-            });
+            var components = GetAudioControls(_playerState[arg.GuildId ?? 0]);
+            await arg.UpdateAsync(a => a.Components = components);
         }
     }
 }

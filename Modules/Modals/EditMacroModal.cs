@@ -5,7 +5,7 @@ namespace DiscordBot.Modules.Modals
 {
     public class EditMacroModal : IModal
     {
-        public string Title => "Edtar Macro";
+        public string Title { get; set; } = "Editar Macro";
 
         [InputLabel("Mensagem da Macro")]
         [ModalTextInput("mensagem", TextInputStyle.Paragraph, placeholder: "Mensagem que deve ser enviada ao digitar %nomedamacro")]
