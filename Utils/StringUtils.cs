@@ -14,8 +14,25 @@ namespace DiscordBot.Utils
 
         public static string AsAlphanumeric(this string entrada)
         {
-            var r = new Regex(@"[^a-zA-Z0-9_-]");
-            return r.Replace(entrada, string.Empty);
+            return entrada.RegexReplace(string.Empty, @"[^a-zA-Z0-9_-]");
+        }
+
+        public static bool Matches(this string entrada, string pattern)
+        {
+            var r = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
+            return r.IsMatch(entrada);
+        }
+
+        public static Match Match(this string entrada, string pattern)
+        {
+            var r = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
+            return r.Match(entrada);
+        }
+
+        public static string RegexReplace(this string entrada, string pattern, string replacement)
+        {
+            var r = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
+            return r.Replace(entrada, replacement);
         }
     }
 }

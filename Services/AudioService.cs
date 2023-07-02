@@ -6,7 +6,6 @@ using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 using YoutubeExplode;
 using YoutubeExplode.Exceptions;
 
@@ -59,30 +58,37 @@ namespace DiscordBot.Services
                 return Task.CompletedTask;
             }
 
-            if (arg.Content == (">>skip"))
-            {
-                var _ = Task.Run(async () => await SkipMusic(guildId));
+            Task _;
+            switch(arg.Content)
+            { 
+                case ">>skip":            
+                    _ = Task.Run(async () => await SkipMusic(guildId));
+                    break;
+
+                case ">>pause":
+                    _ = Task.Run(async () => await PauseMusic(guildId));
+                    break;
+
+                case ">>stop":
+                    _ = Task.Run(async () => await StopMusic(guildId));
+                    break;
+
+                case ">>quit":
+                    _ = Task.Run(async () => await QuitVoice(guildId));
+                    break;
+
+                case string s when s.Matches(@">>volume (\d+)"):
+                    var volumestr = arg.Content.Match(@">>volume (\d+)").Groups[1].Value;
+                    var volume = int.Parse(volumestr);
+                    _ = Task.Run(async () => await SetVolume(guildId, volume));
+                    break;
+
+                case string s when s.StartsWith(">>"):
+                    var query = arg.Content.Substring(2);
+                    _ = Task.Run(async () => await PlayMusic(channel, user, query));
+                    break;
             }
 
-            else if (arg.Content == (">>pause"))
-            {
-                var _ = Task.Run(async () => await PauseMusic(guildId));
-            }
-
-            else if (arg.Content == (">>stop"))
-            {
-                var _ = Task.Run(async () => await StopMusic(guildId));
-            }
-
-            else if (arg.Content == (">>quit"))
-            {
-                var _ = Task.Run(async () => await QuitVoice(guildId));
-            }
-            else if (arg.Content.StartsWith(">>"))
-            {
-                var query = arg.Content.Substring(2);
-                var _ = Task.Run(async () => await PlayMusic(channel, user, query));
-            }
             return Task.CompletedTask;
         }
 
@@ -152,15 +158,27 @@ namespace DiscordBot.Services
             });
         }
 
-        private async Task EnqueueTracks(ITextChannel channel, Track[] tracks)
+        private async Task EnqueueTracks(IGuildUser user, ITextChannel channel, Track[] tracks)
         {
             if (tracks.Length > 1)
-                await channel.SendEmbedText($"{tracks.Length} musicas adicionadas à fila:");
-            else if (tracks.Length > 0)
-                await channel.SendEmbedText("Adicionada à fila:", $"{tracks[0].Title} - {tracks[0].Author} Duração: {tracks[0].Duration}");
+                await channel.SendMessageAsync(embed: new EmbedBuilder()
+                    .WithFooter($"{tracks.Length} músicas adicionadas à fila por {user.DisplayName}", user.GetDisplayAvatarUrl())
+                    .Build());
 
-            foreach (var v in tracks)
-                _tracks[channel.GuildId].Enqueue(v);
+            else if (tracks.Length > 0 && _tracks[channel.GuildId].Count > 0)
+                await channel.SendMessageAsync(embed: new EmbedBuilder()
+                    .WithAuthor("Adicionada à fila:")
+                    .WithDescription($"[{tracks[0].Title}]({tracks[0].Url})\n`00:00 / {tracks[0].Duration:mm\\:ss}`")
+                    .WithFooter($"Adicionada por {user.DisplayName}", user.GetDisplayAvatarUrl())
+                    .Build());
+
+            foreach (var track in tracks)
+            {
+                track.UserId = user.Id;
+                track.AppendDate = DateTime.Now;
+                track.GuildId = channel.GuildId;
+                _tracks[channel.GuildId].Enqueue(track);
+            }
         }
 
         public async Task SetVolume(ulong guildId, int volume)
@@ -250,7 +268,7 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                await ResolveQuery(query, channel);
+                await ResolveQuery(user, query, channel);
 
                 if (_playerState[channel.GuildId] != PlaybackState.Stopped)
                 {
@@ -358,7 +376,7 @@ namespace DiscordBot.Services
                     await _audioClients[channel.GuildId].StopAsync();
         }
 
-        private async Task ResolveQuery(string query, ITextChannel channel)
+        private async Task ResolveQuery(IGuildUser user, string query, ITextChannel channel)
         {
             if (!query.Trim().StartsWith("http"))
             {
@@ -375,7 +393,7 @@ namespace DiscordBot.Services
                 tracks = new[] { await Youtube.GetTrackAsync(query) };
             }
 
-            await EnqueueTracks(channel, tracks);
+            await EnqueueTracks(user, channel, tracks);
         }
 
         private EmbedBuilder PlayerBanner(Track track, IGuildUser queuedBy)
@@ -385,17 +403,14 @@ namespace DiscordBot.Services
                 .WithAuthor("Tocando Agora ♪")
                 .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration:mm\\:ss}`")
                 .WithThumbnailUrl(track.ThumbUrl)
-                .WithFooter($"Pedida por {queuedBy.DisplayName}", queuedBy.GetDisplayAvatarUrl())
-                .WithFields(new[] {
-                    new EmbedFieldBuilder().WithName("Autor").WithValue(track.Author)
-                });
+                .WithFooter($"Pedida por {queuedBy.DisplayName}", queuedBy.GetDisplayAvatarUrl());
         }
 
         private async Task<Track[]> GetSpotifyTracks(string query)
         {
-            var regex = new Regex(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
-            var type = regex.Match(query.Trim()).Groups[1].Value;
-            var id = regex.Match(query.Trim()).Groups[2].Value;
+            var match = query.Trim().Match(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
+            var type = match.Groups[1].Value;
+            var id = match.Groups[2].Value;
             var tracks = await Spotify.GetListOfTracksAsync(id, type);
             return tracks;
         }
