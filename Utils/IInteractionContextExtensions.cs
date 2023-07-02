@@ -24,7 +24,7 @@ namespace DiscordBot.Utils
         public static async Task<IUserMessage> SendEmbedText(this ITextChannel channel, string text, string desc = default)
         {
             var embed = new EmbedBuilder()
-                   .WithTitle(text);
+                   .WithAuthor(text);
 
             if(!string.IsNullOrEmpty(desc))
                 embed = embed.WithDescription(desc);

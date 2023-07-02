@@ -6,6 +6,7 @@ using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Text;
 using YoutubeExplode;
 using YoutubeExplode.Exceptions;
 
@@ -59,9 +60,9 @@ namespace DiscordBot.Services
             }
 
             Task _;
-            switch(arg.Content)
-            { 
-                case ">>skip":            
+            switch (arg.Content)
+            {
+                case ">>skip":
                     _ = Task.Run(async () => await SkipMusic(guildId));
                     break;
 
@@ -77,6 +78,10 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await QuitVoice(guildId));
                     break;
 
+                case ">>queue":
+                    _ = Task.Run(async () => await ShowQueue(channel));
+                    break;
+
                 case string s when s.Matches(@">>volume (\d+)"):
                     var volumestr = arg.Content.Match(@">>volume (\d+)").Groups[1].Value;
                     var volume = int.Parse(volumestr);
@@ -90,6 +95,38 @@ namespace DiscordBot.Services
             }
 
             return Task.CompletedTask;
+        }
+
+        private async Task ShowQueue(ITextChannel channel)
+        {
+            var plStr = new StringBuilder();
+            int i = 0;
+            string line = "+---+".PadRight(36, '-')+"+";
+            foreach (var track in _tracks[channel.GuildId])
+            {
+                i++;
+                var position = $"#{i}".PadLeft(3);
+                var title = track.Title.PadRight(31).Substring(0, 31);
+                var author = track.Author.PadRight(23).Substring(0, 23);
+
+                var trackstring = $"{line}\n|{position}|{title}|\n|   |{author} [{track.Duration:mm\\:ss}]|";
+                
+                if (i > 20)
+                    break;
+
+                plStr.AppendLine(trackstring);
+            }
+            if (_tracks[channel.GuildId].Count == 0)
+            {
+                await channel.SendEmbedText("Esta é a ultima música da fila no momento.");
+            }
+            else
+            {
+                await channel.SendMessageAsync(embed: new EmbedBuilder()
+                    .WithAuthor($"Próximas músicas {(_tracks[channel.GuildId].Count > 20 ? "(20 faixas)" : "")}:")
+                    .WithDescription($"```{line}\n{plStr}{line}```")
+                    .Build());
+            }
         }
 
         private void InitializeDictionaries()
@@ -152,7 +189,7 @@ namespace DiscordBot.Services
                             await _positionFunc[guild.Id](TimeSpan.FromSeconds(_decorrido[guild.Id]));
                         }
                     }
-                    catch (Exception) { ; }
+                    catch (Exception) {; }
                     await Task.Delay(1000);
                 }
             });
@@ -294,7 +331,7 @@ namespace DiscordBot.Services
                         catch (VideoUnplayableException ex)
                         {
                             await channel.SendEmbedText(
-                                "Esta música não está disponível:", 
+                                "Esta música não está disponível:",
                                 $"{track.Title} - {track.Author} Duração: {track.Duration:mm\\:ss}");
                             continue;
                         }
@@ -307,7 +344,8 @@ namespace DiscordBot.Services
                         using (var discord = _audioClients.GetValueOrDefault(channel.GuildId)?
                                                                 .CreatePCMStream(AudioApplication.Music))
                         {
-                            var modFunc = async (TimeSpan position) => await msg.ModifyAsync(a => {
+                            var modFunc = async (TimeSpan position) => await msg.ModifyAsync(a =>
+                            {
                                 a.Embed = banner.WithDescription(
                                     $"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build();
                             });
@@ -324,13 +362,22 @@ namespace DiscordBot.Services
                                     _playerState[channel.GuildId] = PlaybackState.Playing;
                                     await _audioClients.GetValueOrDefault(channel.GuildId)!.SetSpeakingAsync(true);
                                     await ProcessarBuffer(channel.GuildId, output, discord, token);
+                                    await msg.ModifyAsync(a =>
+                                    {
+                                        a.Embed = banner.WithAuthor("Reproduzida").WithColor(Color.Default).Build();
+                                        a.Components = new ComponentBuilder().Build();
+                                    });
                                 }
                                 catch (OperationCanceledException)
                                 {
+                                    await msg.ModifyAsync(a =>
+                                    {
+                                        a.Embed = banner.WithAuthor("Interrompida").WithColor(Color.Default).Build();
+                                        a.Components = new ComponentBuilder().Build();
+                                    });
                                     _cts[channel.GuildId] = new CancellationTokenSource();
                                     token = _cts[channel.GuildId].Token;
                                 }
-                                await msg.ModifyAsync(a => a.Components = new ComponentBuilder().Build());
                             }
                         }
                     }
@@ -420,7 +467,7 @@ namespace DiscordBot.Services
             var paused = state == PlaybackState.Paused;
             return new ComponentBuilder()
                 .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"], disabled: paused)
-                .WithButton(null, "pause-music", paused ? ButtonStyle.Success : ButtonStyle.Secondary , paused ? emote["play"] : emote["pause"])
+                .WithButton(null, "pause-music", paused ? ButtonStyle.Success : ButtonStyle.Secondary, paused ? emote["play"] : emote["pause"])
                 .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"], disabled: paused)
                 .WithButton(null, "download-music", ButtonStyle.Success, emote["download"])
                 .Build();
@@ -443,7 +490,7 @@ namespace DiscordBot.Services
                     continue;
 
                 var byteCount = await output.ReadAsync(buffer, 0, blockSize);
-                
+
                 decorrido += (float)byteCount / (2 * sampleRate);
                 _decorrido[guildId] = decorrido / 2;
 
