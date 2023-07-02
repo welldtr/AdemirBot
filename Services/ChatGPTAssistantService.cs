@@ -55,6 +55,14 @@ namespace DiscordBot.Services
                     }
                     else if (arg.MentionedUsers.Any(u => u.Id == _client.CurrentUser.Id))
                     {
+                        if (arg.Reference != null && arg.Reference.MessageId.IsSpecified)
+                        {
+                            var msg = await arg.Channel.GetMessageAsync(arg.Reference.MessageId.Value!);
+                            if (msg.Author.Id == _client.CurrentUser.Id && msg.Embeds.Count > 0)
+                            {
+                                return;
+                            }
+                        }
                         await ProcessarMensagemNoChatGPT(arg);
                     }
                     else if (arg.Reference != null && arg.Reference.MessageId.IsSpecified)
