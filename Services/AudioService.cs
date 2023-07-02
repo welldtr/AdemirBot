@@ -396,7 +396,7 @@ namespace DiscordBot.Services
             {
                 _playerState[channel.GuildId] = PlaybackState.Stopped;
                 _decorrido[channel.GuildId] = float.NegativeInfinity;
-                await channel.SendMessageAsync($"Erro ao tocar musica: {ex}");
+                await channel.SendEmbedText($"Erro ao tocar musica: {ex}");
             }
             finally
             {
