@@ -7,6 +7,7 @@ namespace DiscordBot.Repository
     public interface IRepository<T> where T : IEntity
     {
         Task AddAsync(T entity);
+        Task AddAsync(IEnumerable<T> entities);
         Task DeleteAsync(object id);
         Task DeleteAsync(T entity);
         Task<IEnumerable<T>> GetAllAsync();

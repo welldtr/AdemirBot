@@ -51,8 +51,12 @@ docker run -e SpotifyApiClientId=<Client ID do Aplicativo Spotify> \
 ## Comandos
 - `>>play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum.
 - `>>skip`: Pula para a próxima música da fila.
-- `>>pause`: Pausa a reprodução da música atual.
+- `>>back`: Pula para a música anterior da fila.
+- `>>replay`: Reinicia a música atual.
+- `>>pause`: Pausa/Retoma a reprodução da música atual.
 - `>>stop`: Interrompe completamente a reprodução de música.
+- `>>loop`: Habilita/Desabilita o modo de repetição de faixa.
+- `>>loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
 - `>>queue`: Lista as próximas 20 músicas da fila.
 - `>>quit`: Remove o bot da chamada de voz.
 - `>>volume <valor>`: Ajusta o volume da música.

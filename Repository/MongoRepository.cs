@@ -64,6 +64,11 @@ namespace DiscordBot.Repository
             await _collection.InsertOneAsync(entity);
         }
 
+        public async Task AddAsync(IEnumerable<T> entities)
+        {
+            await _collection.InsertManyAsync(entities);
+        }
+
         public async Task DeleteAsync(T entity)
         {
             var idProperty = GetIdProperty();
