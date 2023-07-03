@@ -236,6 +236,7 @@ namespace DiscordBot.Services
                             _decorrido[guild.Id] = ademirConfig.Position ?? 0;
                             _currentTrack[guild.Id] = ademirConfig.CurrentTrack ?? 0;
                             _playerState[guild.Id] = ademirConfig.PlaybackState!;
+                            _playmode[guild.Id] = ademirConfig.PlayMode;
                             var _ = Task.Run(() => PlayMusic(channel, user, tracks: tracks.ToArray()));
                         }
                     }
@@ -287,6 +288,7 @@ namespace DiscordBot.Services
         {
             var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
             ademirConfig.PlaybackState = _playerState[guild.Id];
+            ademirConfig.PlayMode = _playmode[guild.Id];
             ademirConfig.Position = _decorrido[guild.Id];
             ademirConfig.CurrentTrack = _currentTrack[guild.Id];
             ademirConfig.VoiceChannel = guild.CurrentUser.VoiceChannel?.Id;

@@ -11,6 +11,7 @@ namespace DiscordBot.Domain.Entities
         public ulong GuildId { get; set; }
         public int? GlobalVolume { get; set; }
         public PlaybackState PlaybackState { get; set; }
+        public PlayMode PlayMode { get; set; }
         public ulong? VoiceChannel { get; set; }
         [BsonRepresentation(BsonType.Double, AllowTruncation = true)]
         public float? Position { get; set; }

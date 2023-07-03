@@ -57,7 +57,15 @@ namespace DiscordBot.Modules
         [ComponentInteraction("pause-music")]
         public async Task PauseMusic()
         {
-            await svc.PauseMusic((ITextChannel)Context.Channel);     
+            await svc.PauseMusic((ITextChannel)Context.Channel);
+            await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
+            await Context.Interaction.DeferAsync();
+        }
+
+        [ComponentInteraction("back-music")]
+        public async Task BackMusic()
+        {
+            await svc.BackMusic((ITextChannel)Context.Channel);
             await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
             await Context.Interaction.DeferAsync();
         }
