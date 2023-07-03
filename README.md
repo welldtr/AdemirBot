@@ -58,6 +58,7 @@ docker run -e SpotifyApiClientId=<Client ID do Aplicativo Spotify> \
 - `>>loop`: Habilita/Desabilita o modo de repetição de faixa.
 - `>>loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
 - `>>queue`: Lista as próximas 20 músicas da fila.
+- `>>join`: Puxa o bot para o seu canal de voz.
 - `>>quit`: Remove o bot da chamada de voz.
 - `>>volume <valor>`: Ajusta o volume da música.
 
