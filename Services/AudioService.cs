@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using System.Text;
 using YoutubeExplode;
 using YoutubeExplode.Exceptions;
@@ -93,8 +94,18 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await SkipMusic(channel));
                     break;
 
+                case string s when s.Matches(@">>skip (\d+)"):
+                    var skipstr = arg.Content.Match(@">>skip (\d+)").Groups[1].Value;
+                    var qtd = int.Parse(skipstr);
+                    _ = Task.Run(async () => await SkipMusic(channel, qtd));
+                    break;
+
                 case ">>stop":
                     _ = Task.Run(async () => await StopMusic(channel));
+                    break;
+
+                case ">>pause":
+                    _ = Task.Run(async () => await PauseMusic(channel));
                     break;
 
                 case ">>quit":
@@ -113,6 +124,12 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await BackMusic(channel));
                     break;
 
+                case string s when s.Matches(@">>back (\d+)"):
+                    var backstr = arg.Content.Match(@">>back (\d+)").Groups[1].Value;
+                    var back = int.Parse(backstr);
+                    _ = Task.Run(async () => await BackMusic(channel, back));
+                    break;
+
                 case ">>replay":
                     _ = Task.Run(async () => await ReplayMusic(channel));
                     break;
@@ -129,7 +146,7 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await Shuffle(channel));
                     break;
 
-                case ">>move":
+                case ">>join":
                     var voicechannel = user.VoiceChannel;
                     if (voicechannel != null)
                         _ = Task.Run(async () => await MoveToChannel(voicechannel));
@@ -400,8 +417,12 @@ namespace DiscordBot.Services
 
         public async Task StopMusic(ITextChannel channel)
         {
+            _currentTrack[channel.GuildId] = 0;
+            _decorrido[channel.GuildId] = 0;
             _tracks[channel.GuildId].Clear();
+            _playerState[channel.GuildId] = PlaybackState.Stopped;
             _cts[channel.GuildId]?.Cancel();
+            await channel.SendEmbedText("Interrompido.");
         }
 
         private async Task ClearQueue(ITextChannel channel)
@@ -410,20 +431,36 @@ namespace DiscordBot.Services
             await channel.SendEmbedText("Lista de reprodução limpa.");
         }
 
-        public Task SkipMusic(ITextChannel channel)
+        public async Task SkipMusic(ITextChannel channel, int qtd = 1)
         {
-            _currentTrack[channel.GuildId]++;
-            _cts[channel.GuildId]?.Cancel();
-            _cts[channel.GuildId] = new CancellationTokenSource();
-            return Task.CompletedTask;
+            var musicasRestantes = _tracks[channel.GuildId].Count - _currentTrack[channel.GuildId];
+            if (qtd <= musicasRestantes)
+            {
+                _currentTrack[channel.GuildId] += qtd;
+
+                _cts[channel.GuildId]?.Cancel();
+                _cts[channel.GuildId] = new CancellationTokenSource();
+            }
+            else
+            {
+                await channel.SendEmbedText($"Existem apenas {musicasRestantes} musicas restantes");
+            }
         }
 
-        public Task BackMusic(ITextChannel channel)
+        public async Task BackMusic(ITextChannel channel, int qtd = 1)
         {
-            _currentTrack[channel.GuildId]--;
-            _cts[channel.GuildId]?.Cancel();
-            _cts[channel.GuildId] = new CancellationTokenSource();
-            return Task.CompletedTask;
+            var musicasRestantes = _currentTrack[channel.GuildId];
+            if (_currentTrack[channel.GuildId] - qtd > 0)
+            {
+                _currentTrack[channel.GuildId] -= qtd;
+
+                _cts[channel.GuildId]?.Cancel();
+                _cts[channel.GuildId] = new CancellationTokenSource();
+            }
+            else
+            {
+                await channel.SendEmbedText($"Existem apenas {_currentTrack[channel.GuildId]-1} musicas anteriores.");
+            }
         }
 
         public Task ReplayMusic(ITextChannel channel)
@@ -436,6 +473,8 @@ namespace DiscordBot.Services
         public async Task QuitVoice(ITextChannel channel)
         {
             await _audioClients[channel.GuildId].StopAsync();
+            _playerState[channel.GuildId] = PlaybackState.Stopped;
+            _cts[channel.GuildId]?.Cancel();
             await channel.SendEmbedText("Desconectado.");
         }
 
@@ -588,8 +627,8 @@ namespace DiscordBot.Services
                     }
                 }
 
-                _currentTrack[channel.GuildId] = 0;
                 _playerState[channel.GuildId] = PlaybackState.Stopped;
+                _currentTrack[channel.GuildId] = 0;
                 _decorrido[channel.GuildId] = 0;
             }
             catch (OperationCanceledException)
@@ -675,6 +714,7 @@ namespace DiscordBot.Services
         {
             var paused = state == PlaybackState.Paused;
             return new ComponentBuilder()
+                .WithButton(null, "back-music", ButtonStyle.Primary, emote["back"], disabled: paused)
                 .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"], disabled: paused)
                 .WithButton(null, "pause-music", paused ? ButtonStyle.Success : ButtonStyle.Secondary, paused ? emote["play"] : emote["pause"])
                 .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"], disabled: paused)
