@@ -61,5 +61,5 @@ docker run -e SpotifyApiClientId=<Client ID do Aplicativo Spotify> \
 Este projeto está licenciado sob a licença MIT. Consulte o arquivo [LICENSE.txt](LICENSE.txt) para obter mais informações.
 
 ## Contato
-Se você tiver alguma dúvida ou sugestão sobre o projeto "Nome do Projeto", sinta-se à vontade para entrar em contato:
-- Discord: manowell.
+Se você tiver alguma dúvida ou sugestão sobre o projeto "Ademir", sinta-se à vontade para entrar em contato:
+- [Discord](https://discord.gg/invite/Q6fQrf5jWX)
