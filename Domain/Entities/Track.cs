@@ -1,13 +1,16 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace DiscordBot.Domain.Entities
 {
     public class Track : IEntity
     {
         [BsonId]
-        public ulong Id { get; set; }
+        public ObjectId _id { get; set; }
         public ulong GuildId { get; set; }
+        public ulong ChannelId { get; set; }
         public ulong UserId { get; set; }
+        public int QueuePosition { get; set; }
         public string VideoId { get; set; }
         public string TrackId { get; set; }
         public string Title { get; set; }

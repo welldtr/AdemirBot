@@ -1,4 +1,6 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using DiscordBot.Domain.ValueObjects;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace DiscordBot.Domain.Entities
 {
@@ -8,6 +10,10 @@ namespace DiscordBot.Domain.Entities
         public Guid AdemirConfigId { get; set; }
         public ulong GuildId { get; set; }
         public int? GlobalVolume { get; set; }
+        public PlaybackState PlaybackState { get; set; }
+        public ulong? VoiceChannel { get; set; }
+        [BsonRepresentation(BsonType.Double, AllowTruncation = true)]
+        public float? Position { get; set; }
         public ulong AdemirRoleId { get; set; }
         public int AdemirConversationRPM { get; set; }
         public bool Premium { get; set; }

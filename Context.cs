@@ -22,5 +22,14 @@ namespace DiscordBot
         public IRepository<Bump> bumps { get => db.GetRepository<Bump>("bumps"); }
         public IRepository<Macro> macros { get => db.GetRepository<Macro>("macros"); }
         public IRepository<Track> tracks { get => db.GetRepository<Track>("tracks"); }
+
+        public async Task<IClientSessionHandle> StartSessionAsync()
+        {
+            return await db.Client.StartSessionAsync();
+        }
+        public IClientSessionHandle StartSession()
+        {
+            return db.Client.StartSession();
+        }
     }
 }

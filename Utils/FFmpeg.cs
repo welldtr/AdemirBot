@@ -5,12 +5,12 @@ namespace DiscordBot.Utils
 {
     public static class FFmpeg
     {
-        public static Process? CreateStream(string path)
+        public static Process? CreateStream(string path, TimeSpan start = default)
         {
             return Process.Start(new ProcessStartInfo
             {
                 FileName = "ffmpeg",
-                Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
+                Arguments = $"-hide_banner -loglevel panic -ss {start} -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             });
