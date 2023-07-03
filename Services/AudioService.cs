@@ -67,6 +67,7 @@ namespace DiscordBot.Services
 
         private async Task _client_UserVoiceStateUpdated(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
         {
+            await Task.Delay(3000);
             if (user.Id == _client.CurrentUser.Id && @new.VoiceChannel == null)
             {
                 _playerState[old.VoiceChannel.Guild.Id] = PlaybackState.Stopped;
@@ -78,7 +79,7 @@ namespace DiscordBot.Services
         {
             var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
             var guild = _client.Guilds.First(a => a.Id == guildId);
-            var channel = ((SocketTextChannel)arg.Channel);
+            var channel = ((ITextChannel)arg.Channel);
             var user = guild.GetUser(arg.Author?.Id ?? 0);
 
             if (user == null)
@@ -89,19 +90,15 @@ namespace DiscordBot.Services
             switch (arg.Content)
             {
                 case ">>skip":
-                    _ = Task.Run(async () => await SkipMusic(guildId));
-                    break;
-
-                case ">>pause":
-                    _ = Task.Run(async () => await PauseMusic(guildId));
+                    _ = Task.Run(async () => await SkipMusic(channel));
                     break;
 
                 case ">>stop":
-                    _ = Task.Run(async () => await StopMusic(guildId));
+                    _ = Task.Run(async () => await StopMusic(channel));
                     break;
 
                 case ">>quit":
-                    _ = Task.Run(async () => await QuitVoice(guildId));
+                    _ = Task.Run(async () => await QuitVoice(channel));
                     break;
 
                 case ">>queue":
@@ -109,34 +106,39 @@ namespace DiscordBot.Services
                     break;
 
                 case ">>clear":
-                    _tracks[guild.Id].Clear();
+                    _ = Task.Run(async () => await ClearQueue(channel));
                     break;
 
                 case ">>back":
-                    _ = Task.Run(async () => await BackMusic(guildId));
+                    _ = Task.Run(async () => await BackMusic(channel));
                     break;
 
                 case ">>replay":
-                    _ = Task.Run(async () => await ReplayMusic(guildId));
+                    _ = Task.Run(async () => await ReplayMusic(channel));
                     break;
 
                 case ">>loopqueue":
-                    _playmode[guild.Id] = _playmode[guild.Id] == PlayMode.Normal ? PlayMode.LoopQueue : PlayMode.Normal;
-                    await channel.SendEmbedText($"Playlist em modo {_playmode[guild.Id]}");
+                    _ = Task.Run(async () => await ToggleLoopQueue(channel));
                     break;
 
                 case ">>loop":
-                    _playmode[guild.Id] = _playmode[guild.Id] == PlayMode.Normal ? PlayMode.LoopTrack : PlayMode.Normal;
-                    await channel.SendEmbedText($"Playlist em modo {_playmode[guild.Id]}");
+                    _ = Task.Run(async () => await ToggleLoopTrack(channel));
                     break;
 
                 case ">>shuffle":
+                    _ = Task.Run(async () => await Shuffle(channel));
+                    break;
+
+                case ">>move":
+                    var voicechannel = user.VoiceChannel;
+                    if (voicechannel != null)
+                        _ = Task.Run(async () => await MoveToChannel(voicechannel));
                     break;
 
                 case string s when s.Matches(@">>volume (\d+)"):
                     var volumestr = arg.Content.Match(@">>volume (\d+)").Groups[1].Value;
                     var volume = int.Parse(volumestr);
-                    _ = Task.Run(async () => await SetVolume(guildId, volume));
+                    _ = Task.Run(async () => await SetVolume(channel, volume));
                     break;
 
                 case string s when s.StartsWith(">>"):
@@ -144,6 +146,28 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await PlayMusic(channel, user, query));
                     break;
             }
+        }
+
+        private async Task Shuffle(ITextChannel channel)
+        {
+            await channel.SendEmbedText($"Modo aleatório ainda não disponível nessa versão");
+        }
+
+        private async Task ToggleLoopQueue(ITextChannel channel)
+        {
+            _playmode[channel.GuildId] = _playmode[channel.GuildId] == PlayMode.Normal ? PlayMode.LoopQueue : PlayMode.Normal;
+            await channel.SendEmbedText($"Playlist em modo {_playmode[channel.GuildId]}");
+        }
+
+        private async Task ToggleLoopTrack(ITextChannel channel)
+        {
+            _playmode[channel.GuildId] = _playmode[channel.GuildId] == PlayMode.Normal ? PlayMode.LoopTrack : PlayMode.Normal;
+            await channel.SendEmbedText($"Playlist em modo {_playmode[channel.GuildId]}");
+        }
+
+        private async Task MoveToChannel(SocketVoiceChannel voicechannel)
+        {
+            _audioClients[voicechannel.Guild.Id] = await voicechannel.ConnectAsync(selfDeaf: true);
         }
 
         private async Task _client_ShardReady(DiscordSocketClient client)
@@ -177,7 +201,7 @@ namespace DiscordBot.Services
                     _positionFunc[guild.Id] = (a) => Task.CompletedTask;
                     _decorrido[guild.Id] = 0;
                     _playmode[guild.Id] = PlayMode.Normal;
-
+                    _currentTrack[guild.Id] = 0;
 
                     if (ademirConfig?.VoiceChannel != null && (ademirConfig?.PlaybackState ?? PlaybackState.Stopped) != PlaybackState.Stopped)
                     {
@@ -193,6 +217,7 @@ namespace DiscordBot.Services
                             var channel = guild.GetTextChannel(track.ChannelId);
                             var user = guild.GetUser(track.UserId);
                             _decorrido[guild.Id] = ademirConfig.Position ?? 0;
+                            _currentTrack[guild.Id] = ademirConfig.CurrentTrack ?? 0;
                             _playerState[guild.Id] = ademirConfig.PlaybackState!;
                             var _ = Task.Run(() => PlayMusic(channel, user, tracks: tracks.ToArray()));
                         }
@@ -215,20 +240,16 @@ namespace DiscordBot.Services
         private async Task ShowQueue(ITextChannel channel)
         {
             var plStr = new StringBuilder();
-            int c = _currentTrack[channel.Guild.Id];
-            string line = "+---+".PadRight(36, '-') + "+";
-            for (int i = c; i < c + 20; i++)
+            int c = _currentTrack[channel.Guild.Id]-1;
+            for (int i = c; i < c + 15; i++)
             {
-                var track = _tracks[channel.GuildId][i];
-                var position = $"#{i + 1}".PadLeft(3);
-                var title = track.Title.PadRight(31).Substring(0, 31);
-                var author = track.Author.PadRight(23).Substring(0, 23);
-
-                var trackstring = $"{line}\n|{position}|{title}|\n|   |{author} [{track.Duration:mm\\:ss}]|";
-
-                if (i > 20)
+                if (i >= _tracks[channel.GuildId].Count)
                     break;
-
+                var track = _tracks[channel.GuildId][i];
+                var position = $"{(i == c ? "▶" :"#")}{i + 1}".PadLeft(3);
+                var title = track.Title;
+                var author = track.Author;
+                var trackstring = $"`[{position}]`: `{title}` - `{author}` `({track.Duration:mm\\:ss})`";
                 plStr.AppendLine(trackstring);
             }
             if (_tracks[channel.GuildId].Count == 0)
@@ -237,9 +258,10 @@ namespace DiscordBot.Services
             }
             else
             {
+                var tempoRestante = TimeSpan.FromSeconds((int)-_decorrido[channel.GuildId] +  _tracks[channel.GuildId].Where(a => a.QueuePosition > c).Sum(a => (int)a.Duration.TotalSeconds));
                 await channel.SendMessageAsync(embed: new EmbedBuilder()
-                    .WithAuthor($"Próximas músicas {(_tracks[channel.GuildId].Count > 20 ? "(20 faixas)" : "")}:")
-                    .WithDescription($"```{line}\n{plStr}{line}```")
+                    .WithAuthor($"Lista de próximas 15 músicas:")
+                    .WithDescription($"{plStr}\nTempo restante: {tempoRestante}")                
                     .Build());
             }
         }
@@ -249,6 +271,7 @@ namespace DiscordBot.Services
             var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
             ademirConfig.PlaybackState = _playerState[guild.Id];
             ademirConfig.Position = _decorrido[guild.Id];
+            ademirConfig.CurrentTrack = _currentTrack[guild.Id];
             ademirConfig.VoiceChannel = guild.CurrentUser.VoiceChannel?.Id;
             ademirConfig.PlaybackState = _playerState[guild.Id];
             await _db.ademirCfg.UpsertAsync(ademirConfig);
@@ -341,15 +364,15 @@ namespace DiscordBot.Services
             }
         }
 
-        public async Task SetVolume(ulong guildId, int volume)
+        public async Task SetVolume(ITextChannel channel, int volume)
         {
-            var cfg = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guildId);
+            var cfg = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
 
             if (cfg == null)
             {
                 cfg = new AdemirConfig
                 {
-                    GuildId = guildId,
+                    GuildId = channel.GuildId,
                     GlobalVolume = volume
                 };
             }
@@ -359,54 +382,61 @@ namespace DiscordBot.Services
             }
 
             await _db.ademirCfg.UpsertAsync(cfg);
+            await channel.SendEmbedText($"Volume definido em {volume}%.");
 
             await Task.Run(() =>
             {
                 for (int i = 0; i < 5; i++)
-                    if (_volume.TryUpdate(guildId, volume, _volume[guildId]))
+                    if (_volume.TryUpdate(channel.GuildId, volume, _volume[channel.GuildId]))
                         break;
             });
         }
 
-        public Task PauseMusic(ulong guildId)
+        public Task PauseMusic(ITextChannel channel)
         {
-            _playerState[guildId] = _playerState[guildId] == PlaybackState.Playing ? PlaybackState.Paused : PlaybackState.Playing;
+            _playerState[channel.GuildId] = _playerState[channel.GuildId] == PlaybackState.Playing ? PlaybackState.Paused : PlaybackState.Playing;
             return Task.CompletedTask;
         }
 
-        public Task StopMusic(ulong guildId)
+        public async Task StopMusic(ITextChannel channel)
         {
-            _tracks[guildId].Clear();
-            _cts[guildId]?.Cancel();
+            _tracks[channel.GuildId].Clear();
+            _cts[channel.GuildId]?.Cancel();
+        }
+
+        private async Task ClearQueue(ITextChannel channel)
+        {
+            _tracks[channel.GuildId].Clear();
+            await channel.SendEmbedText("Lista de reprodução limpa.");
+        }
+
+        public Task SkipMusic(ITextChannel channel)
+        {
+            _currentTrack[channel.GuildId]++;
+            _cts[channel.GuildId]?.Cancel();
+            _cts[channel.GuildId] = new CancellationTokenSource();
             return Task.CompletedTask;
         }
 
-        public Task SkipMusic(ulong guildId)
+        public Task BackMusic(ITextChannel channel)
         {
-            _currentTrack[guildId]++;
-            _cts[guildId]?.Cancel();
-            _cts[guildId] = new CancellationTokenSource();
+            _currentTrack[channel.GuildId]--;
+            _cts[channel.GuildId]?.Cancel();
+            _cts[channel.GuildId] = new CancellationTokenSource();
             return Task.CompletedTask;
         }
 
-        public Task BackMusic(ulong guildId)
+        public Task ReplayMusic(ITextChannel channel)
         {
-            _currentTrack[guildId]--;
-            _cts[guildId]?.Cancel();
-            _cts[guildId] = new CancellationTokenSource();
+            _cts[channel.GuildId]?.Cancel();
+            _cts[channel.GuildId] = new CancellationTokenSource();
             return Task.CompletedTask;
         }
 
-        public Task ReplayMusic(ulong guildId)
+        public async Task QuitVoice(ITextChannel channel)
         {
-            _cts[guildId]?.Cancel();
-            _cts[guildId] = new CancellationTokenSource();
-            return Task.CompletedTask;
-        }
-
-        public async Task QuitVoice(ulong guildId)
-        {
-            await _audioClients[guildId].StopAsync();
+            await _audioClients[channel.GuildId].StopAsync();
+            await channel.SendEmbedText("Desconectado.");
         }
 
         public async Task DownloadAtachment(SocketMessageComponent arg)
@@ -439,9 +469,7 @@ namespace DiscordBot.Services
 
                 if (voiceChannel == null)
                 {
-                    await channel.SendMessageAsync(embed: new EmbedBuilder()
-                               .WithTitle("Você precisa estar em um canal de voz.")
-                               .Build());
+                    await channel.SendEmbedText("Você precisa estar em um canal de voz.");
                     return;
                 }
 
@@ -466,10 +494,14 @@ namespace DiscordBot.Services
 
                 if (voiceChannel != null && !token.IsCancellationRequested)
                 {
-                    _currentTrack[channel.GuildId] = 1;
-                    while (_currentTrack[channel.GuildId] < _tracks[channel.GuildId].Count)
+                    if (!resume)
                     {
-                        var track = _tracks[channel.GuildId][_currentTrack[channel.GuildId]];
+                        _currentTrack[channel.GuildId] = 1;
+                    }
+
+                    while (_currentTrack[channel.GuildId] <= _tracks[channel.GuildId].Count)
+                    {
+                        var track = _tracks[channel.GuildId][_currentTrack[channel.GuildId]-1];
                         await SavePlaylistInfo(guild);
                         _positionFunc[channel.GuildId] = (a) => Task.CompletedTask;
                         var queuedBy = await channel.Guild.GetUserAsync(track.UserId);
@@ -535,9 +567,10 @@ namespace DiscordBot.Services
 
                                         case PlayMode.LoopQueue:
                                             if (_currentTrack[channel.GuildId] == _tracks[channel.GuildId].Count)
-                                                _currentTrack[channel.GuildId] = 0;
+                                                _currentTrack[channel.GuildId] = 1;
+                                            else
+                                                _currentTrack[channel.GuildId]++;
                                             break;
-
                                     }
                                 }
                                 catch (OperationCanceledException)

@@ -14,6 +14,7 @@ namespace DiscordBot.Domain.Entities
         public ulong? VoiceChannel { get; set; }
         [BsonRepresentation(BsonType.Double, AllowTruncation = true)]
         public float? Position { get; set; }
+        public int? CurrentTrack { get; set; }
         public ulong AdemirRoleId { get; set; }
         public int AdemirConversationRPM { get; set; }
         public bool Premium { get; set; }

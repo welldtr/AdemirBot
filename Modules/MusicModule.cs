@@ -23,7 +23,7 @@ namespace DiscordBot.Modules
 
             if (volume > 0 && volume < 110)
             {
-                await svc.SetVolume(Context.Guild.Id, volume);
+                await svc.SetVolume((ITextChannel)Context.Channel, volume);
                 await ModifyOriginalResponseAsync(a => a.Content = $"Volume definido em {volume}%");
             }
             else
@@ -35,7 +35,7 @@ namespace DiscordBot.Modules
         [ComponentInteraction("stop-music")]
         public async Task StopMusic()
         {
-            await svc.StopMusic(Context.Guild.Id);
+            await svc.StopMusic((ITextChannel)Context.Channel);
             _ = Task.Run(async () => await ((SocketMessageComponent)Context.Interaction)!.UpdateAsync(a =>
             {
                 a.Components = null;
@@ -46,7 +46,7 @@ namespace DiscordBot.Modules
         [ComponentInteraction("skip-music")]
         public async Task SkipMusic()
         {
-            await svc.SkipMusic(Context.Guild.Id);
+            await svc.SkipMusic((ITextChannel)Context.Channel);
             _ = Task.Run(async () => await ((SocketMessageComponent)Context.Interaction)!.UpdateAsync(a =>
             {
                 a.Components = null;
@@ -57,7 +57,7 @@ namespace DiscordBot.Modules
         [ComponentInteraction("pause-music")]
         public async Task PauseMusic()
         {
-            await svc.PauseMusic(Context.Guild.Id);     
+            await svc.PauseMusic((ITextChannel)Context.Channel);     
             await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
             await Context.Interaction.DeferAsync();
         }
