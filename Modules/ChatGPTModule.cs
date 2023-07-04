@@ -9,11 +9,11 @@ using DiscordBot.Utils;
 
 namespace DiscordBot.Modules
 {
-    public class DallEModule : InteractionModuleBase
+    public class ChatGPTModule : InteractionModuleBase
     {
         private readonly OpenAIService openAI;
 
-        public DallEModule(OpenAIService openAI)
+        public ChatGPTModule(OpenAIService openAI)
         {
             this.openAI = openAI;
         }
@@ -56,6 +56,22 @@ namespace DiscordBot.Modules
             {
                 await ModifyOriginalResponseAsync(a => a.Content = $"Erro ao processar o comando \"{comando}\"");
             }
+        }
+
+        [SlashCommand("thread", "Criar uma tread privada com o Ademir.")]
+        public async Task NewThread([Summary(description: "Nome da nova Thread")] string nome)
+        {
+            var guild = ((SocketTextChannel)Context.Channel).Guild;
+            var me = guild.Users.First(a => a.Id == Context.User.Id);
+            if (guild.Id != 1055161583841595412 && !(Context.Guild.IsPremium() && me.PremiumSince.HasValue))
+            {
+                await RespondAsync($"Funcionalidade premium. Booste o servidor {guild.Name} para usar.", ephemeral: true);
+                return;
+            }
+
+            await DeferAsync();
+
+            await ((ITextChannel)Context.Channel).CreateThreadAsync(nome, ThreadType.PublicThread);
         }
     }
 }

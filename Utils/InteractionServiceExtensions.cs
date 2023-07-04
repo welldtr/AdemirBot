@@ -39,7 +39,7 @@ namespace DiscordBot.Utils
                     await _interactionService.AddModulesGloballyAsync(true,
                                 await _interactionService.AddModuleAsync<AdemirConfigModule>(provider),
                                 await _interactionService.AddModuleAsync<BanModule>(provider),
-                                await _interactionService.AddModuleAsync<DallEModule>(provider),
+                                await _interactionService.AddModuleAsync<ChatGPTModule>(provider),
                                 await _interactionService.AddModuleAsync<DenounceModule>(provider),
                                 await _interactionService.AddModuleAsync<InactiveUsersModule>(provider),
                                 await _interactionService.AddModuleAsync<MacroModule>(provider),
