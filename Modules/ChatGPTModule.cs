@@ -77,7 +77,7 @@ namespace DiscordBot.Modules
                 Prompt = comando!,
                 N = 1,
                 MaxTokens = 100,
-                Model = Models.Ada,
+                Model = Models.TextDavinciV1,
                 Temperature = 0f
             });
 
