@@ -14,5 +14,6 @@ namespace DiscordBot.Domain.Entities
         public DateTime DenunciaDate { get; set; }
         public string? PrintUrl { get; set; }
         public bool? Deferida { get; set; }
+        public string Conteudo { get; set; }
     }
 }

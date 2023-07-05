@@ -85,5 +85,45 @@ namespace DiscordBot.Modules
                 TestemunhaUserId = testemunha?.Id
             });
         }
+
+
+        [MessageCommand("denunciar")]
+        public async Task Denunciar(IMessage msg)
+        {
+            var config = await db.denunciaCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id);
+
+            if (config == null)
+            {
+                await RespondAsync($"O canal de denúncias ainda não está configurado.", ephemeral: true);
+                return;
+            }
+            await RespondAsync($"Não se preocupe, {Context.User.Username}. Esta informação será mantida em sigilo.", ephemeral: true);
+
+            var guildId = Context.Guild.Id;
+            var channels = await Context.Guild.GetChannelsAsync();
+            var canal = (IMessageChannel)channels.First(a => a.Id == config.ChannelId);
+
+            var denunciado = msg.Author;
+
+            var m = await canal.SendMessageAsync("", false, new EmbedBuilder()
+            {
+                Fields = new List<EmbedFieldBuilder>
+                {
+                    new EmbedFieldBuilder().WithName("Denunciado").WithIsInline(true).WithValue($"{denunciado}"),
+                    new EmbedFieldBuilder().WithName("Denúncia").WithValue(msg.CleanContent),
+                },
+                Description = $"|| Denúnciado por: {Context.User.Mention} || "
+            }.Build());
+
+            await db.denuncias.AddAsync(new Denuncia
+            {
+                DenunciaId = Guid.NewGuid(),
+                GuildId = guildId,
+                Conteudo = msg.CleanContent,
+                DenunciaDate = DateTime.Now,
+                DenunciadoUserId = denunciado.Id,
+                DenuncianteUserId = Context.User.Id,
+            });
+        }
     }
 }
