@@ -81,11 +81,13 @@ namespace DiscordBot.Modules
                 Temperature = 0f
             });
 
+            var msg = await ((SocketSlashCommand)Context.Interaction).GetOriginalResponseAsync();
+
             if (imageResult.Successful)
             {
                 foreach (var choice in imageResult.Choices)
                 {
-                    await Context.Channel.Responder(choice.Text, new MessageReference(Context.Interaction.Id));
+                    await Context.Channel.Responder(choice.Text, new MessageReference(msg.Id));
                 }
             }
             else
