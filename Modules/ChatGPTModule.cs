@@ -71,7 +71,7 @@ namespace DiscordBot.Modules
                 return;
             }
 
-            await DeferAsync();
+            await RespondAsync(comando);
             var imageResult = await openAI.Completions.CreateCompletion(new CompletionCreateRequest
             {
                 Prompt = comando!,
