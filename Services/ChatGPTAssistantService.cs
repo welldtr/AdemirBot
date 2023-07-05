@@ -43,6 +43,12 @@ namespace DiscordBot.Services
 
         private async Task VerificarSeMensagemParaOAssistente(SocketMessage arg)
         {
+            if (arg.Content == ">>transcript" && arg.Attachments.Count == 1)
+            {
+                await TranscreverAudio(arg);
+                return;
+            }
+
             var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
             var guild = _client.Guilds.First(a => a.Id == guildId);
             try
@@ -83,6 +89,41 @@ namespace DiscordBot.Services
             catch (Exception ex)
             {
                 _log.LogError(ex, "Erro ao processar mensagem para o assistente");
+            }
+        }
+
+        private async Task TranscreverAudio(SocketMessage arg)
+        {
+            var guild = ((SocketTextChannel)arg.Channel).Guild;
+            var me = guild.Users.First(a => a.Id == arg.Author.Id);
+            if (guild.Id != 1055161583841595412)
+            {
+                await arg.Channel.SendMessageAsync($"Funcionalidade do desenvolvedor. Não há previsão de liberação da funcionalidade.");
+                return;
+            }
+
+            var audio = arg.Attachments.First();
+            var stream = await new HttpClient().GetStreamAsync(audio.Url);
+            using (var ms = new MemoryStream())
+            {
+                stream.CopyTo(ms);
+                ms.Position = 0;
+                var imageResult = await _openAI.Audio.CreateTranscription(new AudioCreateTranscriptionRequest
+                {
+                    Model = Models.WhisperV1,
+                    Temperature = 0f,
+                    FileStream = ms,
+                    FileName = audio.Filename
+                });
+
+                if (imageResult.Successful)
+                {
+                    await arg.Channel.Responder(imageResult.Text, new MessageReference(arg.Id));
+                }
+                else
+                {
+                    await arg.Channel.Responder($"Erro ao processar o audio", new MessageReference(arg.Id));
+                }
             }
         }
 
@@ -206,58 +247,7 @@ namespace DiscordBot.Services
                         var resposta = choice.Message.Content;
                         try
                         {
-                            IUserMessage mm = null;
-                            var trechos = resposta.Split("\n\n");
-
-                            if (resposta.Length >= 2000)
-                            {
-                                if (resposta.Contains("```"))
-                                {
-                                    var start = 0;
-                                    MatchCollection textmatches = Regex.Matches(resposta, @"```(?'lang'\S*)\s*(?'code'[\s\S]*?)\s*```", RegexOptions.Singleline);
-                                    foreach (Match match in textmatches)
-                                    {
-                                        var substr = match.Index - start;
-                                        var prevText = resposta.Substring(start, substr);
-                                        start = match.Index + match.Length;
-                                        var lang = match.Groups["lang"].Value;
-                                        var code = match.Groups["code"].Value;
-                                        string trecho = $"```{lang}\n{code}```";
-
-                                        if (!string.IsNullOrWhiteSpace(prevText))
-                                        {
-                                            mm = await channel.SendMessageAsync(prevText, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-                                            msgRefer = (channel is IThreadChannel ? msgRefer : new MessageReference(mm.Id));
-                                        }
-
-                                        if (trecho.Length > 2000)
-                                        {
-                                            var fileStream = new MemoryStream(Encoding.UTF8.GetBytes(code));
-                                            mm = await channel.SendFileAsync(new FileAttachment(fileStream, $"message.{lang}"));
-                                        }
-                                        else
-                                        {
-                                            mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-                                        }
-                                    }
-                                    if (start < resposta.Length - 1)
-                                    {
-                                        mm = await channel.SendMessageAsync(resposta.Substring(start), messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-                                    }
-                                }
-                                else
-                                {
-                                    foreach (var trecho in trechos)
-                                    {
-                                        mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-                                        msgRefer = (channel is IThreadChannel ? msgRefer : new MessageReference(mm.Id));
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                mm = await channel.SendMessageAsync(resposta, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-                            }
+                            var mm = await channel.Responder(resposta, msgRefer);
 
                             var pedidos = resposta.Split("\n", StringSplitOptions.RemoveEmptyEntries)
                                 .Where(a => a.StartsWith(">>")).Select(a => a.Replace(">>", ""));

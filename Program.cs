@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord.Commands;
 using Microsoft.Extensions.Logging;
 using DiscordBot.Utils;
+using Discord.Interactions;
 
 namespace DiscordBot
 {
@@ -28,11 +29,6 @@ namespace DiscordBot
                 GatewayIntents = GatewayIntents.All
             };
 
-            var commands = new CommandService(new CommandServiceConfig
-            {
-                LogLevel = LogSeverity.Info,
-                CaseSensitiveCommands = false,
-            });
 
             var openAI = new OpenAIService(new OpenAiOptions()
             {
@@ -41,13 +37,19 @@ namespace DiscordBot
 
             var mongo = new MongoClient(mongoServer);
             var db = mongo.GetDatabase("ademir");
-
+            
+            _client = new DiscordShardedClient(config);
+            var commands = new InteractionService(_client.Rest, new InteractionServiceConfig
+            {
+                LogLevel = LogSeverity.Info,
+                DefaultRunMode = Discord.Interactions.RunMode.Async
+            });
             var collection = new ServiceCollection()
                .AddSingleton(db)
                .AddSingleton(config)
+               .AddSingleton(_client)
                .AddSingleton(commands)
                .AddSingleton(openAI)
-               .AddSingleton<DiscordShardedClient>()
                .AddSingleton<Context>()
                .AddDiscordServices()
                .AddLogging(b =>
@@ -65,8 +67,7 @@ namespace DiscordBot
         {
             //await aternosClient.StartServer();
 
-            var provider = CreateProvider();
-            _client = provider.GetRequiredService<DiscordShardedClient>();           
+            var provider = CreateProvider();        
             await provider.InitializeInteractionModulesAsync();
             var token = Environment.GetEnvironmentVariable("AdemirAuth");
             await _client.LoginAsync(TokenType.Bot, token);

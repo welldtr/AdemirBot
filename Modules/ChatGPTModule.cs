@@ -6,6 +6,8 @@ using OpenAI.ObjectModels.RequestModels;
 using OpenAI.ObjectModels;
 using OpenAI.Managers;
 using DiscordBot.Utils;
+using AngleSharp.Browser;
+using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace DiscordBot.Modules
 {
@@ -58,12 +60,46 @@ namespace DiscordBot.Modules
             }
         }
 
+        [SlashCommand("completar", "Pedir ao GPT uma completude de texto.")]
+        public async Task GPTText([Summary(description: "Comando")] string comando)
+        {
+            var guild = ((SocketTextChannel)Context.Channel).Guild;
+            var me = guild.Users.First(a => a.Id == Context.User.Id);
+            if (guild.Id != 1055161583841595412 && !(Context.Guild.IsPremium() && (me.PremiumSince.HasValue || me.GuildPermissions.Administrator)))
+            {
+                await RespondAsync($"Funcionalidade premium. Booste o servidor {guild.Name} para usar.", ephemeral: true);
+                return;
+            }
+
+            await DeferAsync();
+            var imageResult = await openAI.Completions.CreateCompletion(new CompletionCreateRequest
+            {
+                Prompt = comando!,
+                N = 1,
+                MaxTokens = 100,
+                Model = Models.Ada,
+                Temperature = 0f
+            });
+
+            if (imageResult.Successful)
+            {
+                foreach (var choice in imageResult.Choices)
+                {
+                    await Context.Channel.Responder(choice.Text, new MessageReference(Context.Interaction.Id));
+                }
+            }
+            else
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = $"Erro ao processar o comando \"{comando}\"");
+            }
+        }
+
         [SlashCommand("thread", "Criar uma tread privada com o Ademir.")]
         public async Task NewThread([Summary(description: "Nome da nova Thread")] string nome)
         {
             var guild = ((SocketTextChannel)Context.Channel).Guild;
             var me = guild.Users.First(a => a.Id == Context.User.Id);
-            if (guild.Id != 1055161583841595412 && !(Context.Guild.IsPremium() && me.PremiumSince.HasValue))
+            if (guild.Id != 1055161583841595412 && !(Context.Guild.IsPremium() && (me.PremiumSince.HasValue || me.GuildPermissions.Administrator)))
             {
                 await RespondAsync($"Funcionalidade premium. Booste o servidor {guild.Name} para usar.", ephemeral: true);
                 return;
@@ -72,6 +108,7 @@ namespace DiscordBot.Modules
             await DeferAsync();
 
             await ((ITextChannel)Context.Channel).CreateThreadAsync(nome, ThreadType.PublicThread);
+            await ((ISlashCommandInteraction)Context.Interaction).DeleteOriginalResponseAsync();
         }
     }
 }

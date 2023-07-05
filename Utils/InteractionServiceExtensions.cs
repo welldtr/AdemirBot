@@ -6,45 +6,51 @@ using Discord.Net;
 using Newtonsoft.Json;
 using Discord;
 using Microsoft.Extensions.Logging;
+using Discord.Interactions.Builders;
+using System.Reflection;
 
 namespace DiscordBot.Utils
 {
     public static class InteractionServiceExtensions
     {
-        public static Task InitializeInteractionModulesAsync(this IServiceProvider provider)
+        public static async Task InitializeInteractionModulesAsync(this IServiceProvider provider)
         {
             try
             {
-                var _client = provider.GetRequiredService<DiscordShardedClient>();
-                var commands = provider.GetRequiredService<Discord.Commands.CommandService>();
-                
+                var shard = provider.GetRequiredService<DiscordShardedClient>();
+                var _interactionService = provider.GetRequiredService<InteractionService>();
+
                 var _log = provider.GetRequiredService<ILogger<Program>>();
                 provider.ActivateAllDiscordServices();
 
-                var _interactionService = new InteractionService(_client.Rest);
-
-                _interactionService.SlashCommandExecuted += SlashCommandExecuted;
-
-                _client.ShardReady += async (shard) =>
+                shard.ShardReady += async (client) =>
                 {
-                    await _client.SetGameAsync($"tudo e todos [{shard.ShardId}]", type: ActivityType.Listening);
-                    _log.LogInformation($"Shard Number {shard.ShardId} is connected and ready!");
-
-                    _client.InteractionCreated += async (x) =>
+                    var _interactionService = new InteractionService(client.Rest);
+                    await shard.SetGameAsync($"tudo e todos [{client.ShardId}]", type: ActivityType.Listening);
+                    _log.LogInformation($"Shard Number {client.ShardId} is connected and ready!");
+                    try
                     {
-                        var ctx = new ShardedInteractionContext(_client, x);
-                        var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, provider));
-                    };
+                        var modules = await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
+                        _interactionService.SlashCommandExecuted += SlashCommandExecuted;
 
-                    await _interactionService.AddModulesGloballyAsync(true,
-                                await _interactionService.AddModuleAsync<AdemirConfigModule>(provider),
-                                await _interactionService.AddModuleAsync<BanModule>(provider),
-                                await _interactionService.AddModuleAsync<ChatGPTModule>(provider),
-                                await _interactionService.AddModuleAsync<DenounceModule>(provider),
-                                await _interactionService.AddModuleAsync<InactiveUsersModule>(provider),
-                                await _interactionService.AddModuleAsync<MacroModule>(provider),
-                                await _interactionService.AddModuleAsync<MusicModule>(provider)
-                            );
+                        foreach (var guild in client.Guilds)
+                        {
+                            await _interactionService.RemoveModulesFromGuildAsync(guild);
+                            await _interactionService.RegisterCommandsToGuildAsync(guild.Id, true);
+                        }
+
+                        client.InteractionCreated += async (x) =>
+                        {
+                            var ctx = new ShardedInteractionContext(shard, x);
+                            var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, provider));
+                        };
+
+                        _log.LogInformation("Cliente conectado.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogError(ex, "Erro ao carregar módulos.");
+                    }
                 };
             }
             catch (HttpException exception)
@@ -52,8 +58,6 @@ namespace DiscordBot.Utils
                 var json = JsonConvert.SerializeObject(exception.Errors, Formatting.Indented);
                 Console.WriteLine(json);
             }
-
-            return Task.CompletedTask;
         }
 
         static async Task SlashCommandExecuted(SlashCommandInfo arg1, Discord.IInteractionContext arg2, IResult arg3)
@@ -72,7 +76,7 @@ namespace DiscordBot.Utils
                         await arg2.Interaction.RespondAsync("Invalid number or arguments", ephemeral: true);
                         break;
                     case InteractionCommandError.Exception:
-                        await arg2.Interaction.RespondAsync($"Command exception: {arg3}", ephemeral: true);
+                        await arg2.Interaction.ModifyOriginalResponseAsync(a=>a.Content = $"Command exception: {arg3}");
                         break;
                     case InteractionCommandError.Unsuccessful:
                         await arg2.Interaction.RespondAsync("Command could not be executed", ephemeral: true);

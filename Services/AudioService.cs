@@ -100,6 +100,10 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await SkipMusic(channel, qtd));
                     break;
 
+                case ">>transcript":
+                    _ = Task.Run(async () => await StopMusic(channel));
+                    break;
+
                 case ">>stop":
                     _ = Task.Run(async () => await StopMusic(channel));
                     break;
