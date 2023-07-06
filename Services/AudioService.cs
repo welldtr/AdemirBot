@@ -29,7 +29,6 @@ namespace DiscordBot.Services
         private ConcurrentDictionary<ulong, List<Track>> _tracks;
         private ConcurrentDictionary<ulong, CancellationTokenSource> _cts;
         private ConcurrentDictionary<ulong, int> _volume;
-        private ConcurrentDictionary<ulong, Func<TimeSpan, Task>> _positionFunc;
         private Dictionary<string, Emote> emote;
 
         public AudioService(Context context, DiscordShardedClient client, ILogger<AudioService> logger)
@@ -55,7 +54,6 @@ namespace DiscordBot.Services
         private void InitializeDictionaries()
         {
             _audioClients = new ConcurrentDictionary<ulong, IAudioClient>();
-            _positionFunc = new ConcurrentDictionary<ulong, Func<TimeSpan, Task>>();
             _decorrido = new ConcurrentDictionary<ulong, float>();
             _currentTrack = new ConcurrentDictionary<ulong, int>();
             _tracks = new ConcurrentDictionary<ulong, List<Track>>();
@@ -219,7 +217,6 @@ namespace DiscordBot.Services
                     _playerState[guild.Id] = PlaybackState.Stopped;
                     _cts[guild.Id] = null;
                     _volume[guild.Id] = ademirConfig?.GlobalVolume ?? 100;
-                    _positionFunc[guild.Id] = (a) => Task.CompletedTask;
                     _decorrido[guild.Id] = 0;
                     _playmode[guild.Id] = PlayMode.Normal;
                     _currentTrack[guild.Id] = 0;
@@ -336,7 +333,6 @@ namespace DiscordBot.Services
                     {
                         foreach (var guild in _client.Guilds)
                         {
-                            await _positionFunc[guild.Id](TimeSpan.FromSeconds(_decorrido[guild.Id]));
                             await SavePlaybackInfo(guild);
                         }
                     }
@@ -548,7 +544,6 @@ namespace DiscordBot.Services
                     {
                         var track = _tracks[channel.GuildId][_currentTrack[channel.GuildId]-1];
                         await SavePlaylistInfo(guild);
-                        _positionFunc[channel.GuildId] = (a) => Task.CompletedTask;
                         var queuedBy = await channel.Guild.GetUserAsync(track.UserId);
                         var banner = PlayerBanner(track, queuedBy);
 
@@ -587,7 +582,6 @@ namespace DiscordBot.Services
                                     $"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build();
                             });
 
-                            _positionFunc[channel.GuildId] = modFunc;
                             if (output == null)
                             {
                                 _cts[channel.GuildId]?.Cancel();
