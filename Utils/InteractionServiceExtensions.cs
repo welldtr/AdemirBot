@@ -32,13 +32,7 @@ namespace DiscordBot.Utils
                     {
                         var modules = await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
-
-                        foreach (var guild in client.Guilds)
-                        {
-                            await _interactionService.RemoveModulesFromGuildAsync(guild);
-                            await _interactionService.RegisterCommandsToGuildAsync(guild.Id, true);
-                        }
-
+                        await _interactionService.RegisterCommandsGloballyAsync();
                         client.InteractionCreated += async (x) =>
                         {
                             var ctx = new ShardedInteractionContext(shard, x);
@@ -76,7 +70,7 @@ namespace DiscordBot.Utils
                         await arg2.Interaction.RespondAsync("Invalid number or arguments", ephemeral: true);
                         break;
                     case InteractionCommandError.Exception:
-                        await arg2.Interaction.ModifyOriginalResponseAsync(a=>a.Content = $"Command exception: {arg3}");
+                        await arg2.Interaction.ModifyOriginalResponseAsync(a => a.Content = $"Command exception: {arg3}");
                         break;
                     case InteractionCommandError.Unsuccessful:
                         await arg2.Interaction.RespondAsync("Command could not be executed", ephemeral: true);
