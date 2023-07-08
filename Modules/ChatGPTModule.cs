@@ -71,7 +71,8 @@ namespace DiscordBot.Modules
                 return;
             }
 
-            await RespondAsync(comando);
+            await DeferAsync();
+
             var imageResult = await openAI.Completions.CreateCompletion(new CompletionCreateRequest
             {
                 Prompt = comando!,
@@ -87,6 +88,7 @@ namespace DiscordBot.Modules
             {
                 foreach (var choice in imageResult.Choices)
                 {
+                    await ModifyOriginalResponseAsync(a => a.Content = comando);
                     await Context.Channel.Responder(choice.Text, new MessageReference(msg.Id));
                 }
             }
