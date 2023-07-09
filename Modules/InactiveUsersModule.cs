@@ -37,7 +37,7 @@ namespace DiscordBot.Modules
                 await DeferAsync();
                 var guildId = Context.Guild.Id;
                
-                var earlierMessage = await db.messagelog.Find(a => a.ChannelId == canal.Id && a.MessageLength > 0)
+                var earlierMessage = await db.messagelog.Find(a => a.ChannelId == canal.Id && a.MessageLength > 0 && a.Content != null)
                     .SortBy(a => a.MessageDate)
                     .FirstOrDefaultAsync();
 
@@ -105,6 +105,7 @@ namespace DiscordBot.Modules
                                     ChannelId = canal.Id,
                                     GuildId = Context.Guild.Id,
                                     MessageDate = msg.Timestamp.UtcDateTime,
+                                    Content = msg.Content,
                                     UserId = memberid,
                                     MessageLength = msg.Content.Length
                                 });
