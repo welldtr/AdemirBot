@@ -621,13 +621,6 @@ namespace DiscordBot.Services
                 _currentTrack[channel.GuildId] = 0;
                 _decorrido[channel.GuildId] = 0;
             }
-            catch (OperationCanceledException)
-            {
-                _playerState[channel.GuildId] = PlaybackState.Stopped;
-                _decorrido[channel.GuildId] = 0;
-                await channel.SendEmbedText("Desconectado.");
-                await SavePlaylistInfo(guild);
-            }
             catch (Exception ex)
             {
                 _playerState[channel.GuildId] = PlaybackState.Stopped;

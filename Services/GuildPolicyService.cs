@@ -120,6 +120,7 @@ namespace DiscordBot.Services
                     MessageId = arg.Id,
                     ChannelId = channel.Id,
                     GuildId = channel.Guild.Id,
+                    Content = arg.Content,
                     MessageDate = arg.Timestamp.UtcDateTime,
                     UserId = arg.Author?.Id ?? 0,
                     MessageLength = arg.Content.Length

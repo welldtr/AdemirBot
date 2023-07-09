@@ -152,8 +152,11 @@ namespace DiscordBot.Utils
                 {
                     foreach (var trecho in trechos)
                     {
-                        mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
-                        msgRefer = (channel is IThreadChannel ? msgRefer : new MessageReference(mm.Id));
+                        if (!string.IsNullOrWhiteSpace(trecho))
+                        {
+                            mm = await channel.SendMessageAsync(trecho, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                            msgRefer = (channel is IThreadChannel ? msgRefer : new MessageReference(mm.Id));
+                        }
                     }
                 }
             }

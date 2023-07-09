@@ -9,6 +9,7 @@ namespace DiscordBot.Domain.Entities
         public ulong UserId { get; set; }
         public ulong GuildId { get; set; }
         public ulong ChannelId { get; set; }
+        public string Content { get; set; }
         public DateTime MessageDate { get; set; }
         public long MessageLength { get; set; }
     }

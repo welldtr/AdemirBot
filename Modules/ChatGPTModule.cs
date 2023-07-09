@@ -8,6 +8,8 @@ using OpenAI.Managers;
 using DiscordBot.Utils;
 using AngleSharp.Browser;
 using YoutubeExplode.Videos.ClosedCaptions;
+using System.Text.Unicode;
+using System.Text;
 
 namespace DiscordBot.Modules
 {
@@ -77,9 +79,9 @@ namespace DiscordBot.Modules
             {
                 Prompt = comando!,
                 N = 1,
-                MaxTokens = 100,
-                Model = Models.TextDavinciV1,
-                Temperature = 0f
+                MaxTokens = 1000,
+                Model = Models.TextDavinciV3,
+                Temperature = 0.9f
             });
 
             var msg = await ((SocketSlashCommand)Context.Interaction).GetOriginalResponseAsync();
@@ -88,8 +90,9 @@ namespace DiscordBot.Modules
             {
                 foreach (var choice in imageResult.Choices)
                 {
-                    await ModifyOriginalResponseAsync(a => a.Content = comando);
-                    await Context.Channel.Responder(choice.Text, new MessageReference(msg.Id));
+                    await ModifyOriginalResponseAsync(a => a.Content = $"Comando: \"{comando}\"");
+                    using var ms = new MemoryStream(Encoding.UTF8.GetBytes(choice.Text));
+                    await Context.Channel.SendFileAsync(new FileAttachment(ms, "Resposta.txt"), messageReference: new MessageReference(msg.Id));
                 }
             }
             else
