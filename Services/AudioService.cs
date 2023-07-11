@@ -442,13 +442,16 @@ namespace DiscordBot.Services
             }
             else
             {
-                await channel.SendEmbedText($"Existem apenas {musicasRestantes} musicas restantes");
+                if (musicasRestantes == 0)
+                    await channel.SendEmbedText($"Esta é a ultima música da fila.");
+                else
+                    await channel.SendEmbedText($"Existem apenas {musicasRestantes} musicas restantes");
             }
         }
 
         public async Task BackMusic(ITextChannel channel, int qtd = 1)
         {
-            var musicasRestantes = _currentTrack[channel.GuildId];
+            var musicasAnteriores = _currentTrack[channel.GuildId] - 1;
             if (_currentTrack[channel.GuildId] - qtd > 0)
             {
                 _currentTrack[channel.GuildId] -= qtd;
@@ -457,7 +460,10 @@ namespace DiscordBot.Services
             }
             else
             {
-                await channel.SendEmbedText($"Existem apenas {_currentTrack[channel.GuildId] - 1} musicas anteriores.");
+                if (musicasAnteriores == 0)
+                    await channel.SendEmbedText($"Esta é a primeira música da fila.");
+                else
+                    await channel.SendEmbedText($"Existem apenas {musicasAnteriores} musicas restantes");
             }
         }
 
