@@ -10,16 +10,19 @@ using AngleSharp.Browser;
 using YoutubeExplode.Videos.ClosedCaptions;
 using System.Text.Unicode;
 using System.Text;
+using DiscordBot.Domain.Entities;
 
 namespace DiscordBot.Modules
 {
     public class ChatGPTModule : InteractionModuleBase
     {
         private readonly OpenAIService openAI;
+        private readonly Context db;
 
-        public ChatGPTModule(OpenAIService openAI)
+        public ChatGPTModule(OpenAIService openAI, Context ctx)
         {
             this.openAI = openAI;
+            this.db = ctx;
         }
 
         [SlashCommand("dall-e", "Pedir ao Dall-e uma imagem com a descrição.")]
@@ -114,7 +117,15 @@ namespace DiscordBot.Modules
 
             await DeferAsync();
 
-            await ((ITextChannel)Context.Channel).CreateThreadAsync(nome, ThreadType.PublicThread);
+           var channel = await ((ITextChannel)Context.Channel).CreateThreadAsync(nome, ThreadType.PublicThread);
+
+            await db.threads.UpsertAsync(new ThreadChannel
+            {
+                ThreadId = channel.Id,
+                GuildId = channel.Guild.Id,
+                MemberId = Context.Client.CurrentUser.Id,
+                LastMessageTime = channel.CreatedAt.UtcDateTime,
+            });
             await ((ISlashCommandInteraction)Context.Interaction).DeleteOriginalResponseAsync();
         }
     }

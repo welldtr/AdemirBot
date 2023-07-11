@@ -5,9 +5,9 @@ using Microsoft.Extensions.Logging;
 using OpenAI.Managers;
 using OpenAI.ObjectModels.RequestModels;
 using OpenAI.ObjectModels;
-using System.Text.RegularExpressions;
 using System.Text;
 using MongoDB.Bson;
+using DiscordBot.Domain.Entities;
 
 namespace DiscordBot.Services
 {
@@ -200,6 +200,14 @@ namespace DiscordBot.Services
                     {
                         var titulo = result.Choices.First().Text.Replace(":", "").Trim();
                         channel = await channel.CreateThreadAsync(titulo, autoArchiveDuration: ThreadArchiveDuration.OneHour, message: arg);
+
+                        await _db.threads.UpsertAsync(new ThreadChannel
+                        {
+                            ThreadId = channel.Id,
+                            GuildId = channel.Guild.Id,
+                            MemberId = arg.Author?.Id ?? 0,
+                            LastMessageTime = arg.Timestamp.UtcDateTime,
+                        });
                         msgRefer = null;
                     }
                 }

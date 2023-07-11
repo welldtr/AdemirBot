@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
 
 namespace DiscordBot.Services
 {
@@ -28,7 +29,36 @@ namespace DiscordBot.Services
             _client.MessageReceived += _client_MessageReceived;
             _client.UserJoined += _client_UserJoined;
             _client.UserLeft += _client_UserLeft;
+            _client.ShardReady += _client_ShardReady;
         }
+
+        private async Task _client_ShardReady(DiscordSocketClient arg)
+        {
+            var _ = Task.Run(async() =>
+            {
+                while (true)
+                {
+                    foreach (var guild in _client.Guilds)
+                    {
+                        try
+                        {
+                            var threads = await _db.threads.Find(t => t.LastMessageTime <= DateTime.UtcNow.AddHours(-12)).ToListAsync();
+
+                            foreach (var thread in threads)
+                            {
+                                await ((IThreadChannel)guild.GetChannel(thread.ThreadId)).ModifyAsync(a => a.Archived = true);
+                            }
+                        }
+                        catch
+                        {
+                            _log.LogError("Erro ao trancar threads do Ademir.");
+                        }
+                    }
+                    await Task.Delay(TimeSpan.FromMinutes(15));
+                }
+            });
+        }
+
 
         private async Task _client_MessageReceived(SocketMessage arg)
         {
@@ -124,6 +154,15 @@ namespace DiscordBot.Services
                     MessageDate = arg.Timestamp.UtcDateTime,
                     UserId = arg.Author?.Id ?? 0,
                     MessageLength = arg.Content.Length
+                });
+
+            if (arg is IThreadChannel && ((IThreadChannel)arg).OwnerId == _client.CurrentUser.Id)
+                await _db.threads.UpsertAsync(new ThreadChannel
+                {
+                    ThreadId = channel.Id,
+                    GuildId = channel.Guild.Id,
+                    MemberId = arg.Author?.Id ?? 0,
+                    LastMessageTime = arg.Timestamp.UtcDateTime,
                 });
         }
     }
