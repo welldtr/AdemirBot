@@ -422,8 +422,7 @@ namespace DiscordBot.Services
             _decorrido[channel.GuildId] = 0;
             _tracks[channel.GuildId].Clear();
             _playerState[channel.GuildId] = PlaybackState.Stopped;
-            _cts[channel.GuildId]?.Cancel();
-            _cts[channel.GuildId]?.TryReset();
+            CancelStream(channel.GuildId);
             await channel.SendEmbedText("Interrompido.");
         }
 
@@ -439,9 +438,7 @@ namespace DiscordBot.Services
             if (qtd <= musicasRestantes)
             {
                 _currentTrack[channel.GuildId] += qtd;
-
-                _cts[channel.GuildId]?.Cancel();
-                _cts[channel.GuildId]?.TryReset();
+                CancelStream(channel.GuildId);
             }
             else
             {
@@ -456,8 +453,7 @@ namespace DiscordBot.Services
             {
                 _currentTrack[channel.GuildId] -= qtd;
 
-                _cts[channel.GuildId]?.Cancel();
-                _cts[channel.GuildId]?.TryReset();
+                CancelStream(channel.GuildId);
             }
             else
             {
@@ -467,8 +463,7 @@ namespace DiscordBot.Services
 
         public Task ReplayMusic(ITextChannel channel)
         {
-            _cts[channel.GuildId]?.Cancel();
-            _cts[channel.GuildId]?.TryReset();
+            CancelStream(channel.GuildId);
             return Task.CompletedTask;
         }
 
@@ -476,8 +471,7 @@ namespace DiscordBot.Services
         {
             await _audioClients[channel.GuildId].StopAsync();
             _playerState[channel.GuildId] = PlaybackState.Stopped;
-            _cts[channel.GuildId]?.Cancel();
-            _cts[channel.GuildId]?.TryReset();
+            CancelStream(channel.GuildId);
             await channel.SendEmbedText("Desconectado.");
         }
 
@@ -610,8 +604,7 @@ namespace DiscordBot.Services
                                     a.Embed = banner.WithAuthor("Interrompida").WithColor(Color.Default).Build();
                                     a.Components = new ComponentBuilder().Build();
                                 });
-                                _cts[channel.GuildId]?.TryReset();
-                                token = _cts[channel.GuildId].Token;
+                                token = CancelStream(channel.GuildId);
                             }
                         }
                     }
@@ -651,6 +644,13 @@ namespace DiscordBot.Services
 
             if (_audioClients[channel.GuildId]?.ConnectionState == ConnectionState.Connected || _playerState[channel.GuildId] == PlaybackState.Stopped)
                 await _audioClients[channel.GuildId].StopAsync();
+        }
+
+        private CancellationToken CancelStream(ulong guildId)
+        {
+            _cts[guildId]?.Cancel();
+            _cts[guildId] = new CancellationTokenSource();
+            return _cts[guildId].Token;
         }
 
         private async Task ResolveQuery(IGuildUser user, string query, ITextChannel channel)
