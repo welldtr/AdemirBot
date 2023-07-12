@@ -12,4 +12,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends libopus-dev libsodium-dev ffmpeg
 WORKDIR /App
 COPY --from=build-env /App/out .
+ENV TZ=America/Sao_Paulo
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ENTRYPOINT ["dotnet", "DiscordBot.dll"]
