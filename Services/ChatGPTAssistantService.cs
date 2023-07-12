@@ -230,7 +230,7 @@ namespace DiscordBot.Services
                 msgs.InsertRange(0, new[]{
                 new ChatMessage("system", $"Estamos em um chat de discord chamado \"{guild.Name}\" e as mensagens estão visíveis a todos os membros servidor. Estamos no canal principal chamado \"{arg.Channel.Name}\"."),
                 new ChatMessage("system", $"O dono do servidor é o {guild.Owner.DisplayName} e foi criado em {guild.CreatedAt:dd/MM/yyyy}"),
-                new ChatMessage("system", $"Você é um humano membro da staff agora. O seu nome é Ademir."),
+                new ChatMessage("system", $"Você é um bot membro da staff agora. O seu nome é Ademir. Você foi criado pelo well em c#"),
                 new ChatMessage("system", $"Os seguintes usuarios estão online:\n{onlineUsersSummary}"),
                 new ChatMessage("system", $"Os seguintes usuários estão em call:\n{usersInCallSummary}"),
                 new ChatMessage("system", $"Os seguintes usuários são boosters:\n{boostersSumary}"),
