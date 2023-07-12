@@ -214,12 +214,14 @@ namespace DiscordBot.Services
 
                 var onlineUsers = guild.Users.Where(a => !a.IsBot && a.Status != UserStatus.Offline).Select(a => $"- {a.Nickname}");
                 var admUsers = guild.Users.Where(a => a.Roles.Any(b => b.Permissions.Administrator) && !a.IsBot && a.Status != UserStatus.Offline).Select(a => $"- {a.Nickname}");
+                var boosterUsers = guild.Users.Where(a => a.PremiumSince != null).Select(a => $"- {a.Nickname}");
                 var bots = guild.Users.Where(a => a.IsBot).Select(a => $"- {a.DisplayName}");
                 var usersInCall = guild.Users.Where(a => a.VoiceChannel != null).Select(a => $"- {a.DisplayName}");
 
                 var onlineUsersSummary = string.Join(" \n", onlineUsers);
                 var botsSummary = string.Join(" \n", bots);
                 var admsSummary = string.Join(" \n", admUsers);
+                var boostersSumary = string.Join(" \n", boosterUsers);
                 var usersInCallSummary = string.Join(" \n", usersInCall);
 
                 var channels = guild.Channels
@@ -232,6 +234,7 @@ namespace DiscordBot.Services
                 new ChatMessage("system", $"Você é feito em C#"),
                 new ChatMessage("system", $"Os seguintes usuarios estão online:\n{onlineUsersSummary}"),
                 new ChatMessage("system", $"Os seguintes usuários estão em call:\n{usersInCallSummary}"),
+                new ChatMessage("system", $"Os seguintes usuários são boosters:\n{boostersSumary}"),
                 new ChatMessage("system", $"Os seguintes usuários (além de você) são da staff:\n{admsSummary}\nCoisas que você não pode fazer, sugira que o usuário peça para eles."),
                 new ChatMessage("system", $"Os seguintes bots estão disponíveis nesse server:\n{botsSummary}"),
                 new ChatMessage("system", $"O usuário se chama {me.DisplayName} e sua conta foi criada em {arg.Author.CreatedAt:dd/MM/yyyy}"),
