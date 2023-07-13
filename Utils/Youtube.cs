@@ -34,6 +34,36 @@ namespace DiscordBot.Utils
                 return responseObjetct.Results.FirstOrDefault()?.Url;
             }
         }
+
+        public static async Task<Track[]> GetListOfTracksAsync(string id, CancellationToken token = default)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var client = new YoutubeExplode.Playlists.PlaylistClient(httpClient);
+                var playlist = await client.GetVideosAsync(id).ToListAsync();
+            
+                var playListTracks = new Track[playlist.Count];
+                var downloads = Enumerable.Range(0, playlist.Count).Select(i => Task.Run(async () =>
+                {
+                    var track = playlist[i];
+                    playListTracks[i] = new Track
+                    {
+                        Origin = "Youtube Playlist",
+                        Url = track.Url,
+                        AppendDate = DateTime.UtcNow,
+                        Duration = track.Duration ?? TimeSpan.Zero,
+                        TrackId = id,
+                        VideoId = track.Id,
+                        Title = track.Title,
+                        Author = track.Author.ChannelTitle,
+                        ThumbUrl = track!.Thumbnails!.FirstOrDefault()!.Url,
+                    };
+                }));
+
+                Task.WaitAll(downloads.ToArray());
+                return playListTracks;
+            }
+        }
         public static async Task<string> ExtractAsync(this YoutubeClient _youtubeClient, Track track, CancellationToken cancellationToken)
         {
             try

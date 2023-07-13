@@ -34,7 +34,7 @@ namespace DiscordBot.Services
 
         private async Task _client_ShardReady(DiscordSocketClient arg)
         {
-            var _ = Task.Run(async() =>
+            var _ = Task.Run(async () =>
             {
                 while (true)
                 {
@@ -46,7 +46,9 @@ namespace DiscordBot.Services
 
                             foreach (var thread in threads)
                             {
-                                await ((IThreadChannel)guild.GetChannel(thread.ThreadId)).ModifyAsync(a => a.Archived = true);
+                                var threadCh = guild.GetThreadChannel(thread.ThreadId);
+                                if (threadCh != null)
+                                    await threadCh?.ModifyAsync(a => a.Archived = true);
                             }
                         }
                         catch
@@ -106,10 +108,10 @@ namespace DiscordBot.Services
         private async Task ProcurarEApagarMensagemDeBoasVindas(SocketGuild guild, Membership member, DateTime untilDate)
         {
             var buttonMessages = await guild.SystemChannel
-                            .GetMessagesAsync(500)
-                            .Where(a => a.Any(b => b.Type == MessageType.GuildMemberJoin && b.Author.Id == member.MemberId))
-                            .Select(a => a.Where(b => b.Type == MessageType.GuildMemberJoin))
-                            .FlattenAsync();
+                .GetMessagesAsync(500)
+                .Where(a => a.Any(b => b.Type == MessageType.GuildMemberJoin && b.Author.Id == member.MemberId))
+                .Select(a => a.Where(b => b.Type == MessageType.GuildMemberJoin))
+                .FlattenAsync();
 
             foreach (var buttonMessage in buttonMessages)
             {
