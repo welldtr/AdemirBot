@@ -680,6 +680,10 @@ namespace DiscordBot.Services
             {
                 tracks = await GetSpotifyTracks(query);
             }
+            if (query.Trim().Matches(@"https\:\/\/www\.youtube\.com\/watch\?(?:v=[^&]*\&)?list=([^&]*)"))
+            {
+                tracks = await GetYoutubePlaylistTracks(query);
+            }
             else
             {
                 tracks = new[] { await Youtube.GetTrackAsync(query) };
@@ -711,7 +715,7 @@ namespace DiscordBot.Services
         {
             var match = query.Trim().Match(@"https\:\/\/www\.youtube\.com\/watch\?(?:v=[^&]*\&)?list=([^&]*)");
             var id = match.Groups[1].Value;
-            var tracks = await Youtube..GetListOfTracksAsync(id, type);
+            var tracks = await Youtube.GetListOfTracksAsync(id);
             return tracks;
         }
 

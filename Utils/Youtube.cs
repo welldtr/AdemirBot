@@ -35,7 +35,7 @@ namespace DiscordBot.Utils
             }
         }
 
-        public static async Task<Track[]> GetListOfTracksAsync(string id, string type, CancellationToken token = default)
+        public static async Task<Track[]> GetListOfTracksAsync(string id, CancellationToken token = default)
         {
             using (var httpClient = new HttpClient())
             {
