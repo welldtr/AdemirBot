@@ -422,7 +422,9 @@ namespace DiscordBot.Services
             _decorrido[channel.GuildId] = 0;
             _tracks[channel.GuildId].Clear();
             _playerState[channel.GuildId] = PlaybackState.Stopped;
-            CancelStream(channel.GuildId);
+            CancelCurrentTrackPlayback(channel.GuildId);
+            var guild = _client.GetGuild(channel.GuildId);
+            await SavePlaylistInfo(guild);
             await channel.SendEmbedText("Interrompido.");
         }
 
@@ -430,6 +432,8 @@ namespace DiscordBot.Services
         {
             _tracks[channel.GuildId].Clear();
             await channel.SendEmbedText("Lista de reprodução limpa.");
+            var guild = _client.GetGuild(channel.GuildId);
+            await SavePlaylistInfo(guild);
         }
 
         public async Task SkipMusic(ITextChannel channel, int qtd = 1)
@@ -438,7 +442,9 @@ namespace DiscordBot.Services
             if (qtd <= musicasRestantes)
             {
                 _currentTrack[channel.GuildId] += qtd;
-                CancelStream(channel.GuildId);
+                CancelCurrentTrackPlayback(channel.GuildId);
+                var guild = _client.GetGuild(channel.GuildId);
+                await SavePlaybackInfo(guild);
             }
             else
             {
@@ -456,7 +462,9 @@ namespace DiscordBot.Services
             {
                 _currentTrack[channel.GuildId] -= qtd;
 
-                CancelStream(channel.GuildId);
+                CancelCurrentTrackPlayback(channel.GuildId);
+                var guild = _client.GetGuild(channel.GuildId);
+                await SavePlaybackInfo(guild);
             }
             else
             {
@@ -469,7 +477,7 @@ namespace DiscordBot.Services
 
         public Task ReplayMusic(ITextChannel channel)
         {
-            CancelStream(channel.GuildId);
+            CancelCurrentTrackPlayback(channel.GuildId);
             return Task.CompletedTask;
         }
 
@@ -477,7 +485,10 @@ namespace DiscordBot.Services
         {
             await _audioClients[channel.GuildId].StopAsync();
             _playerState[channel.GuildId] = PlaybackState.Stopped;
-            CancelStream(channel.GuildId);
+            CancelCurrentTrackPlayback(channel.GuildId);
+            _tracks[channel.GuildId].Clear();
+            var guild = _client.GetGuild(channel.GuildId);
+            await SavePlaylistInfo(guild);
             await channel.SendEmbedText("Desconectado.");
         }
 
@@ -610,7 +621,7 @@ namespace DiscordBot.Services
                                     a.Embed = banner.WithAuthor("Interrompida").WithColor(Color.Default).Build();
                                     a.Components = new ComponentBuilder().Build();
                                 });
-                                token = CancelStream(channel.GuildId);
+                                token = CancelCurrentTrackPlayback(channel.GuildId);
                             }
                             catch (BufferProcessingException)
                             {
@@ -619,7 +630,7 @@ namespace DiscordBot.Services
                                     a.Embed = banner.WithAuthor("Erro durante a reprodução").WithColor(Color.Red).Build();
                                     a.Components = new ComponentBuilder().Build();
                                 });
-                                token = CancelStream(channel.GuildId);
+                                token = CancelCurrentTrackPlayback(channel.GuildId);
                             }
                         }
                     }
@@ -661,9 +672,10 @@ namespace DiscordBot.Services
                 await _audioClients[channel.GuildId].StopAsync();
         }
 
-        private CancellationToken CancelStream(ulong guildId)
+        private CancellationToken CancelCurrentTrackPlayback(ulong guildId)
         {
-            _cts[guildId]?.Cancel();
+            if (_cts[guildId]?.Token.CanBeCanceled ?? false)
+                _cts[guildId]?.Cancel();
             _cts[guildId] = new CancellationTokenSource();
             return _cts[guildId].Token;
         }
