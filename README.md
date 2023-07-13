@@ -10,45 +10,45 @@
 O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades focadas em bem-estar. Ele permite reproduzir músicas, criar macros, efetuar ações de moderação em massa e conversar com a API do ChatGPT.
 
 ## Funcionalidades
-- [ ] Falar com o bot apenas mencionando o mesmo
-- [ ] Reprodução/download de músicas/playlists em canal de audio
-- [ ] Suporte a links de vídeo do YouTube
-- [ ] Suporte a links de musicas do Spotify
-- [ ] Suporte a links de albuns do Spotify
-- [ ] Suporte a links de playlists públicas do Spotify
-- [ ] Suporte a links de playlists públicas do YouTube
-- [ ] Denunciar um usuário através do comando `/denunciar`
-- [ ] Denunciar uma mensagem com o menu de contexto
+- :white_check_mark: Falar com o bot apenas mencionando o mesmo
+- :white_check_mark: Reprodução/download de músicas/playlists em canal de audio
+- :white_check_mark: Suporte a links de vídeo do YouTube
+- :white_check_mark: Suporte a links de musicas do Spotify
+- :white_check_mark: Suporte a links de albuns do Spotify
+- :white_check_mark: Suporte a links de playlists públicas do Spotify
+- :white_check_mark: Suporte a links de playlists públicas do YouTube
+- :white_check_mark: Denunciar um usuário através do comando `/denunciar`
+- :white_check_mark: Denunciar uma mensagem com o menu de contexto
 
 ## Comandos de Booster
-- [ ] Falar com o bot em uma thread com o comando `/thread`
-- [ ] Gerar imagens com o comando `/dall-e`
-- [ ] Gerar texto com o comando `/completar`
+- :white_check_mark: Falar com o bot em uma thread com o comando `/thread`
+- :white_check_mark: Gerar imagens com o comando `/dall-e`
+- :white_check_mark: Gerar texto com o comando `/completar`
 
 ## Comandos do Administrador
-- [ ] Configurar o Canal de Denúncias: Comando `/config-denuncias`
-- [ ] Criar macros através do comando `/macro`
-- [ ] Editar macros: comando `/editar-macro`
-- [ ] Excluir macro: comando `/excluir-macro`
-- [ ] Banir em massa: comando `/massban`
-- [ ] Expulsar em massa: comando `/masskick`
-- [ ] Importar histórico de mensagens: comando `/importar-historico-mensagens`
-- [ ] Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
-- [ ] Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
+- :white_check_mark: Configurar o Canal de Denúncias: Comando `/config-denuncias`
+- :white_check_mark: Criar macros através do comando `/macro`
+- :white_check_mark: Editar macros: comando `/editar-macro`
+- :white_check_mark: Excluir macro: comando `/excluir-macro`
+- :white_check_mark: Banir em massa: comando `/massban`
+- :white_check_mark: Expulsar em massa: comando `/masskick`
+- :white_check_mark: Importar histórico de mensagens: comando `/importar-historico-mensagens`
+- :white_check_mark: Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
+- :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
 
 ## Comandos de Música
-- [ ] `>>play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum.
-- [ ] `>>skip`: Pula para a próxima música da fila.
-- [ ] `>>back`: Pula para a música anterior da fila.
-- [ ] `>>replay`: Reinicia a música atual.
-- [ ] `>>pause`: Pausa/Retoma a reprodução da música atual.
-- [ ] `>>stop`: Interrompe completamente a reprodução de música.
-- [ ] `>>loop`: Habilita/Desabilita o modo de repetição de faixa.
-- [ ] `>>loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
-- [ ] `>>queue`: Lista as próximas 20 músicas da fila.
-- [ ] `>>join`: Puxa o bot para o seu canal de voz.
-- [ ] `>>quit`: Remove o bot da chamada de voz.
-- [ ] `>>volume <valor>`: Ajusta o volume da música.
+- :white_check_mark: `>>play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum.
+- :white_check_mark: `>>skip`: Pula para a próxima música da fila.
+- :white_check_mark: `>>back`: Pula para a música anterior da fila.
+- :white_check_mark: `>>replay`: Reinicia a música atual.
+- :white_check_mark: `>>pause`: Pausa/Retoma a reprodução da música atual.
+- :white_check_mark: `>>stop`: Interrompe completamente a reprodução de música.
+- :white_check_mark: `>>loop`: Habilita/Desabilita o modo de repetição de faixa.
+- :white_check_mark: `>>loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
+- :white_check_mark: `>>queue`: Lista as próximas 20 músicas da fila.
+- :white_check_mark: `>>join`: Puxa o bot para o seu canal de voz.
+- :white_check_mark: `>>quit`: Remove o bot da chamada de voz.
+- :white_check_mark: `>>volume <valor>`: Ajusta o volume da música.
 
 ## Instalação (DevEnv)
 
