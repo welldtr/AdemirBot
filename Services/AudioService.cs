@@ -612,6 +612,15 @@ namespace DiscordBot.Services
                                 });
                                 token = CancelStream(channel.GuildId);
                             }
+                            catch (BufferProcessingException)
+                            {
+                                await msg.ModifyAsync(a =>
+                                {
+                                    a.Embed = banner.WithAuthor("Erro durante a reprodução").WithColor(Color.Red).Build();
+                                    a.Components = new ComponentBuilder().Build();
+                                });
+                                token = CancelStream(channel.GuildId);
+                            }
                         }
                     }
                 }
@@ -716,6 +725,7 @@ namespace DiscordBot.Services
             int sampleRate = 48000;
             int blockSize = sampleRate / 10;
             byte[] buffer = new byte[blockSize];
+            int fails = 0;
             while (true)
             {
                 if (token.IsCancellationRequested)
@@ -743,8 +753,19 @@ namespace DiscordBot.Services
                 }
                 catch (Exception e)
                 {
-                    _log.LogError(e, "Erro ao processar bloco de audio.");
-                    await discord!.FlushAsync();
+                    fails++;
+                    _log.LogError(e, $"Erro ao processar bloco de audio. Falhas: {fails}");
+
+                    if (fails <= 5)
+                    {
+                        await Task.Delay(500);
+                        continue;
+                    }
+                    else
+                    {
+                        _log.LogError(e, $"Tentei {fails} vezes e falhei, desisto.");
+                        throw new BufferProcessingException();
+                    }
                 }
             }
         }
