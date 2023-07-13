@@ -45,7 +45,6 @@ namespace DiscordBot.Utils
                 var playListTracks = new Track[playlist.Count];
                 var downloads = Enumerable.Range(0, playlist.Count).Select(i => Task.Run(async () =>
                 {
-                    var video = await new YoutubeClient().Videos.GetAsync(VideoId.Parse(playlist[i].Url!), token);
                     var track = playlist[i];
                     playListTracks[i] = new Track
                     {
@@ -54,7 +53,7 @@ namespace DiscordBot.Utils
                         AppendDate = DateTime.UtcNow,
                         Duration = track.Duration ?? TimeSpan.Zero,
                         TrackId = id,
-                        VideoId = video.Url,
+                        VideoId = track.Id,
                         Title = track.Title,
                         Author = track.Author.ChannelTitle,
                         ThumbUrl = track!.Thumbnails!.FirstOrDefault()!.Url,
