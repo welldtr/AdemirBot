@@ -707,6 +707,14 @@ namespace DiscordBot.Services
             return tracks;
         }
 
+        private async Task<Track[]> GetYoutubePlaylistTracks(string query)
+        {
+            var match = query.Trim().Match(@"https\:\/\/www\.youtube\.com\/watch\?(?:v=[^&]*\&)?list=([^&]*)");
+            var id = match.Groups[1].Value;
+            var tracks = await Youtube..GetListOfTracksAsync(id, type);
+            return tracks;
+        }
+
         private MessageComponent GetAudioControls(PlaybackState state)
         {
             var paused = state == PlaybackState.Paused;

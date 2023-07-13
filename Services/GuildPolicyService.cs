@@ -106,10 +106,10 @@ namespace DiscordBot.Services
         private async Task ProcurarEApagarMensagemDeBoasVindas(SocketGuild guild, Membership member, DateTime untilDate)
         {
             var buttonMessages = await guild.SystemChannel
-                            .GetMessagesAsync(500)
-                            .Where(a => a.Any(b => b.Type == MessageType.GuildMemberJoin && b.Author.Id == member.MemberId))
-                            .Select(a => a.Where(b => b.Type == MessageType.GuildMemberJoin))
-                            .FlattenAsync();
+                .GetMessagesAsync(500)
+                .Where(a => a.Any(b => b.Type == MessageType.GuildMemberJoin && b.Author.Id == member.MemberId))
+                .Select(a => a.Where(b => b.Type == MessageType.GuildMemberJoin))
+                .FlattenAsync();
 
             foreach (var buttonMessage in buttonMessages)
             {
