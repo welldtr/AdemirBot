@@ -107,6 +107,18 @@ namespace DiscordBot.Utils
             }
         }
 
+        public static async Task<string?> GetWelcomeDescriptionScreenAsync(this SocketGuild guild)
+        {
+            try
+            {
+                var welcomeScreen = await guild.GetWelcomeScreenAsync();
+                return welcomeScreen.Description;
+            }
+            catch (NullReferenceException)
+            {
+                return null;
+            }
+        }
 
         public static async Task<IUserMessage> Responder(this IMessageChannel channel, string resposta, MessageReference msgRefer)
         {

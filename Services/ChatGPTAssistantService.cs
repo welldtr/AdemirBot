@@ -223,7 +223,7 @@ namespace DiscordBot.Services
                 var admsSummary = string.Join(" \n", admUsers);
                 var boostersSumary = string.Join(" \n", boosterUsers);
                 var usersInCallSummary = string.Join(" \n", usersInCall);
-                var welcome = await guild.GetWelcomeScreenAsync();
+                var welcomeDescription = await guild.GetWelcomeDescriptionScreenAsync();
                 
                 var channels = guild.Channels
                     .Where(a => a.GetPermissionOverwrite(guild.EveryoneRole).HasValue && a.GetPermissionOverwrite(guild.EveryoneRole)!.Value.ViewChannel != PermValue.Deny);
@@ -231,7 +231,7 @@ namespace DiscordBot.Services
                 msgs.InsertRange(0, new[]{
                 new ChatMessage("system", $"Estamos em um chat de discord chamado \"{guild.Name}\" e as mensagens estão visíveis a todos os membros servidor. O canal principal do server é {guild.SystemChannel.Name}. Estamos no canal \"{arg.Channel.Name}\"."),
                 new ChatMessage("system", $"O dono do servidor é o {guild.Owner.DisplayName} e foi criado em {guild.CreatedAt:dd/MM/yyyy}"),
-                new ChatMessage("system", $"O servidor conta atualmente com {totalUsers} membros. Descrição da tela de boas vindas: {welcome.Description}"),
+                new ChatMessage("system", $"O servidor conta atualmente com {totalUsers} membros. Descrição da tela de boas vindas: {welcomeDescription}"),
                 new ChatMessage("system", $"Você é um bot membro da staff agora. O seu nome é Ademir. Você foi criado pelo well em c#"),
                 new ChatMessage("system", $"Há {onlineUsers.Count()} membros online. Se eu perguntar por alguém online, diga que não consegue ver direito."),
                 new ChatMessage("system", $"Há {usersInCall.Count()} membros em call:\n{usersInCallSummary}"),
