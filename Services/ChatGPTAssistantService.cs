@@ -227,9 +227,9 @@ namespace DiscordBot.Services
                 
                 var channels = guild.Channels
                     .Where(a => a.GetPermissionOverwrite(guild.EveryoneRole).HasValue && a.GetPermissionOverwrite(guild.EveryoneRole)!.Value.ViewChannel != PermValue.Deny);
-               
+                var tipoCanal = channel is ThreadChannel ? "tópico" : "canal";
                 msgs.InsertRange(0, new[]{
-                new ChatMessage("system", $"Estamos em um chat de discord chamado \"{guild.Name}\" e as mensagens estão visíveis a todos os membros servidor. O canal principal do server é {guild.SystemChannel.Name}. Estamos no canal \"{arg.Channel.Name}\"."),
+                new ChatMessage("system", $"Estamos em um chat de discord chamado \"{guild.Name}\" e as mensagens estão visíveis a todos os membros servidor. O canal principal do server é {guild.SystemChannel.Name}. Estamos no {tipoCanal} \"{arg.Channel.Name}\"."),
                 new ChatMessage("system", $"O dono do servidor é o {guild.Owner.DisplayName} e foi criado em {guild.CreatedAt:dd/MM/yyyy}"),
                 new ChatMessage("system", $"O servidor conta atualmente com {totalUsers} membros. Descrição da tela de boas vindas: {welcomeDescription}"),
                 new ChatMessage("system", $"Você é um bot membro da staff agora. O seu nome é Ademir. Você foi criado pelo well em c#"),
@@ -284,13 +284,11 @@ namespace DiscordBot.Services
                         await channel.SendMessageAsync("Desculpe. A cota de interações com o GPT excedeu, por conta disso estou sem cérebro.", messageReference: msgRefer);
                         _log.LogError($"Cota excedida no OpenAI: {completionResult.ToJson()}");
                     }
-
                     else if (completionResult.Error?.Code == "context_length_exceeded")
                     {
                         await channel.SendMessageAsync("Desculpe. Acho que excedi minha cota de conversas nesse tópico.", messageReference: msgRefer);
                         _log.LogError($"Máximo de tokens da conversa excedida: {completionResult.ToJson()}");
                     }
-
                     else if (completionResult.Error == null)
                     {
                         await channel.SendMessageAsync("Ocorreu um erro desconhecido", messageReference: msgRefer);
