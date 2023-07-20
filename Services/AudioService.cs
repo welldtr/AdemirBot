@@ -692,7 +692,7 @@ namespace DiscordBot.Services
             {
                 tracks = await GetSpotifyTracks(query);
             }
-            if (query.Trim().Matches(@"https\:\/\/www\.youtube\.com\/watch\?(?:v=[^&]*\&)?list=([^&]*)"))
+            else if (query.Trim().Matches(@"https\:\/\/www\.youtube\.com\/watch\?(?:v=[^&]*\&)?list=([^&]*)"))
             {
                 tracks = await GetYoutubePlaylistTracks(query);
             }
