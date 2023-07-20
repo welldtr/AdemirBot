@@ -23,21 +23,28 @@ namespace DiscordBot.Utils
             var playListTracks = new Track[spotifyTracks.Count];
             var downloads = Enumerable.Range(0, spotifyTracks.Count).Select(i => Task.Run(async () =>
             {
-                var youtubeId = await spotify.Tracks.GetYoutubeIdAsync(spotifyTracks[i].Url);
-                var video = await new YoutubeClient().Videos.GetAsync(VideoId.Parse(youtubeId!), token);
-                var track = await spotify.Tracks.GetAsync(spotifyTracks[i].Id);
-                playListTracks[i] = new Track
+                try
                 {
-                    Origin = "Spotify",
-                    Url = spotifyTracks[i].Url,
-                    AppendDate = DateTime.UtcNow,
-                    Duration = TimeSpan.FromMilliseconds(spotifyTracks[i].DurationMs),
-                    TrackId = id,
-                    VideoId = video.Url,
-                    Title = spotifyTracks[i].Title,
-                    Author = string.Join(", ", spotifyTracks[i].Artists.Select(a => a.Name)),
-                    ThumbUrl = track.Album.Images.FirstOrDefault()?.Url,
-                };
+                    var youtubeId = await spotify.Tracks.GetYoutubeIdAsync(spotifyTracks[i].Url);
+                    var video = await new YoutubeClient().Videos.GetAsync(VideoId.Parse(youtubeId!), token);
+                    var track = await spotify.Tracks.GetAsync(spotifyTracks[i].Id);
+                    playListTracks[i] = new Track
+                    {
+                        Origin = "Spotify",
+                        Url = spotifyTracks[i].Url,
+                        AppendDate = DateTime.UtcNow,
+                        Duration = TimeSpan.FromMilliseconds(spotifyTracks[i].DurationMs),
+                        TrackId = id,
+                        VideoId = video.Url,
+                        Title = spotifyTracks[i].Title,
+                        Author = string.Join(", ", spotifyTracks[i].Artists.Select(a => a.Name)),
+                        ThumbUrl = track.Album.Images.FirstOrDefault()?.Url,
+                    };
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
             }));
 
             Task.WaitAll(downloads.ToArray());

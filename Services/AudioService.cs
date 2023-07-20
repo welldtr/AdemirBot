@@ -372,13 +372,18 @@ namespace DiscordBot.Services
                     .WithFooter($"Adicionada por {user.DisplayName}", user.GetDisplayAvatarUrl())
                     .Build());
 
-            foreach (var track in tracks)
+            for(int i = 0; i < tracks.Length; i++)
             {
-                track.UserId = user.Id;
-                track.AppendDate = DateTime.Now;
-                track.GuildId = channel.GuildId;
-                track.ChannelId = channel.Id;
-                _tracks[channel.GuildId].Add(track);
+                if (tracks[i] == null)
+                {
+                    await channel.SendEmbedText($"Não consegui informações da faixa nº {i}");
+                    continue;
+                }
+                tracks[i].UserId = user.Id;
+                tracks[i].AppendDate = DateTime.Now;
+                tracks[i].GuildId = channel.GuildId;
+                tracks[i].ChannelId = channel.Id;
+                _tracks[channel.GuildId].Add(tracks[i]);
             }
         }
 
@@ -644,6 +649,8 @@ namespace DiscordBot.Services
             {
                 _playerState[channel.GuildId] = PlaybackState.Stopped;
                 _decorrido[channel.GuildId] = 0;
+                _log.LogError(ex, "Erro ao tocar música");
+                await StopMusic(channel);
                 await channel.SendEmbedText($"Erro ao tocar musica: {ex}");
             }
             finally
