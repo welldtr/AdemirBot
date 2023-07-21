@@ -131,7 +131,7 @@ namespace DiscordBot.Modules
         {
             IThreadChannel? ch = Context.Channel as IThreadChannel;
             var me = await Context.Guild.GetUserAsync(Context.User.Id);
-            if(ch == null)
+            if(ch == null || ch.OwnerId != Context.Client.CurrentUser.Id)
             {
                 await RespondAsync("Você não está em uma thread com o Ademir.");
                 return;
