@@ -287,6 +287,13 @@ namespace DiscordBot.Services
         private async Task SavePlaybackstate(SocketGuild guild)
         {
             var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
+            if(ademirConfig == null)
+            {
+                ademirConfig = new AdemirConfig
+                {
+                    GuildId = guild.Id
+                };
+            }
             ademirConfig.PlaybackState = _playerState[guild.Id];
             ademirConfig.PlayMode = _playmode[guild.Id];
             ademirConfig.Position = _decorrido[guild.Id];
