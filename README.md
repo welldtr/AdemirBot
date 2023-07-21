@@ -22,6 +22,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 
 ## Comandos de Booster
 - :white_check_mark: Falar com o bot em uma thread com o comando `/thread`
+- :white_check_mark: Reiniciar a sua thread com o Ademir com `/restart-thread`
 - :white_check_mark: Gerar imagens com o comando `/dall-e`
 - :white_check_mark: Gerar texto com o comando `/completar`
 
