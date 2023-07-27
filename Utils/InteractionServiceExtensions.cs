@@ -32,7 +32,6 @@ namespace DiscordBot.Utils
                     {
                         var modules = await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
-                        await _interactionService.RegisterCommandsGloballyAsync();
                         client.InteractionCreated += async (x) =>
                         {
                             var ctx = new ShardedInteractionContext(shard, x);
