@@ -25,4 +25,8 @@
     <PackageReference Include="YoutubeSearchApi.Net" Version="1.1.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="shared\fonts\" />
+  </ItemGroup>
+
 </Project>

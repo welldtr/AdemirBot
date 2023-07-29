@@ -49,7 +49,7 @@ namespace DiscordBot.Modules
                 int backgroundRectSize = 300;
                 int backgroundRectX = 50;
                 int backgroundRectY = 50;
-                int backgroundRectCornerRadius = 30;
+                int backgroundRectCornerRadius = 25;
                 graphics.FillRoundedRectangle(new SolidBrush(backgroundRectColor), backgroundRectX, backgroundRectY, backgroundRectSize, backgroundRectSize, backgroundRectCornerRadius);
 
                 // Adicionar retângulo adicional
