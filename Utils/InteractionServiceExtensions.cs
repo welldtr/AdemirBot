@@ -30,7 +30,9 @@ namespace DiscordBot.Utils
                     _log.LogInformation($"Shard Number {client.ShardId} is connected and ready!");
                     try
                     {
-                        var modules = await _interactionService.RegisterCommandsGloballyAsync();
+                        var modules = await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
+
+                        await _interactionService.RegisterCommandsGloballyAsync();
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
                         client.InteractionCreated += async (x) =>
                         {

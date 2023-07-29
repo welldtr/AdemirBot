@@ -19,7 +19,7 @@ namespace DiscordBot.Modules
         }
 
         [SlashCommand("rank", "Mostra o Card de Ranking no Server")]
-        public async Task ExcluirMacro([Summary(description: "Nome da macro")] IUser usuario = null)
+        public async Task Rank([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync(ephemeral: true);
             var id = usuario?.Id ?? Context.User.Id;
