@@ -25,11 +25,7 @@ namespace DiscordBot.Modules
             await DeferAsync(ephemeral: true);
             var id = usuario?.Id ?? Context.User.Id;
             await ProcessCard(await Context.Guild.GetUserAsync(id));
-            await ModifyOriginalResponseAsync(a =>
-            {
-                a.Content = "";
-                a.Attachments = new[] { new FileAttachment("rankcard.png") };
-            });
+            await RespondWithFileAsync(new FileAttachment("rankcard.png"));
         }
 
         private async Task ProcessCard(IGuildUser user)
