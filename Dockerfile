@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
 WORKDIR /App
 
 COPY . ./
+COPY /shared/fonts /usr/share/fonts
 
 RUN dotnet restore
 
