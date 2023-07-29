@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 
@@ -18,14 +19,14 @@ namespace DiscordBot.Domain.Entities
         public int LurkrLevel { get; set; }
         public long LurkrXP { get; set; }
 
-        internal static Member FromSocketUser(SocketUser author)
+        internal static Member FromGuildUser(IGuildUser user)
         {
             return new Member
             {
-                GuildId = author.Id,
-                MemberId = author.Id,
-                MemberUserName = author.Username,
-                MemberNickname = author.GlobalName
+                GuildId = user.GuildId,
+                MemberId = user.Id,
+                MemberUserName = user.Username,
+                MemberNickname = user.GlobalName
             };
         }
     }

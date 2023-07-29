@@ -210,11 +210,11 @@ namespace DiscordBot.Services
             if (arg.Author == null)
                 return (0, DateTime.Now);
 
-            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id);
+            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
 
             if (member == null)
             {
-                member = Member.FromSocketUser(arg.Author);
+                member = Member.FromGuildUser(arg.Author as IGuildUser);
                 member.MessageCount = 0;
             }
 

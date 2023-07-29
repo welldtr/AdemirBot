@@ -13,6 +13,7 @@ namespace DiscordBot.Utils
 {
     public static class InteractionServiceExtensions
     {
+        static bool initialized = false;
         public static async Task InitializeInteractionModulesAsync(this IServiceProvider provider)
         {
             try
@@ -21,20 +22,24 @@ namespace DiscordBot.Utils
                 var _interactionService = provider.GetRequiredService<InteractionService>();
 
                 var _log = provider.GetRequiredService<ILogger<Program>>();
+
                 provider.ActivateAllDiscordServices();
 
                 shard.ShardReady += async (client) =>
                 {
+                    if (initialized)
+                        return;
+
+                    initialized = true;
                     var _interactionService = new InteractionService(client.Rest);
                     await shard.SetGameAsync($"tudo e todos [{client.ShardId}]", type: ActivityType.Listening);
                     _log.LogInformation($"Shard Number {client.ShardId} is connected and ready!");
                     try
                     {
-                        var modules = await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
-
-                        await _interactionService.RegisterCommandsGloballyAsync();
+                        await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
+                        await _interactionService.RegisterCommandsGloballyAsync(true);
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
-                        client.InteractionCreated += async (x) =>
+                        shard.InteractionCreated += async (x) =>
                         {
                             var ctx = new ShardedInteractionContext(shard, x);
                             var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, provider));

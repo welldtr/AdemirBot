@@ -63,7 +63,7 @@ namespace DiscordBot.Utils
 
                     if (member == null)
                     {
-                        member = Member.FromSocketUser(user);
+                        member = Member.FromGuildUser(user);
                     }
 
                     long xpEarned = LevelUtils.GetXPProgression(levelInfo.MessageCount);
