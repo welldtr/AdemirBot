@@ -9,7 +9,7 @@ RUN dotnet restore
 RUN dotnet publish -c Release -o out
 FROM mcr.microsoft.com/dotnet/aspnet:6.0
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libopus-dev libsodium-dev ffmpeg libfontconfig1
+    apt-get install -y --no-install-recommends libopus-dev libsodium-dev ffmpeg libfreetype6 libfontconfig1
 WORKDIR /App
 COPY --from=build-env /App/out .
 ENV TZ=America/Sao_Paulo
