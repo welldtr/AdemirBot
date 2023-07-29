@@ -7,7 +7,7 @@
 [![SonarCloud](https://github.com/welldtr/AdemirBot/actions/workflows/sonarcloud.yml/badge.svg)](https://github.com/welldtr/AdemirBot/actions/workflows/sonarcloud.yml)
 
 ## Descrição
-O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades focadas em bem-estar. Ele permite reproduzir músicas, criar macros, efetuar ações de moderação em massa e conversar com a API do ChatGPT.
+O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades focadas em bem-estar. Ele permite reproduzir músicas, contabilização de XP, criar macros, efetuar ações de moderação em massa e conversar com a API do ChatGPT.
 
 ## Funcionalidades
 - :white_check_mark: Falar com o bot apenas mencionando o mesmo
@@ -17,6 +17,8 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Suporte a links de albuns do Spotify
 - :white_check_mark: Suporte a links de playlists públicas do Spotify
 - :white_check_mark: Suporte a links de playlists públicas do YouTube
+- :white_check_mark: Suporte a contabilização de XP e importação de informações do Lurkr
+- :white_check_mark: Obter informações de XP através do comando `/rank`
 - :white_check_mark: Denunciar um usuário através do comando `/denunciar`
 - :white_check_mark: Denunciar uma mensagem com o menu de contexto
 

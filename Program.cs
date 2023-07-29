@@ -29,7 +29,6 @@ namespace DiscordBot
                 GatewayIntents = GatewayIntents.All
             };
 
-
             var openAI = new OpenAIService(new OpenAiOptions()
             {
                 ApiKey = gptKey!

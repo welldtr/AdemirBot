@@ -1,4 +1,6 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using Discord.WebSocket;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
 namespace DiscordBot.Domain.Entities
 {
@@ -12,6 +14,19 @@ namespace DiscordBot.Domain.Entities
         public DateTime LastMessageTime { get; set; }
         public long XP { get; set; }
         public long MessageCount { get; set; }
-        public int level { get; set; }
+        public int Level { get; set; }
+        public int LurkrLevel { get; set; }
+        public long LurkrXP { get; set; }
+
+        internal static Member FromSocketUser(SocketUser author)
+        {
+            return new Member
+            {
+                GuildId = author.Id,
+                MemberId = author.Id,
+                MemberUserName = author.Username,
+                MemberNickname = author.GlobalName
+            };
+        }
     }
 }

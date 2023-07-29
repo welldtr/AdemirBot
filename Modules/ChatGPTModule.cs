@@ -6,6 +6,9 @@ using OpenAI.ObjectModels.RequestModels;
 using OpenAI.ObjectModels;
 using OpenAI.Managers;
 using DiscordBot.Utils;
+using AngleSharp.Browser;
+using YoutubeExplode.Videos.ClosedCaptions;
+using System.Text.Unicode;
 using System.Text;
 using DiscordBot.Domain.Entities;
 
@@ -114,42 +117,16 @@ namespace DiscordBot.Modules
 
             await DeferAsync();
 
-            var channel = await ((ITextChannel)Context.Channel).CreateThreadAsync(nome, ThreadType.PublicThread);
+           var channel = await ((ITextChannel)Context.Channel).CreateThreadAsync(nome, ThreadType.PublicThread);
 
             await db.threads.UpsertAsync(new ThreadChannel
             {
                 ThreadId = channel.Id,
+
                 GuildId = channel.Guild.Id,
                 MemberId = Context.Client.CurrentUser.Id,
                 LastMessageTime = channel.CreatedAt.UtcDateTime,
             });
-            await ((ISlashCommandInteraction)Context.Interaction).DeleteOriginalResponseAsync();
-        }
-
-        [SlashCommand("restart-thread", "Apagar as msgs de uma tread privada com o Ademir.")]
-        public async Task RestartThread()
-        {
-            IThreadChannel? ch = Context.Channel as IThreadChannel;
-            var me = await Context.Guild.GetUserAsync(Context.User.Id);
-            if(ch == null || ch.OwnerId != Context.Client.CurrentUser.Id)
-            {
-                await RespondAsync("Você não está em uma thread com o Ademir.");
-                return;
-            }
-
-            var msgs = (await ch.GetMessagesAsync(ch.MessageCount).FlattenAsync()).OrderBy(m => m.Timestamp);
-            if(msgs.FirstOrDefault()?.Author.Id != Context.User.Id && !me.GuildPermissions.Administrator)
-            {
-                await RespondAsync("Você precisa ser o solicitante da thread.");
-                return;
-            }
-
-            await DeferAsync();
-            foreach (var msg in msgs)
-            {
-                await ch.DeleteMessageAsync(msg.Id);
-            }
-
             await ((ISlashCommandInteraction)Context.Interaction).DeleteOriginalResponseAsync();
         }
     }

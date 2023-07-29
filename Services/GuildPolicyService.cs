@@ -1,7 +1,9 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
+using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 namespace DiscordBot.Services
@@ -38,6 +40,9 @@ namespace DiscordBot.Services
             {
                 while (true)
                 {
+                    var conventionPack = new ConventionPack { new IgnoreExtraElementsConvention(true) };
+                    ConventionRegistry.Register("IgnoreExtraElements", conventionPack, type => true);
+
                     foreach (var guild in _client.Guilds)
                     {
                         try
@@ -48,12 +53,22 @@ namespace DiscordBot.Services
                             {
                                 var threadCh = guild.GetThreadChannel(thread.ThreadId);
                                 if (threadCh != null)
-                                    await threadCh?.ModifyAsync(a => a.Archived = true);
+                                    await threadCh.ModifyAsync(a => a.Archived = true);
                             }
                         }
                         catch
                         {
                             _log.LogError("Erro ao trancar threads do Ademir.");
+                        }
+
+                        try
+                        {
+                            await Lurkr.ImportLevelInfo(guild, _db);
+                            _log.LogInformation($"Importação de levels do Lurkr no server {guild.Name} concluída.");
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.LogError(ex, "Erro ao importar levels do Lurkr");
                         }
                     }
                     await Task.Delay(TimeSpan.FromMinutes(15));
@@ -166,6 +181,47 @@ namespace DiscordBot.Services
                     MemberId = arg.Author?.Id ?? 0,
                     LastMessageTime = arg.Timestamp.UtcDateTime,
                 });
+
+            await ProcessXP(arg);
+        }
+
+        private async Task ProcessXP(SocketMessage arg)
+        {
+            var (messageCount, lastMessage) = await RaiseAndGetMsgCount(arg);
+
+            var isCoolledDown = lastMessage.AddMinutes(1) >= arg.Timestamp.UtcDateTime;
+            
+            if (isCoolledDown)
+                return;
+
+            if (!(arg is SocketUserMessage userMessage) || userMessage.Author == null)
+                return;
+
+            long xpEarned = LevelUtils.GetXPProgression(messageCount);
+
+            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id);
+            member.XP = xpEarned;
+            member.Level = LevelUtils.GetLevel(messageCount);
+            await _db.members.UpsertAsync(member);
+        }
+
+        private async Task<(long, DateTime)> RaiseAndGetMsgCount(SocketMessage arg)
+        {
+            if (arg.Author == null)
+                return (0, DateTime.Now);
+
+            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id);
+
+            if (member == null)
+            {
+                member = Member.FromSocketUser(arg.Author);
+                member.MessageCount = 0;
+            }
+
+            member.MessageCount++;
+            member.LastMessageTime = arg.Timestamp.UtcDateTime;
+            await _db.members.UpsertAsync(member);
+            return (member.MessageCount, member.LastMessageTime);
         }
     }
 }
