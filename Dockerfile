@@ -7,10 +7,6 @@ COPY /shared/fonts /usr/share/fonts
 RUN dotnet restore
 
 RUN dotnet publish -c Release -o out
-RUN apt-get update \
-    && apt-get install -y --allow-unauthenticated \
-    libgdiplus
-
 FROM mcr.microsoft.com/dotnet/aspnet:6.0
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libopus-dev libsodium-dev ffmpeg

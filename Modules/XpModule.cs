@@ -3,8 +3,7 @@ using Discord.Interactions;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Modules.Modals;
 using DiscordBot.Utils;
-using System.Drawing;
-using System.Drawing.Text;
+using SkiaSharp;
 using System.Text.RegularExpressions;
 
 namespace DiscordBot.Modules
@@ -33,87 +32,87 @@ namespace DiscordBot.Modules
 
         private async Task ProcessCard(IGuildUser user)
         {
-            var member = await db.members.FindOneAsync(a => a.MemberId == user.Id);
 
             int width = 1600;
             int height = 400;
-            System.Drawing.Color backgroundColor = ColorTranslator.FromHtml("#313338");
+            SKColor backgroundColor = SKColor.Parse("#313338");
 
-            Bitmap image = new Bitmap(width, height);
-            using (Graphics graphics = Graphics.FromImage(image))
+            using (var surface = SKSurface.Create(new SKImageInfo(width, height)))
             {
-                graphics.Clear(backgroundColor);
+                var canvas = surface.Canvas;
+                canvas.Clear(backgroundColor);
 
                 // Adicionar retângulo de fundo
-                System.Drawing.Color backgroundRectColor = ColorTranslator.FromHtml("#23272A");
+                SKColor backgroundRectColor = SKColor.Parse("#23272A");
                 int backgroundRectSize = 300;
                 int backgroundRectX = 50;
                 int backgroundRectY = 50;
                 int backgroundRectCornerRadius = 25;
-                graphics.FillRoundedRectangle(new SolidBrush(backgroundRectColor), backgroundRectX, backgroundRectY, backgroundRectSize, backgroundRectSize, backgroundRectCornerRadius);
+                canvas.DrawRoundRect(new SKRect(backgroundRectX, backgroundRectY, backgroundRectX + backgroundRectSize, backgroundRectY + backgroundRectSize), backgroundRectCornerRadius, backgroundRectCornerRadius, new SKPaint { Color = backgroundRectColor });
 
                 // Adicionar retângulo adicional
-                System.Drawing.Color additionalRectColor = ColorTranslator.FromHtml("#23272A");
+                SKColor additionalRectColor = SKColor.Parse("#23272A");
                 int additionalRectWidth = 1200;
                 int additionalRectHeight = 60;
                 int additionalRectX = 375;
                 int additionalRectY = 290;
                 int additionalRectCornerRadius = 30;
-                graphics.FillRoundedRectangle(new SolidBrush(additionalRectColor), additionalRectX, additionalRectY, additionalRectWidth, additionalRectHeight, additionalRectCornerRadius);
+                canvas.DrawRoundRect(new SKRect(additionalRectX, additionalRectY, additionalRectX + additionalRectWidth, additionalRectY + additionalRectHeight), additionalRectCornerRadius, additionalRectCornerRadius, new SKPaint { Color = additionalRectColor });
 
                 // Adicionar textos
-                string text1 = user.GlobalName;
-                string text2 = "RANK#?";
-                string text3 = $"LEVEL {member.Level}";
-                string text4 = $"{member.XP} XP";
-                string text5 = "(? to Next Level)";
+                string textUsername = user.GlobalName;
+                string textRank = "RANK#999";
+                string textLevel = $"LEVEL 42";
+                string textXp = $"654.654 XP";
+                string textRemain = "(654 to Next Level)";
 
-                Font font1 = new Font("gg sans SemiBold", 42);
-                Font font2 = new Font("gg sans SemiBold", 42);
-                Font font3 = new Font("gg sans SemiBold", 72);
-                Font font4 = new Font("gg sans SemiBold", 40);
-                Font font5 = new Font("gg sans SemiBold", 28);
+                var typeface = SKTypeface.FromFamilyName("gg sans", 600, 50, SKFontStyleSlant.Upright);
+                SKFont fontUsername = new SKFont(typeface, 66);
+                SKFont fontRank = new SKFont(typeface, 51);
+                SKFont fontLvl = new SKFont(typeface, 96);
+                SKFont fontXp = new SKFont(typeface, 47);
+                SKFont fontRemain = new SKFont(typeface, 35);
 
-                System.Drawing.Color textColor1 = ColorTranslator.FromHtml("#FFFFFF");
-                System.Drawing.Color textColor2 = ColorTranslator.FromHtml("#99AAB5");
-                System.Drawing.Color textColor3 = ColorTranslator.FromHtml("#FFFFFF");
-                System.Drawing.Color textColor4 = ColorTranslator.FromHtml("#FFFFFF");
-                System.Drawing.Color textColor5 = ColorTranslator.FromHtml("#99AAB5");
+                SKColor textColor1 = SKColor.Parse("#FFFFFF");
+                SKColor textColor2 = SKColor.Parse("#99AAB5");
+                SKColor textColor3 = SKColor.Parse("#FFFFFF");
+                SKColor textColor4 = SKColor.Parse("#FFFFFF");
+                SKColor textColor5 = SKColor.Parse("#99AAB5");
 
-                int text1X = 372;
-                int text1Y = 205;
-                int text2X = 820;
-                int text2Y = 70;
-                int text3X = 1070;
-                int text3Y = 34;
-                int text4X = 923;
-                int text4Y = 205;
-                int text5X = 1248;
-                int text5Y = 223;
+                (int x, int y) posUserName = (380, 268);
+                (int x, int y) posRank = (1143, 104);
+                (int x, int y) posLvl = (1570, 104);
+                (int x, int y) posXp = (1232, 268);
+                (int x, int y) posRemain = (1569, 268);
 
-                graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
-
-                graphics.DrawString(text1, font1, new SolidBrush(textColor1), text1X, text1Y);
-                graphics.DrawString(text2, font2, new SolidBrush(textColor2), text2X, text2Y);
-                graphics.DrawString(text3, font3, new SolidBrush(textColor3), text3X, text3Y);
-                graphics.DrawString(text4, font4, new SolidBrush(textColor4), text4X, text4Y);
-                graphics.DrawString(text5, font5, new SolidBrush(textColor5), text5X, text5Y);
+                canvas.DrawText(textUsername, posUserName.x, posUserName.y, fontUsername, new SKPaint { Color = textColor1 });
+                canvas.DrawText(textRank, posRank.x, posRank.y, fontRank, new SKPaint { Color = textColor2, TextAlign = SKTextAlign.Right });
+                canvas.DrawText(textLevel, posLvl.x, posLvl.y, fontLvl, new SKPaint { Color = textColor3, TextAlign = SKTextAlign.Right });
+                canvas.DrawText(textXp, posXp.x, posXp.y, fontXp, new SKPaint { Color = textColor4, TextAlign = SKTextAlign.Right });
+                canvas.DrawText(textRemain, posRemain.x, posRemain.y, fontRemain, new SKPaint { Color = textColor5, TextAlign = SKTextAlign.Right });
 
                 var avatarUrl = user.GetGuildAvatarUrl(size: 512) ?? user.GetDisplayAvatarUrl(size: 512);
 
                 if (!string.IsNullOrEmpty(avatarUrl))
                 {
                     using var client = new HttpClient();
+                    var ms = new MemoryStream();
                     var info = await client.GetStreamAsync(avatarUrl);
-                    System.Drawing.Image avatar = System.Drawing.Image.FromStream(info);
-                    Rectangle avatarRect = new Rectangle(75, 75, 250, 250);
-                    graphics.DrawImage(avatar, avatarRect);
+                    info.CopyTo(ms);
+                    ms.Position = 0;
+                    using var avatar = SKBitmap.Decode(ms);
+                    var avatarRect = new SKRect(75, 75, 325, 325);
+                    canvas.DrawBitmap(avatar, avatarRect);
+                }
+
+                // Salvar a imagem em um arquivo
+                using (var image = surface.Snapshot())
+                using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+                using (var stream = File.OpenWrite("rankcard.png"))
+                {
+                    data.SaveTo(stream);
                 }
             }
-
-            // Salvar a imagem em um arquivo
-            string filePath = "rankcard.png";
-            image.Save(filePath, System.Drawing.Imaging.ImageFormat.Png);
         }
     }
 }
