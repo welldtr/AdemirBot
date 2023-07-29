@@ -190,19 +190,23 @@ namespace DiscordBot.Services
             var (messageCount, lastMessage) = await RaiseAndGetMsgCount(arg);
 
             var isCoolledDown = lastMessage.AddMinutes(1) >= arg.Timestamp.UtcDateTime;
-            
+
             if (isCoolledDown)
+            {
+                Console.WriteLine($"{arg.Author.Username} chill...");
                 return;
+            }
 
             if (!(arg is SocketUserMessage userMessage) || userMessage.Author == null)
                 return;
 
-            long xpEarned = LevelUtils.GetXPProgression(messageCount);
+            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
+            member.MessageCount = messageCount;
+            member.XP = LevelUtils.GetXPProgression(member.MessageCount);
+            member.Level = LevelUtils.GetLevel(member.XP);
+            await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 
-            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id);
-            member.XP = xpEarned;
-            member.Level = LevelUtils.GetLevel(messageCount);
-            await _db.members.UpsertAsync(member);
+            Console.WriteLine($"{arg.Author.Username} + member xp: {member.XP}");
         }
 
         private async Task<(long, DateTime)> RaiseAndGetMsgCount(SocketMessage arg)
@@ -211,7 +215,7 @@ namespace DiscordBot.Services
                 return (0, DateTime.Now);
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
-
+            var lastTime = member.LastMessageTime;
             if (member == null)
             {
                 member = Member.FromGuildUser(arg.Author as IGuildUser);
@@ -220,8 +224,8 @@ namespace DiscordBot.Services
 
             member.MessageCount++;
             member.LastMessageTime = arg.Timestamp.UtcDateTime;
-            await _db.members.UpsertAsync(member);
-            return (member.MessageCount, member.LastMessageTime);
+            await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
+            return (member.MessageCount, lastTime);
         }
     }
 }

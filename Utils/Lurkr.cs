@@ -72,9 +72,10 @@ namespace DiscordBot.Utils
                     member.MessageCount = levelInfo.MessageCount;
                     member.LurkrXP = levelInfo.XP;
                     member.LurkrLevel = levelInfo.Level;
-                    member.Level = LevelUtils.GetLevel(member.MessageCount);
+                    member.XP = LevelUtils.GetXPProgression(levelInfo.MessageCount);
+                    member.Level = LevelUtils.GetLevel(member.XP);
                     member.LastMessageTime = DateTime.UtcNow;
-                    await db.members.UpsertAsync(member);
+                    await db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
                 }
 
                 page++;

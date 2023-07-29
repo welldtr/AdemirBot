@@ -12,7 +12,7 @@ namespace DiscordBot.Repository
         Task DeleteAsync(T entity);
         Task<IEnumerable<T>> GetAllAsync();
         Task<T> GetByIdAsync(object id);
-        Task UpsertAsync(T entity);
+        Task UpsertAsync(T entity, Expression<Func<T, bool>> filter = null);
         Task<T> FindOneAsync(Expression<Func<T, bool>> filter);
         Task<long> Count(Expression<Func<T, bool>> filter);
         Task<DeleteResult> DeleteAsync(Expression<Func<T, bool>> filter);

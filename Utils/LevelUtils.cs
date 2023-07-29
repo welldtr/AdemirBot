@@ -4,14 +4,13 @@ namespace DiscordBot.Utils
 {
     public static class LevelUtils
     {
-        public static int GetLevel(long messageCount)
+        public static int GetLevel(long xp)
         {
             int lvl;
-            var xp = GetXPProgression(messageCount);
 
             if (xp - 100 > 50)
             {
-                lvl = Convert.ToInt32(1 + Math.Sqrt((xp - 100) / 50));
+                lvl = Convert.ToInt32(Math.Floor(1 + Math.Sqrt((xp - 100) / 50)));
             }
             else
             {

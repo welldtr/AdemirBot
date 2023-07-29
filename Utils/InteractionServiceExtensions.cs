@@ -27,17 +27,15 @@ namespace DiscordBot.Utils
 
                 shard.ShardReady += async (client) =>
                 {
-                    if (initialized)
-                        return;
-
-                    initialized = true;
+                    await client.BulkOverwriteGlobalApplicationCommandsAsync(new ApplicationCommandProperties[] { });
                     var _interactionService = new InteractionService(client.Rest);
+
                     await shard.SetGameAsync($"tudo e todos [{client.ShardId}]", type: ActivityType.Listening);
                     _log.LogInformation($"Shard Number {client.ShardId} is connected and ready!");
                     try
                     {
-                        await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
-                        await _interactionService.RegisterCommandsGloballyAsync(true);
+                        await _interactionService.AddModulesAsync(Assembly.GetAssembly(typeof(ChatGPTModule)), provider);
+                        await _interactionService.RegisterCommandsToGuildAsync((917286921259089930),true);
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
                         shard.InteractionCreated += async (x) =>
                         {

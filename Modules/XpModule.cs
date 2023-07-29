@@ -20,12 +20,13 @@ namespace DiscordBot.Modules
             db = context;
         }
 
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("rank", "Mostra o Card de Ranking no Server")]
         public async Task Rank([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
             var id = usuario?.Id ?? Context.User.Id;
-            var cardfilename = await ProcessCard(Context.User as IGuildUser);
+            var cardfilename = await ProcessCard(await Context.Guild.GetUserAsync(id));
             await ModifyOriginalResponseAsync(a =>
             {
                 a.Content = " ";
@@ -65,15 +66,15 @@ namespace DiscordBot.Modules
                 canvas.DrawRoundRect(new SKRect(additionalRectX, additionalRectY, additionalRectX + additionalRectWidth, additionalRectY + additionalRectHeight), additionalRectCornerRadius, additionalRectCornerRadius, new SKPaint { Color = additionalRectColor });
 
                 var typeface = SKTypeface.FromFamilyName("gg sans", 600, 50, SKFontStyleSlant.Upright);
-                var levelMinXp = 50 * Math.Pow(member.Level - 2, 2) + 100;
-                var levelMaxXp = 50 * Math.Pow(member.Level - 1, 2) + 100;
+                var levelMinXp = 50 * Math.Pow(member.Level - 1, 2) + 100;
+                var levelMaxXp = 50 * Math.Pow(member.Level - 0, 2) + 100;
                 var levelXp = member.XP - levelMinXp;
                 var totalLevelXp = levelMaxXp - levelMinXp;
                 var remainigXp = levelMaxXp - member.XP;
                 var levelProgress = levelXp/totalLevelXp;
 
                 // Adicionar preenchimento da barra de progresso
-                SKColor additionalRect2Color = SKColor.Parse("#FFFFFFB0");
+                SKColor additionalRect2Color = SKColor.Parse("#B0FFFFFF");
                 int additionalRect2Width = Convert.ToInt32(1200 * levelProgress);
                 int additionalRect2Height = 60;
                 int additionalRect2X = 375;

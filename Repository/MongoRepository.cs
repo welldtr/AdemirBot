@@ -83,11 +83,18 @@ namespace DiscordBot.Repository
             await _collection.DeleteOneAsync(filter);
         }
 
-        public async Task UpsertAsync(T entity)
+        public async Task UpsertAsync(T entity, Expression<Func<T, bool>> filter = null)
         {
             var idProperty = GetIdProperty();
-            var filter = Builders<T>.Filter.Eq(idProperty.Name, idProperty.GetValue(entity));
-            await _collection.ReplaceOneAsync(filter, entity, new ReplaceOptions { IsUpsert = true });
+            if (filter == null)
+            {
+                var _filter = Builders<T>.Filter.Eq(idProperty.Name, idProperty.GetValue(entity));
+                await _collection.ReplaceOneAsync(_filter, entity, new ReplaceOptions { IsUpsert = true });
+            }
+            else
+            {
+                await _collection.ReplaceOneAsync(filter, entity, new ReplaceOptions { IsUpsert = true });
+            }
         }
     }
 }
