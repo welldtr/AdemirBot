@@ -11,6 +11,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="runtimeconfig.template.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Include="runtimeconfig.template.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Betalgo.OpenAI" Version="7.0.0" />
     <PackageReference Include="Discord.Net" Version="3.11.0" />
     <PackageReference Include="Microsoft.ClearScript.V8" Version="7.4.2" />
