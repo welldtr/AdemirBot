@@ -215,7 +215,7 @@ namespace DiscordBot.Services
                 return (0, DateTime.Now);
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
-            var lastTime = member.LastMessageTime;
+            var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
             if (member == null)
             {
                 member = Member.FromGuildUser(arg.Author as IGuildUser);
