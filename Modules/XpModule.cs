@@ -4,6 +4,8 @@ using DiscordBot.Domain.Entities;
 using DiscordBot.Modules.Modals;
 using DiscordBot.Utils;
 using SkiaSharp;
+using System.Drawing;
+using System.Drawing.Text;
 using System.Text.RegularExpressions;
 
 namespace DiscordBot.Modules
@@ -32,6 +34,7 @@ namespace DiscordBot.Modules
 
         private async Task ProcessCard(IGuildUser user)
         {
+            var member = await db.members.FindOneAsync(a => a.MemberId == user.Id);
 
             int width = 1600;
             int height = 400;
@@ -61,9 +64,9 @@ namespace DiscordBot.Modules
 
                 // Adicionar textos
                 string textUsername = user.GlobalName;
-                string textRank = "RANK#999";
-                string textLevel = $"LEVEL 42";
-                string textXp = $"654.654 XP";
+                string textRank = "RANK#?";
+                string textLevel = $"LEVEL {member.Level}";
+                string textXp = $"{member.XP} XP";
                 string textRemain = "(654 to Next Level)";
 
                 var typeface = SKTypeface.FromFamilyName("gg sans", 600, 50, SKFontStyleSlant.Upright);
