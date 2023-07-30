@@ -65,7 +65,7 @@ namespace DiscordBot.Modules
                 int additionalRectCornerRadius = 30;
                 canvas.DrawRoundRect(new SKRect(additionalRectX, additionalRectY, additionalRectX + additionalRectWidth, additionalRectY + additionalRectHeight), additionalRectCornerRadius, additionalRectCornerRadius, new SKPaint { Color = additionalRectColor });
 
-                var typeface = SKTypeface.FromFamilyName("gg sans", 600, 50, SKFontStyleSlant.Upright);
+                var typeface = SKTypeface.FromFile("./shared/fonts/gg sans SemiBold.ttf");
                 var levelMinXp = 50 * Math.Pow(member.Level - 1, 2) + 100;
                 var levelMaxXp = 50 * Math.Pow(member.Level - 0, 2) + 100;
                 var levelXp = member.XP - levelMinXp;
