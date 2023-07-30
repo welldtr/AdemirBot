@@ -11,7 +11,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends libopus-dev libsodium-dev ffmpeg libfreetype6 libfontconfig1
 WORKDIR /App
 COPY --from=build-env /App/out .
-COPY /App/out/shared/fonts /usr/share/fonts
+COPY --from=build-env /App/out/shared/fonts /usr/share/fonts
 ENV TZ=America/Sao_Paulo
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ENTRYPOINT ["dotnet", "DiscordBot.dll"]

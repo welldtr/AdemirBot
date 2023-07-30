@@ -189,7 +189,7 @@ namespace DiscordBot.Services
         {
             var (messageCount, lastMessage) = await RaiseAndGetMsgCount(arg);
 
-            var isCoolledDown = lastMessage.AddMinutes(1) >= arg.Timestamp.UtcDateTime;
+            var isCoolledDown = lastMessage.AddSeconds(80) >= arg.Timestamp.UtcDateTime;
 
             if (isCoolledDown)
             {
