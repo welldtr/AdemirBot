@@ -9,7 +9,7 @@ namespace DiscordBot.Domain.Entities
     public class Member : IEntity
     {
         [BsonId]
-        public ObjectId _id { get; set; }
+        public Guid Id { get; set; }
         public ulong MemberId { get; set; }
         public ulong GuildId { get; set; }
         public string MemberUserName { get; set; }
@@ -25,7 +25,7 @@ namespace DiscordBot.Domain.Entities
         {
             return new Member
             {
-                _id = ObjectId.GenerateNewId(),
+                Id = Guid.NewGuid(),
                 GuildId = user.GuildId,
                 MemberId = user.Id,
                 MemberUserName = user.Username,
