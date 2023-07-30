@@ -88,11 +88,11 @@ namespace DiscordBot.Modules
                 (string text, string color, int size, int x, int y) xp = ($"{member.XP} XP", "#FFFFFF", 55, 1232, 268);
                 (string text, string color, int size, int x, int y) remain = ($"({remainigXp} to Next Level)", "#99AAB5", 35, 1569, 268);
 
-                canvas.DrawText(userName.text, userName.x, userName.y, new SKFont(typeface, userName.size), new SKPaint { Color = SKColor.Parse(userName.color) });
-                canvas.DrawText(rank.text, rank.x, rank.y, new SKFont(typeface, rank.size), new SKPaint { Color = SKColor.Parse(rank.color), TextAlign = SKTextAlign.Right });
-                canvas.DrawText(lvl.text, lvl.x, lvl.y, new SKFont(typeface, lvl.size), new SKPaint { Color = SKColor.Parse(lvl.color), TextAlign = SKTextAlign.Right });
-                canvas.DrawText(xp.text, xp.x, xp.y, new SKFont(typeface, xp.size), new SKPaint { Color = SKColor.Parse(xp.color), TextAlign = SKTextAlign.Right });
-                canvas.DrawText(remain.text, remain.x, remain.y, new SKFont(typeface, remain.size), new SKPaint { Color = SKColor.Parse(remain.color), TextAlign = SKTextAlign.Right });
+                canvas.DrawText(userName.text, userName.x, userName.y, new SKFont(typeface, userName.size), new SKPaint { IsAntialias=true, Color = SKColor.Parse(userName.color) });
+                canvas.DrawText(rank.text, rank.x, rank.y, new SKFont(typeface, rank.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(rank.color), TextAlign = SKTextAlign.Right });
+                canvas.DrawText(lvl.text, lvl.x, lvl.y, new SKFont(typeface, lvl.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(lvl.color), TextAlign = SKTextAlign.Right });
+                canvas.DrawText(xp.text, xp.x, xp.y, new SKFont(typeface, xp.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(xp.color), TextAlign = SKTextAlign.Right });
+                canvas.DrawText(remain.text, remain.x, remain.y, new SKFont(typeface, remain.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(remain.color), TextAlign = SKTextAlign.Right });
 
                 var avatarUrl = user.GetGuildAvatarUrl(size: 512) ?? user.GetDisplayAvatarUrl(size: 512);
 
