@@ -80,9 +80,12 @@ namespace DiscordBot.Services
                                 if (voice.Id == guild.AFKChannel.Id)
                                     continue;
 
+                                if (voice.ConnectedUsers.Where(a => !a.IsBot).Count() < 2)
+                                    continue;
+
                                 foreach (var user in voice.ConnectedUsers)
                                 {
-                                    if (user.IsMuted)
+                                    if (user.IsMuted || user.IsDeafened)
                                         continue;
 
                                     var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
@@ -90,17 +93,35 @@ namespace DiscordBot.Services
                                     if (member == null)
                                     {
                                         member = Member.FromGuildUser(user);
-                                        member.MessageCount = 0;
                                     }
 
-                                    member.XP += 30;
-
-                                    _log.LogInformation($"+30xp de call: {member.MemberUserName}");
-                                    if (user.IsSelfMuted)
+                                    if (user.IsSelfMuted || user.IsSelfDeafened)
                                     {
-                                        _log.LogInformation($"-20xp por mute: {member.MemberUserName}");
-                                        member.XP -= 20;
+                                        _log.LogInformation($"+5xp de call: {member.MemberUserName}");
+                                        member.XP = 5;
+                                        member.MutedTime += TimeSpan.FromMinutes(1);
                                     }
+                                    else
+                                    {
+                                        _log.LogInformation($"+20xp de call: {member.MemberUserName}");
+                                        member.XP = 20;
+                                        member.VoiceTime += TimeSpan.FromMinutes(1);
+                                    }
+
+                                    if (user.IsVideoing)
+                                    {
+                                        member.XP += 20;
+                                        _log.LogInformation($"+20xp de camera: {member.MemberUserName}");
+                                        member.VideoTime += TimeSpan.FromMinutes(1);
+                                    }
+                                    
+                                    if (user.IsStreaming)
+                                    {
+                                        member.XP += 10;
+                                        _log.LogInformation($"+10xp de streaming: {member.MemberUserName}");
+                                        member.StreamingTime += TimeSpan.FromMinutes(1);
+                                    }
+
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
                                 }
                             }

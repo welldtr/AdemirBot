@@ -60,6 +60,9 @@ namespace DiscordBot.Services
 
                     if (member != null)
                     {
+                        member.XP += config.XPPerBump;
+                        member.BumpCount++;
+                        await _db.members.UpsertAsync(member, a => a.MemberId == arg.Author.Id && a.GuildId == guildId);
                         await _db.bumps.AddAsync(new Bump
                         {
                             BumpId = Guid.NewGuid(),

@@ -17,6 +17,11 @@ namespace DiscordBot.Domain.Entities
         public DateTime LastMessageTime { get; set; }
         public long XP { get; set; }
         public long MessageCount { get; set; }
+        public long BumpCount { get; set; }
+        public TimeSpan VoiceTime { get; set; }
+        public TimeSpan MutedTime { get; set; }
+        public TimeSpan StreamingTime { get; set; }
+        public TimeSpan VideoTime { get; set; }
         public int Level { get; set; }
         public int LurkrLevel { get; set; }
         public long LurkrXP { get; set; }
