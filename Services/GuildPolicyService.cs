@@ -308,9 +308,6 @@ namespace DiscordBot.Services
 
         public async Task ProcessRoleRewards(Member member)
         {
-            if (member?.MemberId != 596787570881462391)
-                return;
-
             var guild = _client.GetGuild(member.GuildId);
             var user = guild.GetUser(member.MemberId);
             var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
@@ -320,6 +317,9 @@ namespace DiscordBot.Services
                 _log.LogError("Impossível processar recompensas de nivel. Configuração de level nao executada");
                 return;
             }
+
+            if (!config.EnableRoleRewards)
+                return;
 
             var allRoleRewards = config.RoleRewards.SelectMany(a => a.Roles)
                 .Where(a => user.Roles.Any(b => b.Id == ulong.Parse(a.Id)))
