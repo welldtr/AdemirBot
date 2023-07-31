@@ -65,17 +65,10 @@ namespace DiscordBot.Utils
                         member = Member.FromGuildUser(user);
                     }
 
-                    long xpEarned = member.LurkrXP; // LevelUtils.GetXPProgression(levelInfo.MessageCount);
-                    member.XP = xpEarned;
-
                     member.MessageCount = levelInfo.MessageCount;
                     member.LurkrXP = levelInfo.XP;
                     member.LurkrLevel = levelInfo.Level;
-                    member.MutedTime = TimeSpan.Zero;
-                    member.VoiceTime = TimeSpan.Zero;
-                    member.StreamingTime = TimeSpan.Zero;
-                    member.VideoTime = TimeSpan.Zero;
-                    member.XP = member.LurkrXP; // LevelUtils.GetXPProgression(levelInfo.MessageCount);
+                    member.XP = member.XP < member.LurkrXP ? member.LurkrXP : member.XP;
                     member.Level = LevelUtils.GetLevel(member.XP);
                     member.LastMessageTime = null;
                     await db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
