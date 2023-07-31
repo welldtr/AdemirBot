@@ -14,7 +14,7 @@ namespace DiscordBot.Domain.Entities
         public ulong GuildId { get; set; }
         public string MemberUserName { get; set; }
         public string MemberNickname { get; set; }
-        public DateTime LastMessageTime { get; set; }
+        public DateTime? LastMessageTime { get; set; }
         public long XP { get; set; }
         public long MessageCount { get; set; }
         public long BumpCount { get; set; }

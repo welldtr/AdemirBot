@@ -33,6 +33,29 @@ namespace DiscordBot.Modules
             });
         }
 
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("togglerolerewards", "Ativar/Desativar o módulo de cargos por XP")]
+        public async Task ToggleRoleRewards()
+        {
+            await DeferAsync();
+            var config = await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id);
+
+            if (config == null)
+            {
+                config = new Domain.Entities.AdemirConfig
+                {
+                    GuildId = Context.Guild.Id,
+                };
+            }
+            config.EnableRoleRewards = !config.EnableRoleRewards;
+
+            await db.ademirCfg.UpsertAsync(config, a => a.GuildId == Context.Guild.Id);
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = $"Cargos de recompensa por XP {(config.EnableRoleRewards ? "habilitados" : "desabilitados")}.";
+            });
+        }
+
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("syncrolerewards", "Sincroniza os cargos do usuario pelo level")]
         public async Task SyncLevels([Summary(description: "Usuario")] IUser usuario = null)
@@ -47,7 +70,7 @@ namespace DiscordBot.Modules
             var id = usuario?.Id ?? Context.User.Id;
 
             var member = await db.members.FindOneAsync(a => a.MemberId == id && a.GuildId == Context.Guild.Id);
-            
+
             if (member == null)
             {
                 await ModifyOriginalResponseAsync(a =>

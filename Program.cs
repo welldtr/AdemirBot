@@ -3,9 +3,6 @@ using Discord.WebSocket;
 using OpenAI.Managers;
 using OpenAI;
 using MongoDB.Driver;
-using Microsoft.Extensions.DependencyInjection;
-using Discord.Commands;
-using Microsoft.Extensions.Logging;
 using DiscordBot.Utils;
 using Discord.Interactions;
 
@@ -60,17 +57,21 @@ namespace DiscordBot
             return collection.BuildServiceProvider();
         }
 
-        public static Task Main(string[] args) => new Program().MainAsync();
+        public static Task Main(string[] args) => new Program().MainAsync(args);
 
-        public async Task MainAsync()
+        public async Task MainAsync(string[] args)
         {
             //await aternosClient.StartServer();
 
+            var builder = WebApplication.CreateBuilder(args);
+            var app = builder.Build();
+            app.MapGet("/", () => "Hello World!");
             var provider = CreateProvider();        
             await provider.InitializeInteractionModulesAsync();
             var token = Environment.GetEnvironmentVariable("AdemirAuth");
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
+            await app.RunAsync();
             await Task.Delay(-1);
         }
     }

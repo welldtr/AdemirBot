@@ -89,7 +89,7 @@ namespace DiscordBot.Services
                                         continue;
 
                                     var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
-                                    var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
+                                    
                                     if (member == null)
                                     {
                                         member = Member.FromGuildUser(user);
@@ -103,22 +103,22 @@ namespace DiscordBot.Services
                                     }
                                     else
                                     {
-                                        _log.LogInformation($"+20xp de call: {member.MemberUserName}");
-                                        member.XP += 20;
+                                        _log.LogInformation($"+10xp de call: {member.MemberUserName}");
+                                        member.XP += 10;
                                         member.VoiceTime += TimeSpan.FromMinutes(1);
                                     }
 
                                     if (user.IsVideoing)
                                     {
-                                        member.XP += 20;
-                                        _log.LogInformation($"+20xp de camera: {member.MemberUserName}");
+                                        member.XP += 10;
+                                        _log.LogInformation($"+10xp de camera: {member.MemberUserName}");
                                         member.VideoTime += TimeSpan.FromMinutes(1);
                                     }
                                     
                                     if (user.IsStreaming)
                                     {
-                                        member.XP += 10;
-                                        _log.LogInformation($"+10xp de streaming: {member.MemberUserName}");
+                                        member.XP += 5;
+                                        _log.LogInformation($"+5xp de streaming: {member.MemberUserName}");
                                         member.StreamingTime += TimeSpan.FromMinutes(1);
                                     }
 
@@ -309,9 +309,6 @@ namespace DiscordBot.Services
 
         public async Task ProcessRoleRewards(Member member)
         {
-            if (member?.MemberId != 596787570881462391)
-                return;
-
             var guild = _client.GetGuild(member.GuildId);
             var user = guild.GetUser(member.MemberId);
             var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
@@ -321,6 +318,9 @@ namespace DiscordBot.Services
                 _log.LogError("Impossível processar recompensas de nivel. Configuração de level nao executada");
                 return;
             }
+
+            if (!config.EnableRoleRewards)
+                return;
 
             var allRoleRewards = config.RoleRewards.SelectMany(a => a.Roles)
                 .Where(a => user.Roles.Any(b => b.Id == ulong.Parse(a.Id)))
