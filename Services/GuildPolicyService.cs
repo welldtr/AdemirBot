@@ -311,7 +311,7 @@ namespace DiscordBot.Services
             }
 
             var allRoleRewards = config.RoleRewards.SelectMany(a => a.Roles).Select(a => ulong.Parse(a.Id));
-            var levelRoles = config.RoleRewards.Where(a => a.Level == member.Level).OrderByDescending(a => a.Level).FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id));
+            var levelRoles = config.RoleRewards.Where(a => a.Level < member.Level).OrderByDescending(a => a.Level).FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id));
             if (levelRoles == null || levelRoles.Count() == 0)
                 return;
 
