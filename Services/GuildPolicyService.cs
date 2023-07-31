@@ -81,7 +81,7 @@ namespace DiscordBot.Services
                 while (true)
                 {
                     var sw = new Stopwatch();
-                    var tasks = _client.Guilds.Select(guild => new Task(async () =>
+                    var tasks = _client.Guilds.Select(guild => Task.Run(async () =>
                     {
                         try
                         {
@@ -119,7 +119,7 @@ namespace DiscordBot.Services
                         {
                             _log.LogError(ex, "Erro ao apurar XP de audio");
                         }
-                    }));
+                    }));;
                     Task.WaitAll();
                     await Task.Delay(TimeSpan.FromSeconds(60) - sw.Elapsed);
                 }
