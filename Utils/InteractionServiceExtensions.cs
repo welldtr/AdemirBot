@@ -35,11 +35,11 @@ namespace DiscordBot.Utils
                     try
                     {
                         await _interactionService.AddModulesAsync(Assembly.GetAssembly(typeof(ChatGPTModule)), provider);
-#if DEBUG
-                        await _interactionService.RegisterCommandsToGuildAsync(917286921259089930, true);
-#else
+
+                        foreach (var guild in client.Guilds)
+                            await _interactionService.RegisterCommandsToGuildAsync(guild.Id, true);
+
                         await _interactionService.RegisterCommandsGloballyAsync(true);
-#endif
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
                         shard.InteractionCreated += async (x) =>
                         {
