@@ -104,9 +104,13 @@ namespace DiscordBot.Services
                                     }
 
                                     member.XP += 30;
-                                    if (!user.IsSelfMuted)
-                                        member.XP -= 20;
 
+                                    _log.LogInformation($"+30xp de call: {member.MemberUserName}");
+                                    if (!user.IsSelfMuted)
+                                    {
+                                        _log.LogInformation($"-20xp por mute: {member.MemberUserName}");
+                                        member.XP -= 20;
+                                    }
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
                                 }
                             }
