@@ -59,24 +59,34 @@ namespace DiscordBot.Utils
                     if (levelInfo == null)
                         continue;
 
-                    var member = await db.members.FindOneAsync(a => a.MemberId == user.Id);
+                    var member = await db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
 
                     if (member == null)
                     {
                         member = Member.FromGuildUser(user);
                     }
 
-                    long xpEarned = LevelUtils.GetXPProgression(levelInfo.MessageCount);
+                    long xpEarned = member.LurkrXP; // LevelUtils.GetXPProgression(levelInfo.MessageCount);
                     member.XP = xpEarned;
 
                     member.MessageCount = levelInfo.MessageCount;
                     member.LurkrXP = levelInfo.XP;
                     member.LurkrLevel = levelInfo.Level;
-                    member.XP = LevelUtils.GetXPProgression(levelInfo.MessageCount);
+                    member.XP = member.LurkrXP; // LevelUtils.GetXPProgression(levelInfo.MessageCount);
                     member.Level = LevelUtils.GetLevel(member.XP);
                     member.LastMessageTime = DateTime.UtcNow;
                     await db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
                 }
+
+                var config = await db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
+                if(config == null)
+                {
+                    config = new AdemirConfig() {
+                        GuildId = guild.Id
+                    };
+                }
+                config.RoleRewards = result.RoleRewards;
+                await db.ademirCfg.UpsertAsync(config, a => a.GuildId == config.GuildId);
 
                 page++;
             }

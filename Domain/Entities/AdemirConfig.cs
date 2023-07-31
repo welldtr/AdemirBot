@@ -1,4 +1,5 @@
-﻿using DiscordBot.Domain.ValueObjects;
+﻿using DiscordBot.Domain.Lurkr;
+using DiscordBot.Domain.ValueObjects;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -19,5 +20,6 @@ namespace DiscordBot.Domain.Entities
         public ulong AdemirRoleId { get; set; }
         public int AdemirConversationRPM { get; set; }
         public bool Premium { get; set; }
+        public RoleReward[] RoleRewards { get; set; }
     }
 }

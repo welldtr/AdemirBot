@@ -182,37 +182,23 @@ namespace DiscordBot.Services
                     LastMessageTime = arg.Timestamp.UtcDateTime,
                 });
 
-            await ProcessXP(arg);
+            await ProcessXPPerMessage(arg);
         }
 
-        private async Task ProcessXP(SocketMessage arg)
+        List<IMessage> mensagensUltimoMinuto = new List<IMessage>();
+        private async Task ProcessXPPerMessage(SocketMessage arg)
         {
-            var (messageCount, lastMessage) = await RaiseAndGetMsgCount(arg);
-
-            var isCoolledDown = lastMessage.AddSeconds(80) >= arg.Timestamp.UtcDateTime;
-
-            if (isCoolledDown)
-            {
-                Console.WriteLine($"{arg.Author.Username} chill...");
+            if (arg.Channel is IThreadChannel)
                 return;
-            }
 
             if (!(arg is SocketUserMessage userMessage) || userMessage.Author == null)
                 return;
 
-            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
-            member.MessageCount = messageCount;
-            member.XP = LevelUtils.GetXPProgression(member.MessageCount);
-            member.Level = LevelUtils.GetLevel(member.XP);
-            await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
+            if (!arg.Author?.IsBot ?? false)
+                mensagensUltimoMinuto.Add(arg);
 
-            Console.WriteLine($"{arg.Author.Username} + member xp: {member.XP}");
-        }
-
-        private async Task<(long, DateTime)> RaiseAndGetMsgCount(SocketMessage arg)
-        {
-            if (arg.Author == null)
-                return (0, DateTime.Now);
+            var ppm = ProcessWPM();
+            Console.Write($"PPM: {ppm}");
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
             var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
@@ -222,10 +208,33 @@ namespace DiscordBot.Services
                 member.MessageCount = 0;
             }
 
+            var isCoolledDown = lastTime.AddSeconds(60) >= arg.Timestamp.UtcDateTime;
+
+            if (isCoolledDown)
+            {
+                Console.WriteLine($"{arg.Author.Username} chill...");
+                return;
+            }
+
             member.MessageCount++;
             member.LastMessageTime = arg.Timestamp.UtcDateTime;
+
+            var timeSinceCoolDown = arg.Timestamp.UtcDateTime - lastTime;
+
+            var ppmMax = ppm > 300 ? 300 : ppm;
+            var gainReward = ((300M - ppmMax) / 300M) * 20M;
+            var earnedXp = (int)gainReward + 20;
+            member.XP += earnedXp;
+            member.Level = LevelUtils.GetLevel(member.XP);
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
-            return (member.MessageCount, lastTime);
+
+            Console.WriteLine($"{arg.Author.Username} +{earnedXp} member xp -> {member.XP}");
+        }
+
+        private int ProcessWPM()
+        {
+            mensagensUltimoMinuto = mensagensUltimoMinuto.Where(a => a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-60)).ToList();
+            return mensagensUltimoMinuto.Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length);
         }
     }
 }

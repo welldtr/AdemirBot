@@ -35,7 +35,7 @@ namespace DiscordBot.Utils
                     try
                     {
                         await _interactionService.AddModulesAsync(Assembly.GetAssembly(typeof(ChatGPTModule)), provider);
-                        await _interactionService.RegisterCommandsToGuildAsync((917286921259089930),true);
+                        await _interactionService.RegisterCommandsGloballyAsync(true);
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
                         shard.InteractionCreated += async (x) =>
                         {
