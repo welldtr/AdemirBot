@@ -17,8 +17,11 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Suporte a links de albuns do Spotify
 - :white_check_mark: Suporte a links de playlists públicas do Spotify
 - :white_check_mark: Suporte a links de playlists públicas do YouTube
-- :white_check_mark: Suporte a contabilização de XP e importação de informações do Lurkr
-- :white_check_mark: Obter informações de XP através do comando `/rank`
+- :white_check_mark: Suporte a contabilização de XP por envio de mensagens
+- :white_check_mark: Suporte a contabilização de XP por tempo de call
+- :white_square_button: Suporte a contabilização de XP por bump no server
+- :white_check_mark: Importação de informações de level de outro bot (Lurkr)
+- :white_check_mark: Obter card de XP através do comando `/rank`
 - :white_check_mark: Denunciar um usuário através do comando `/denunciar`
 - :white_check_mark: Denunciar uma mensagem com o menu de contexto
 
@@ -35,6 +38,8 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Excluir macro: comando `/excluir-macro`
 - :white_check_mark: Banir em massa: comando `/massban`
 - :white_check_mark: Expulsar em massa: comando `/masskick`
+- :white_check_mark: Importar levels de outro bot (Lurkr): comando `/importlevelinfo`
+- :white_check_mark: Sincronizar recompensas de nível: comando `/syncrolerewards`
 - :white_check_mark: Importar histórico de mensagens: comando `/importar-historico-mensagens`
 - :white_check_mark: Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
