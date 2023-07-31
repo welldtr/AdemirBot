@@ -56,7 +56,7 @@ namespace DiscordBot.Utils
                 foreach (var info in result.Levels)
                 {
                     var userId = ulong.Parse(info.UserId);
-                    var user = client.GetUser(userId);
+                    var user = await client.GetUserAsync(userId);
                     var member = await db.members.FindOneAsync(a => a.MemberId == userId && a.GuildId == guild.Id);
 
                     if (member == null)
