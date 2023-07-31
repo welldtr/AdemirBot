@@ -106,7 +106,7 @@ namespace DiscordBot.Services
                                     member.XP += 30;
 
                                     _log.LogInformation($"+30xp de call: {member.MemberUserName}");
-                                    if (!user.IsSelfMuted)
+                                    if (user.IsSelfMuted)
                                     {
                                         _log.LogInformation($"-20xp por mute: {member.MemberUserName}");
                                         member.XP -= 20;
