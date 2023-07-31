@@ -122,6 +122,7 @@ namespace DiscordBot.Services
                                         member.StreamingTime += TimeSpan.FromMinutes(1);
                                     }
 
+                                    member.Level = LevelUtils.GetLevel(member.XP);
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
                                 }
                             }
