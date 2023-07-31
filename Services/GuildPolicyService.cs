@@ -103,7 +103,7 @@ namespace DiscordBot.Services
                                     }
                                     else
                                     {
-                                        _log.LogInformation($"+20xp de call: {member.MemberUserName}");
+                                        _log.LogInformation($"+10xp de call: {member.MemberUserName}");
                                         member.XP += 10;
                                         member.VoiceTime += TimeSpan.FromMinutes(1);
                                     }
@@ -111,14 +111,14 @@ namespace DiscordBot.Services
                                     if (user.IsVideoing)
                                     {
                                         member.XP += 10;
-                                        _log.LogInformation($"+20xp de camera: {member.MemberUserName}");
+                                        _log.LogInformation($"+10xp de camera: {member.MemberUserName}");
                                         member.VideoTime += TimeSpan.FromMinutes(1);
                                     }
                                     
                                     if (user.IsStreaming)
                                     {
                                         member.XP += 5;
-                                        _log.LogInformation($"+10xp de streaming: {member.MemberUserName}");
+                                        _log.LogInformation($"+5xp de streaming: {member.MemberUserName}");
                                         member.StreamingTime += TimeSpan.FromMinutes(1);
                                     }
 
