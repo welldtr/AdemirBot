@@ -1,23 +1,22 @@
 ﻿using Discord;
 using Discord.Interactions;
-using DiscordBot.Domain.Entities;
-using DiscordBot.Modules.Modals;
+using DiscordBot.Domain.Enum;
+using DiscordBot.Services;
 using DiscordBot.Utils;
 using MongoDB.Driver;
 using SkiaSharp;
-using System.Drawing;
-using System.Drawing.Text;
-using System.Text.RegularExpressions;
 
 namespace DiscordBot.Modules
 {
     public class XpModule : InteractionModuleBase
     {
         private readonly Context db;
+        private readonly GuildPolicyService guildPolicy;
 
-        public XpModule(Context context)
+        public XpModule(Context context, GuildPolicyService guildPolicy)
         {
             db = context;
+            this.guildPolicy = guildPolicy;
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
@@ -31,6 +30,62 @@ namespace DiscordBot.Modules
             {
                 a.Content = " ";
                 a.Attachments = new[] { new FileAttachment(cardfilename, "rank-card.png") };
+            });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("syncrolerewards", "Sincroniza os cargos do usuario pelo level")]
+        public async Task SyncLevels([Summary(description: "Usuario")] IUser usuario = null)
+        {
+            if (Context.User.Id != 596787570881462391 || Context.User.Id != 695465058913746964)
+            {
+                await RespondAsync("Você não pode usar esse comando. Fale com os embaixadores do projeto para solicitar liberação.");
+                return;
+            }
+            await DeferAsync();
+
+            var member = await db.members.FindOneAsync(a => a.MemberId == Context.User.Id && a.GuildId == Context.Guild.Id);
+            
+            if (member == null)
+            {
+                await ModifyOriginalResponseAsync(a =>
+                {
+                    a.Content = "Membro não tem informações no server.";
+                });
+            }
+            else
+            {
+                await guildPolicy.ProcessRoleRewards(member);
+                await ModifyOriginalResponseAsync(a =>
+                {
+                    a.Content = $"Cargos sincronizados para o usuário {usuario.Username}.";
+                });
+            }
+        }
+
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("importlevelinfo", "Importar informações de level de outro bot")]
+        public async Task ImportLevelInfo(ImportBot bot)
+        {
+            if (Context.User.Id != 596787570881462391 || Context.User.Id != 695465058913746964)
+            {
+                await RespondAsync("Você não pode usar esse comando. Fale com os embaixadores do projeto para solicitar liberação.");
+                return;
+            }
+
+            await DeferAsync();
+
+            switch (bot)
+            {
+                case ImportBot.Lurkr:
+                    await Lurkr.ImportLevelInfo(Context.Guild, db);
+                    break;
+            }
+
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = $"Informações de level importadas do bot {bot}";
             });
         }
 
@@ -71,7 +126,7 @@ namespace DiscordBot.Modules
                 var levelXp = member.XP - levelMinXp;
                 var totalLevelXp = levelMaxXp - levelMinXp;
                 var remainigXp = levelMaxXp - member.XP;
-                var levelProgress = levelXp/totalLevelXp;
+                var levelProgress = levelXp / totalLevelXp;
 
                 // Adicionar preenchimento da barra de progresso
                 SKColor additionalRect2Color = SKColor.Parse("#B0FFFFFF");
@@ -88,7 +143,7 @@ namespace DiscordBot.Modules
                 (string text, string color, int size, int x, int y) xp = ($"{member.XP} XP", "#FFFFFF", 55, 1232, 268);
                 (string text, string color, int size, int x, int y) remain = ($"({remainigXp} to Next Level)", "#99AAB5", 35, 1569, 268);
 
-                canvas.DrawText(userName.text, userName.x, userName.y, new SKFont(typeface, userName.size), new SKPaint { IsAntialias=true, Color = SKColor.Parse(userName.color) });
+                canvas.DrawText(userName.text, userName.x, userName.y, new SKFont(typeface, userName.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(userName.color) });
                 canvas.DrawText(rank.text, rank.x, rank.y, new SKFont(typeface, rank.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(rank.color), TextAlign = SKTextAlign.Right });
                 canvas.DrawText(lvl.text, lvl.x, lvl.y, new SKFont(typeface, lvl.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(lvl.color), TextAlign = SKTextAlign.Right });
                 canvas.DrawText(xp.text, xp.x, xp.y, new SKFont(typeface, xp.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(xp.color), TextAlign = SKTextAlign.Right });

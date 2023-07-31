@@ -61,16 +61,6 @@ namespace DiscordBot.Services
                         {
                             _log.LogError("Erro ao trancar threads do Ademir.");
                         }
-
-                        try
-                        {
-                            await Lurkr.ImportLevelInfo(guild, _db);
-                            _log.LogInformation($"Importação de levels do Lurkr no server {guild.Name} concluída.");
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.LogError(ex, "Erro ao importar levels do Lurkr");
-                        }
                     }
                     await Task.Delay(TimeSpan.FromMinutes(15));
                 }
@@ -295,7 +285,7 @@ namespace DiscordBot.Services
             Console.WriteLine($"{arg.Author.Username} +{earnedXp} member xp -> {member.XP}");
         }
 
-        private async Task ProcessRoleRewards(Member member)
+        public async Task ProcessRoleRewards(Member member)
         {
             if (member?.MemberId != 596787570881462391)
                 return;
@@ -310,8 +300,15 @@ namespace DiscordBot.Services
                 return;
             }
 
-            var allRoleRewards = config.RoleRewards.SelectMany(a => a.Roles).Select(a => ulong.Parse(a.Id));
-            var levelRoles = config.RoleRewards.Where(a => a.Level < member.Level).OrderByDescending(a => a.Level).FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id));
+            var allRoleRewards = config.RoleRewards.SelectMany(a => a.Roles)
+                .Where(a => user.Roles.Any(b => b.Id == ulong.Parse(a.Id)))
+                .Select(a => ulong.Parse(a.Id));
+
+            var levelRoles = config.RoleRewards
+                .Where(a => a.Level < member.Level)
+                .OrderByDescending(a => a.Level)
+                .FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id));
+
             if (levelRoles == null || levelRoles.Count() == 0)
                 return;
 
