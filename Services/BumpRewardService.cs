@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿
+using Discord;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -55,14 +56,19 @@ namespace DiscordBot.Services
                     await mentionedUser.SendMessageAsync($"Você ganhou {config.XPPerBump}xp por bumpar o servidor {guild.Name}");
                     _log.LogInformation($"{mentionedUser.Username} ganhou {config.XPPerBump}xp.");
 
-                    await _db.bumps.AddAsync(new Bump
+                    var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == guildId);
+
+                    if (member != null)
                     {
-                        BumpId = Guid.NewGuid(),
-                        BumpDate = arg.Timestamp.DateTime,
-                        GuildId = guildId,
-                        UserId = mentionedUser.Id,
-                        XP = config.XPPerBump
-                    });
+                        await _db.bumps.AddAsync(new Bump
+                        {
+                            BumpId = Guid.NewGuid(),
+                            BumpDate = arg.Timestamp.DateTime,
+                            GuildId = guildId,
+                            UserId = mentionedUser.Id,
+                            XP = config.XPPerBump
+                        });
+                    }
                 }
             }
         }

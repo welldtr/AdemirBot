@@ -44,7 +44,9 @@ namespace DiscordBot.Modules
             }
             await DeferAsync();
 
-            var member = await db.members.FindOneAsync(a => a.MemberId == Context.User.Id && a.GuildId == Context.Guild.Id);
+            var id = usuario?.Id ?? Context.User.Id;
+
+            var member = await db.members.FindOneAsync(a => a.MemberId == id && a.GuildId == Context.Guild.Id);
             
             if (member == null)
             {
@@ -58,7 +60,7 @@ namespace DiscordBot.Modules
                 await guildPolicy.ProcessRoleRewards(member);
                 await ModifyOriginalResponseAsync(a =>
                 {
-                    a.Content = $"Cargos sincronizados para o usuário {usuario.Username}.";
+                    a.Content = $"Cargos sincronizados para o usuário {member.MemberUserName}.";
                 });
             }
         }
