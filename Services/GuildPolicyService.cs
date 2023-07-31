@@ -253,7 +253,7 @@ namespace DiscordBot.Services
             await ProcessXPPerMessage(arg);
         }
 
-        List<IMessage> mensagensUltimoMinuto = new List<IMessage>();
+        List<IMessage> mensagensUltimos5Minutos = new List<IMessage>();
         private async Task ProcessXPPerMessage(SocketMessage arg)
         {
             if (arg.Channel is IThreadChannel)
@@ -263,7 +263,7 @@ namespace DiscordBot.Services
                 return;
 
             if (!arg.Author?.IsBot ?? false)
-                mensagensUltimoMinuto.Add(arg);
+                mensagensUltimos5Minutos.Add(arg);
 
             var ppm = ProcessWPM();
             Console.Write($"PPM: {ppm}");
@@ -291,8 +291,8 @@ namespace DiscordBot.Services
 
             var timeSinceCoolDown = arg.Timestamp.UtcDateTime - lastTime;
 
-            var ppmMax = ppm > 300 ? 300 : ppm;
-            var gainReward = ((300M - ppmMax) / 300M) * 25M;
+            var ppmMax = ppm > 200 ? 200 : ppm;
+            var gainReward = ((200M - ppmMax) / 200M) * 25M;
             var earnedXp = (int)gainReward + 15;
             member.XP += earnedXp;
             member.Level = LevelUtils.GetLevel(member.XP);
@@ -339,8 +339,8 @@ namespace DiscordBot.Services
 
         private int ProcessWPM()
         {
-            mensagensUltimoMinuto = mensagensUltimoMinuto.Where(a => a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-60)).ToList();
-            return mensagensUltimoMinuto.Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length);
+            mensagensUltimos5Minutos = mensagensUltimos5Minutos.Where(a => a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddMinutes(-5)).ToList();
+            return mensagensUltimos5Minutos.Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length)/5;
         }
     }
 }
