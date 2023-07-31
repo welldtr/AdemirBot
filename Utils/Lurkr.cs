@@ -77,7 +77,7 @@ namespace DiscordBot.Utils
                     member.VideoTime = TimeSpan.Zero;
                     member.XP = member.LurkrXP; // LevelUtils.GetXPProgression(levelInfo.MessageCount);
                     member.Level = LevelUtils.GetLevel(member.XP);
-                    member.LastMessageTime = DateTime.UtcNow;
+                    member.LastMessageTime = null;
                     await db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
                 }
 
