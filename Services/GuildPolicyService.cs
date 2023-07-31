@@ -5,6 +5,7 @@ using DiscordBot.Utils;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
+using System.Diagnostics;
 
 namespace DiscordBot.Services
 {
@@ -23,6 +24,8 @@ namespace DiscordBot.Services
 
         public override void Activate()
         {
+            var conventionPack = new ConventionPack { new IgnoreExtraElementsConvention(true) };
+            ConventionRegistry.Register("IgnoreExtraElements", conventionPack, type => true);
             BindEventListeners();
         }
 
@@ -40,8 +43,6 @@ namespace DiscordBot.Services
             {
                 while (true)
                 {
-                    var conventionPack = new ConventionPack { new IgnoreExtraElementsConvention(true) };
-                    ConventionRegistry.Register("IgnoreExtraElements", conventionPack, type => true);
 
                     foreach (var guild in _client.Guilds)
                     {
@@ -74,6 +75,51 @@ namespace DiscordBot.Services
                     await Task.Delay(TimeSpan.FromMinutes(15));
                 }
             });
+
+            var __ = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    var sw = new Stopwatch();
+                    var tasks = _client.Guilds.Select(guild => new Task(async () =>
+                    {
+                        try
+                        {
+                            foreach (var voice in guild.VoiceChannels)
+                            {
+                                if (voice.Id == guild.AFKChannel.Id)
+                                    continue;
+
+                                foreach (var user in voice.ConnectedUsers)
+                                {
+                                    if (user.IsMuted)
+                                        continue;
+
+                                    var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
+                                    var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
+                                    if (member == null)
+                                    {
+                                        member = Member.FromGuildUser(user);
+                                        member.MessageCount = 0;
+                                    }
+
+                                    member.XP += 30;
+                                    if (!user.IsSelfMuted)
+                                        member.XP -= 20;
+
+                                    await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.LogError(ex, "Erro ao apurar XP de audio");
+                        }
+                    }));
+                    Task.WaitAll();
+                    await Task.Delay(TimeSpan.FromSeconds(60) - sw.Elapsed);
+                }
+            });
         }
 
 
@@ -85,6 +131,8 @@ namespace DiscordBot.Services
         private async Task _client_UserJoined(SocketGuildUser arg)
         {
             await IncluirMembroNovo(arg);
+            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Id && a.GuildId == arg.Guild.Id);
+            await ProcessRoleRewards(member);
         }
         private async Task _client_UserLeft(SocketGuild guild, SocketUser user)
         {
@@ -208,6 +256,8 @@ namespace DiscordBot.Services
                 member.MessageCount = 0;
             }
 
+            var initialLevel = member.Level;
+
             var isCoolledDown = lastTime.AddSeconds(60) >= arg.Timestamp.UtcDateTime;
 
             if (isCoolledDown)
@@ -222,13 +272,42 @@ namespace DiscordBot.Services
             var timeSinceCoolDown = arg.Timestamp.UtcDateTime - lastTime;
 
             var ppmMax = ppm > 300 ? 300 : ppm;
-            var gainReward = ((300M - ppmMax) / 300M) * 20M;
-            var earnedXp = (int)gainReward + 20;
+            var gainReward = ((300M - ppmMax) / 300M) * 25M;
+            var earnedXp = (int)gainReward + 15;
             member.XP += earnedXp;
             member.Level = LevelUtils.GetLevel(member.XP);
+
+            if (member.Level != initialLevel)
+            {
+                await ProcessRoleRewards(member);
+            }
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 
             Console.WriteLine($"{arg.Author.Username} +{earnedXp} member xp -> {member.XP}");
+        }
+
+        private async Task ProcessRoleRewards(Member member)
+        {
+            if (member?.MemberId != 596787570881462391)
+                return;
+
+            var guild = _client.GetGuild(member.GuildId);
+            var user = guild.GetUser(member.MemberId);
+            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+
+            if (config == null)
+            {
+                _log.LogError("Impossível processar recompensas de nivel. Configuração de level nao executada");
+                return;
+            }
+
+            var allRoleRewards = config.RoleRewards.SelectMany(a => a.Roles).Select(a => ulong.Parse(a.Id));
+            var levelRoles = config.RoleRewards.Where(a => a.Level == member.Level).OrderByDescending(a => a.Level).FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id));
+            if (levelRoles == null || levelRoles.Count() == 0)
+                return;
+
+            await user.RemoveRolesAsync(allRoleRewards);
+            await user.AddRolesAsync(levelRoles);
         }
 
         private int ProcessWPM()

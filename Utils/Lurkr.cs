@@ -42,7 +42,6 @@ namespace DiscordBot.Utils
             }
         }
 
-
         public static async Task ImportLevelInfo(SocketGuild guild, Context db)
         {
             int page = 1;
