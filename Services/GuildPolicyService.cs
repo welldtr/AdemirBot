@@ -290,7 +290,7 @@ namespace DiscordBot.Services
             member.LastMessageTime = arg.Timestamp.UtcDateTime;
 
             var timeSinceCoolDown = arg.Timestamp.UtcDateTime - lastTime;
-            var raidPpm = 150M;
+            var raidPpm = 50M;
             var ppmMax = ppm > raidPpm ? raidPpm : ppm;
             var gainReward = ((raidPpm - ppmMax) / raidPpm) * 25M;
             var earnedXp = (int)gainReward + 15;
