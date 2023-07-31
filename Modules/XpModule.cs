@@ -37,7 +37,7 @@ namespace DiscordBot.Modules
         [SlashCommand("syncrolerewards", "Sincroniza os cargos do usuario pelo level")]
         public async Task SyncLevels([Summary(description: "Usuario")] IUser usuario = null)
         {
-            if (Context.User.Id != 596787570881462391 || Context.User.Id != 695465058913746964)
+            if (Context.User.Id != 596787570881462391 && Context.User.Id != 695465058913746964)
             {
                 await RespondAsync("Você não pode usar esse comando. Fale com os embaixadores do projeto para solicitar liberação.");
                 return;
@@ -68,7 +68,7 @@ namespace DiscordBot.Modules
         [SlashCommand("importlevelinfo", "Importar informações de level de outro bot")]
         public async Task ImportLevelInfo(ImportBot bot)
         {
-            if (Context.User.Id != 596787570881462391 || Context.User.Id != 695465058913746964)
+            if (Context.User.Id != 596787570881462391 && Context.User.Id != 695465058913746964)
             {
                 await RespondAsync("Você não pode usar esse comando. Fale com os embaixadores do projeto para solicitar liberação.");
                 return;
