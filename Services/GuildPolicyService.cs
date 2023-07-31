@@ -136,8 +136,13 @@ namespace DiscordBot.Services
         {
             await IncluirMembroNovo(arg);
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Id && a.GuildId == arg.Guild.Id);
-            await ProcessRoleRewards(member);
+            var _ = Task.Run(async () =>
+            {
+                await Task.Delay(10000);
+                await ProcessRoleRewards(member);
+            });
         }
+
         private async Task _client_UserLeft(SocketGuild guild, SocketUser user)
         {
             var userId = user.Id;
