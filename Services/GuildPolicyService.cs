@@ -119,8 +119,8 @@ namespace DiscordBot.Services
                         {
                             _log.LogError(ex, "Erro ao apurar XP de audio");
                         }
-                    }));;
-                    Task.WaitAll();
+                    })).ToArray();
+                    Task.WaitAll(tasks);
                     await Task.Delay(TimeSpan.FromSeconds(60) - sw.Elapsed);
                 }
             });
