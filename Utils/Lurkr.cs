@@ -42,7 +42,7 @@ namespace DiscordBot.Utils
             }
         }
 
-        public static async Task ImportLevelInfo(DiscordShardedClient client, IGuild guild, Context db)
+        public static async Task ImportLevelInfo(IDiscordClient client, IGuild guild, Context db)
         {
             int page = 1;
             var users = await guild.GetUsersAsync();
