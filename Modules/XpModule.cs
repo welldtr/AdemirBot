@@ -34,7 +34,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("togglerolerewards", "Ativar o módulo de cargos por XP")]
+        [SlashCommand("togglerolerewards", "Ativar/Desativar o módulo de cargos por XP")]
         public async Task ToggleRoleRewards()
         {
             await DeferAsync();
