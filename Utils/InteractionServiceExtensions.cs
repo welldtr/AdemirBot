@@ -39,7 +39,6 @@ namespace DiscordBot.Utils
                         foreach (var guild in client.Guilds)
                             await _interactionService.RegisterCommandsToGuildAsync(guild.Id, true);
 
-                        await _interactionService.RegisterCommandsGloballyAsync(true);
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
                         shard.InteractionCreated += async (x) =>
                         {
