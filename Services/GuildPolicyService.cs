@@ -98,13 +98,13 @@ namespace DiscordBot.Services
                                     if (user.IsSelfMuted || user.IsSelfDeafened)
                                     {
                                         _log.LogInformation($"+5xp de call: {member.MemberUserName}");
-                                        member.XP = 5;
+                                        member.XP += 5;
                                         member.MutedTime += TimeSpan.FromMinutes(1);
                                     }
                                     else
                                     {
                                         _log.LogInformation($"+20xp de call: {member.MemberUserName}");
-                                        member.XP = 20;
+                                        member.XP += 20;
                                         member.VoiceTime += TimeSpan.FromMinutes(1);
                                     }
 

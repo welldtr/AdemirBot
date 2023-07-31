@@ -71,6 +71,10 @@ namespace DiscordBot.Utils
                     member.MessageCount = levelInfo.MessageCount;
                     member.LurkrXP = levelInfo.XP;
                     member.LurkrLevel = levelInfo.Level;
+                    member.MutedTime = TimeSpan.Zero;
+                    member.VoiceTime = TimeSpan.Zero;
+                    member.StreamingTime = TimeSpan.Zero;
+                    member.VideoTime = TimeSpan.Zero;
                     member.XP = member.LurkrXP; // LevelUtils.GetXPProgression(levelInfo.MessageCount);
                     member.Level = LevelUtils.GetLevel(member.XP);
                     member.LastMessageTime = DateTime.UtcNow;
