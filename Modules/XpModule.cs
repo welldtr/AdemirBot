@@ -104,7 +104,7 @@ namespace DiscordBot.Modules
             switch (bot)
             {
                 case ImportBot.Lurkr:
-                    await Lurkr.ImportLevelInfo(Context.Guild, db);
+                    await Lurkr.ImportLevelInfo(Context.Client, Context.Guild, db);
                     break;
             }
 

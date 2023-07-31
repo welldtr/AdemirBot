@@ -48,6 +48,7 @@ namespace DiscordBot.Services
                     {
                         try
                         {
+                           // await Lurkr.ImportLevelInfo(_client, guild, _db);
                             var threads = await _db.threads.Find(t => t.LastMessageTime >= DateTime.UtcNow.AddHours(-72) && t.LastMessageTime <= DateTime.UtcNow.AddHours(-12)).ToListAsync();
 
                             foreach (var thread in threads)
