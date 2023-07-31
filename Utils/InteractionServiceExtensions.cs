@@ -1,12 +1,9 @@
 ﻿using Discord.Interactions;
 using DiscordBot.Modules;
 using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
 using Discord.Net;
 using Newtonsoft.Json;
 using Discord;
-using Microsoft.Extensions.Logging;
-using Discord.Interactions.Builders;
 using System.Reflection;
 
 namespace DiscordBot.Utils
@@ -61,7 +58,7 @@ namespace DiscordBot.Utils
             }
         }
 
-        static async Task SlashCommandExecuted(SlashCommandInfo arg1, Discord.IInteractionContext arg2, IResult arg3)
+        static async Task SlashCommandExecuted(SlashCommandInfo arg1, Discord.IInteractionContext arg2, Discord.Interactions.IResult arg3)
         {
             if (!arg3.IsSuccess)
             {
