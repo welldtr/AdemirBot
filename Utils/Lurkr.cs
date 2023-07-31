@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Domain.Lurkr;
 using System.Net.Http.Json;
@@ -41,7 +42,7 @@ namespace DiscordBot.Utils
             }
         }
 
-        public static async Task ImportLevelInfo(IGuild guild, Context db)
+        public static async Task ImportLevelInfo(DiscordShardedClient client, IGuild guild, Context db)
         {
             int page = 1;
             var users = await guild.GetUsersAsync();
@@ -52,22 +53,27 @@ namespace DiscordBot.Utils
                 if (result == null || !result.Levels.Any())
                     break;
 
-                foreach (var user in users)
+                foreach (var info in result.Levels)
                 {
-                    var levelInfo = result.Levels.Where(a => ulong.Parse(a.UserId) == user.Id).FirstOrDefault();
-                    if (levelInfo == null)
-                        continue;
-
-                    var member = await db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
+                    var userId = ulong.Parse(info.UserId);
+                    var user = client.GetUser(userId);
+                    var member = await db.members.FindOneAsync(a => a.MemberId == userId && a.GuildId == guild.Id);
 
                     if (member == null)
                     {
-                        member = Member.FromGuildUser(user);
+                        member = new Member
+                        {
+                            Id = Guid.NewGuid(),
+                            GuildId = guild.Id,
+                            MemberId = userId,
+                            MemberUserName = user?.Username,
+                            MemberNickname = user?.GlobalName
+                        };
                     }
 
-                    member.MessageCount = levelInfo.MessageCount;
-                    member.LurkrXP = levelInfo.XP;
-                    member.LurkrLevel = levelInfo.Level;
+                    member.MessageCount = info.MessageCount;
+                    member.LurkrXP = info.XP;
+                    member.LurkrLevel = info.Level;
                     member.XP = member.XP < member.LurkrXP ? member.LurkrXP : member.XP;
                     member.Level = LevelUtils.GetLevel(member.XP);
                     member.LastMessageTime = null;
