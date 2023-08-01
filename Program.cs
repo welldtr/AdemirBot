@@ -48,6 +48,7 @@ namespace DiscordBot
                .AddSingleton(openAI)
                .AddSingleton<Context>()
                .AddDiscordServices()
+               .AddMemoryCache()
                .AddLogging(b =>
                {
                    b.AddConsole();

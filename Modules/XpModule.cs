@@ -80,7 +80,8 @@ namespace DiscordBot.Modules
             }
             else
             {
-                await guildPolicy.ProcessRoleRewards(member);
+                var config = await db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+                await guildPolicy.ProcessRoleRewards(config, member);
                 await ModifyOriginalResponseAsync(a =>
                 {
                     a.Content = $"Cargos sincronizados para o usuário {member.MemberUserName}.";

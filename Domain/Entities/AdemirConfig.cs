@@ -18,6 +18,8 @@ namespace DiscordBot.Domain.Entities
         public float? Position { get; set; }
         public int? CurrentTrack { get; set; }
         public ulong AdemirRoleId { get; set; }
+        public ulong AutoRoleId { get; set; }
+        public ulong MinorRoleId { get; set; }
         public int AdemirConversationRPM { get; set; }
         public bool Premium { get; set; }
         public bool EnableRoleRewards { get; set; }

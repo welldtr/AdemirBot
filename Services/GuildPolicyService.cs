@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using Amazon.Runtime.Internal.Util;
+using Discord;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Utils;
@@ -78,6 +79,7 @@ namespace DiscordBot.Services
                         {
                             foreach (var voice in guild.VoiceChannels)
                             {
+                                var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
                                 if (voice.Id == guild.AFKChannel.Id)
                                     continue;
 
@@ -90,7 +92,7 @@ namespace DiscordBot.Services
                                         continue;
 
                                     var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
-
+                                    var initialLevel = member.Level;
                                     if (member == null)
                                     {
                                         member = Member.FromGuildUser(user);
@@ -125,6 +127,8 @@ namespace DiscordBot.Services
 
                                     member.Level = LevelUtils.GetLevel(member.XP);
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
+
+                                    await ProcessRoleRewards(config, member);
                                 }
                             }
                         }
@@ -145,15 +149,43 @@ namespace DiscordBot.Services
             await LogMessage(arg);
         }
 
-        private async Task _client_UserJoined(SocketGuildUser arg)
+        private async Task _client_UserJoined(SocketGuildUser user)
         {
-            await IncluirMembroNovo(arg);
-            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Id && a.GuildId == arg.Guild.Id);
+            var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
+            if(member == null)
+            {
+                member = Member.FromGuildUser(user);
+                await _db.members.AddAsync(member);
+            }
+
+            await IncluirMembroNovo(user);
             var _ = Task.Run(async () =>
             {
-                await Task.Delay(10000);
-                await ProcessRoleRewards(member);
+                var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+                await GiveAutoRole(config, user);
+                await Task.Delay(3000);
+                await ProcessRoleRewards(config, member);
+                await CheckIfMinorsAndKickEm(config, user);
             });
+        }
+
+        private async Task GiveAutoRole(AdemirConfig config, SocketGuildUser user)
+        {
+            var role = user.Guild.GetRole(config.AutoRoleId);
+            if (role != null)
+            {
+                await user.AddRoleAsync(role);
+            }
+        }
+
+        private async Task CheckIfMinorsAndKickEm(AdemirConfig config, SocketGuildUser user)
+        {
+            var role = user.Guild.GetRole(config.MinorRoleId);
+            if (role != null)
+            {
+                if(user.Roles.Any(a => a.Id == role.Id))
+                    await user.KickAsync("Menor de Idade");
+            }
         }
 
         private async Task _client_UserLeft(SocketGuild guild, SocketUser user)
@@ -270,7 +302,7 @@ namespace DiscordBot.Services
             var ppm = ProcessWPM();
             Console.WriteLine($"PPM: {ppm}");
 
-            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
+            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
             var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
             if (member == null)
             {
@@ -284,7 +316,7 @@ namespace DiscordBot.Services
 
             if (isCoolledDown)
             {
-                Console.WriteLine($"{arg.Author.Username} chill...");
+                Console.WriteLine($"{arg.Author?.Username} chill...");
                 return;
             }
 
@@ -299,20 +331,17 @@ namespace DiscordBot.Services
             member.XP += earnedXp;
             member.Level = LevelUtils.GetLevel(member.XP);
 
-            if (member.Level != initialLevel)
-            {
-                await ProcessRoleRewards(member);
-            }
+            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+            await ProcessRoleRewards(config, member);
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 
-            Console.WriteLine($"{arg.Author.Username} +{earnedXp} member xp -> {member.XP}");
+            Console.WriteLine($"{arg.Author?.Username} +{earnedXp} member xp -> {member.XP}");
         }
 
-        public async Task ProcessRoleRewards(Member member)
+        public async Task ProcessRoleRewards(AdemirConfig config, Member member)
         {
             var guild = _client.GetGuild(member.GuildId);
             var user = guild.GetUser(member.MemberId);
-            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
 
             if (config == null)
             {
@@ -323,26 +352,27 @@ namespace DiscordBot.Services
             if (!config.EnableRoleRewards)
                 return;
 
-            var allRoleRewards = config.RoleRewards.SelectMany(a => a.Roles)
-                .Where(a => user.Roles.Any(b => b.Id == ulong.Parse(a.Id)))
-                .Select(a => ulong.Parse(a.Id));
-
-            var levelRoles = config.RoleRewards
+            var levelRolesToAdd = config.RoleRewards
                 .Where(a => a.Level < member.Level)
                 .OrderByDescending(a => a.Level)
-                .FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id));
+                .FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id)) ?? new ulong[] { };
 
-            if (levelRoles == null || levelRoles.Count() == 0)
+            var levelRolesToRemove = config.RoleRewards.SelectMany(a => a.Roles)
+                .Where(a => user.Roles.Any(b => b.Id == ulong.Parse(a.Id)) 
+                        && !levelRolesToAdd.Any(b => b == ulong.Parse(a.Id)))
+                .Select(a => ulong.Parse(a.Id));
+
+            if (levelRolesToAdd.Count() == 0)
                 return;
 
-            await user.RemoveRolesAsync(allRoleRewards);
-            await user.AddRolesAsync(levelRoles);
+            await user.AddRolesAsync(levelRolesToAdd);
+            await user.RemoveRolesAsync(levelRolesToRemove);
         }
 
         private int ProcessWPM()
         {
             mensagensUltimos5Minutos = mensagensUltimos5Minutos.Where(a => a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddMinutes(-5)).ToList();
-            return mensagensUltimos5Minutos.Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length)/5;
+            return mensagensUltimos5Minutos.Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length) / 5;
         }
     }
 }
