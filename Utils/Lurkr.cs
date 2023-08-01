@@ -78,6 +78,7 @@ namespace DiscordBot.Utils
                     member.Level = LevelUtils.GetLevel(member.XP);
                     member.LastMessageTime = null;
                     await db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
+                    Console.WriteLine($"XP importado {user.Username}");
                 }
 
                 var config = await db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
