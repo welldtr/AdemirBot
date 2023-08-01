@@ -48,7 +48,7 @@ namespace DiscordBot.Services
                     {
                         try
                         {
-                            await Lurkr.ImportLevelInfo(_client, guild, _db);
+                            // await Lurkr.ImportLevelInfo(_client, guild, _db);
                             var threads = await _db.threads.Find(t => t.LastMessageTime >= DateTime.UtcNow.AddHours(-72) && t.LastMessageTime <= DateTime.UtcNow.AddHours(-12)).ToListAsync();
 
                             foreach (var thread in threads)
@@ -89,42 +89,42 @@ namespace DiscordBot.Services
                                     if (user.IsMuted || user.IsDeafened)
                                         continue;
 
-                                    //var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
-                                    
-                                    //if (member == null)
-                                    //{
-                                    //    member = Member.FromGuildUser(user);
-                                    //}
+                                    var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
 
-                                    //if (user.IsSelfMuted || user.IsSelfDeafened)
-                                    //{
-                                    //    _log.LogInformation($"+5xp de call: {member.MemberUserName}");
-                                    //    member.XP += 5;
-                                    //    member.MutedTime += TimeSpan.FromMinutes(1);
-                                    //}
-                                    //else
-                                    //{
-                                    //    _log.LogInformation($"+10xp de call: {member.MemberUserName}");
-                                    //    member.XP += 10;
-                                    //    member.VoiceTime += TimeSpan.FromMinutes(1);
-                                    //}
+                                    if (member == null)
+                                    {
+                                        member = Member.FromGuildUser(user);
+                                    }
 
-                                    //if (user.IsVideoing)
-                                    //{
-                                    //    member.XP += 10;
-                                    //    _log.LogInformation($"+10xp de camera: {member.MemberUserName}");
-                                    //    member.VideoTime += TimeSpan.FromMinutes(1);
-                                    //}
-                                    
-                                    //if (user.IsStreaming)
-                                    //{
-                                    //    member.XP += 5;
-                                    //    _log.LogInformation($"+5xp de streaming: {member.MemberUserName}");
-                                    //    member.StreamingTime += TimeSpan.FromMinutes(1);
-                                    //}
+                                    if (user.IsSelfMuted || user.IsSelfDeafened)
+                                    {
+                                        _log.LogInformation($"+2xp de call: {member.MemberUserName}");
+                                        member.XP += 2;
+                                        member.MutedTime += TimeSpan.FromMinutes(2);
+                                    }
+                                    else
+                                    {
+                                        _log.LogInformation($"+5xp de call: {member.MemberUserName}");
+                                        member.XP += 10;
+                                        member.VoiceTime += TimeSpan.FromMinutes(2);
+                                    }
 
-                                    //member.Level = LevelUtils.GetLevel(member.XP);
-                                    //await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
+                                    if (user.IsVideoing)
+                                    {
+                                        member.XP += 10;
+                                        _log.LogInformation($"+7xp de camera: {member.MemberUserName}");
+                                        member.VideoTime += TimeSpan.FromMinutes(2);
+                                    }
+
+                                    if (user.IsStreaming)
+                                    {
+                                        member.XP += 5;
+                                        _log.LogInformation($"+2xp de streaming: {member.MemberUserName}");
+                                        member.StreamingTime += TimeSpan.FromMinutes(2);
+                                    }
+
+                                    member.Level = LevelUtils.GetLevel(member.XP);
+                                    await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
                                 }
                             }
                         }
@@ -134,7 +134,7 @@ namespace DiscordBot.Services
                         }
                     })).ToArray();
                     Task.WaitAll(tasks);
-                    await Task.Delay(TimeSpan.FromSeconds(60) - sw.Elapsed);
+                    await Task.Delay(TimeSpan.FromSeconds(120) - sw.Elapsed);
                 }
             });
         }
