@@ -268,7 +268,7 @@ namespace DiscordBot.Services
                 mensagensUltimos5Minutos.Add(arg);
 
             var ppm = ProcessWPM();
-            Console.Write($"PPM: {ppm}");
+            Console.WriteLine($"PPM: {ppm}");
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == arg.GetGuildId());
             var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
