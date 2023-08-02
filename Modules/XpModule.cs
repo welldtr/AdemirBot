@@ -166,14 +166,18 @@ namespace DiscordBot.Modules
                 (string text, string color, int size, int x, int y) userName = (user.Username, "#FFFFFF", 66, 380, 268);
                 (string text, string color, int size, int x, int y) rank = ($"RANK#{rankPosition}", "#99AAB5", 55, 1570, 154);
                 (string text, string color, int size, int x, int y) lvl = ($"LEVEL {member.Level}", "#FFFFFF", 96, 1570, 104);
-                (string text, string color, int size, int x, int y) xp = ($"{member.XP} XP", "#FFFFFF", 55, 1232, 268);
+                (string text, string color, int size, int x, int y) xp = ($"{member.XP:n0} XP", "#FFFFFF", 55, 1232, 268);
                 (string text, string color, int size, int x, int y) remain = ($"({remainigXp} to Next Level)", "#99AAB5", 35, 1569, 268);
+                (string text, string color, int size, int x, int y) voiceTime = ($"Audio: {member.VoiceTime.TotalHours:n0}h{member.VoiceTime.Minutes:00}", "#eeeeee", 32, 1570, 190);
+                (string text, string color, int size, int x, int y) videoTime = ($"Video: {member.VideoTime.TotalHours:n0}h{member.VoiceTime.Minutes:00}", "#eeeeee", 32, 1570, 223);
 
                 canvas.DrawText(userName.text, userName.x, userName.y, new SKFont(typeface, userName.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(userName.color) });
                 canvas.DrawText(rank.text, rank.x, rank.y, new SKFont(typeface, rank.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(rank.color), TextAlign = SKTextAlign.Right });
                 canvas.DrawText(lvl.text, lvl.x, lvl.y, new SKFont(typeface, lvl.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(lvl.color), TextAlign = SKTextAlign.Right });
                 canvas.DrawText(xp.text, xp.x, xp.y, new SKFont(typeface, xp.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(xp.color), TextAlign = SKTextAlign.Right });
                 canvas.DrawText(remain.text, remain.x, remain.y, new SKFont(typeface, remain.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(remain.color), TextAlign = SKTextAlign.Right });
+                canvas.DrawText(voiceTime.text, voiceTime.x, voiceTime.y, new SKFont(typeface, voiceTime.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(voiceTime.color), TextAlign = SKTextAlign.Right });
+                canvas.DrawText(videoTime.text, videoTime.x, videoTime.y, new SKFont(typeface, videoTime.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(videoTime.color), TextAlign = SKTextAlign.Right });
 
                 var avatarUrl = user.GetGuildAvatarUrl(size: 512) ?? user.GetDisplayAvatarUrl(size: 512);
 

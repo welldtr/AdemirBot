@@ -362,7 +362,7 @@ namespace DiscordBot.Services
                 return;
 
             var levelRolesToAdd = config.RoleRewards
-                .Where(a => a.Level < member.Level)
+                .Where(a => a.Level <= member.Level)
                 .OrderByDescending(a => a.Level)
                 .FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id)) ?? new ulong[] { };
 
