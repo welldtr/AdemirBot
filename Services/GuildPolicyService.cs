@@ -77,8 +77,10 @@ namespace DiscordBot.Services
                     {
                         try
                         {
+                            var events = await guild.GetEventsAsync();
                             foreach (var voice in guild.VoiceChannels)
                             {
+                                var @event = events.FirstOrDefault(a => a.ChannelId == voice.Id && a.Status == GuildScheduledEventStatus.Active);
                                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
                                 if (voice.Id == guild.AFKChannel.Id)
                                     continue;
@@ -93,6 +95,7 @@ namespace DiscordBot.Services
 
                                     var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
                                     var initialLevel = member.Level;
+                                    int earnedXp = 0;
                                     if (member == null)
                                     {
                                         member = Member.FromGuildUser(user);
@@ -101,30 +104,36 @@ namespace DiscordBot.Services
                                     if (user.IsSelfMuted || user.IsSelfDeafened)
                                     {
                                         _log.LogInformation($"+2xp de call: {member.MemberUserName}");
-                                        member.XP += 2;
+                                        earnedXp += 2;
                                         member.MutedTime += TimeSpan.FromMinutes(2);
                                     }
                                     else
                                     {
                                         _log.LogInformation($"+5xp de call: {member.MemberUserName}");
-                                        member.XP += 10;
+                                        earnedXp += 10;
                                         member.VoiceTime += TimeSpan.FromMinutes(2);
                                     }
 
                                     if (user.IsVideoing)
                                     {
-                                        member.XP += 10;
+                                        earnedXp += 10;
                                         _log.LogInformation($"+7xp de camera: {member.MemberUserName}");
                                         member.VideoTime += TimeSpan.FromMinutes(2);
                                     }
 
                                     if (user.IsStreaming)
                                     {
-                                        member.XP += 5;
+                                        earnedXp += 5;
                                         _log.LogInformation($"+2xp de streaming: {member.MemberUserName}");
                                         member.StreamingTime += TimeSpan.FromMinutes(2);
                                     }
 
+                                    if(@event != null)
+                                    {
+                                        earnedXp *= 2;
+                                    }
+
+                                    member.XP = earnedXp;
                                     member.Level = LevelUtils.GetLevel(member.XP);
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
 
