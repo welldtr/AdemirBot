@@ -25,6 +25,7 @@ namespace DiscordBot.Domain.Entities
         public int Level { get; set; }
         public int LurkrLevel { get; set; }
         public long LurkrXP { get; set; }
+        public int EventsPresent { get; set; }
 
         internal static Member FromGuildUser(IGuildUser user)
         {

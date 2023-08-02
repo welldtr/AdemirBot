@@ -15,6 +15,7 @@ namespace DiscordBot
 
         public IRepository<Membership> memberships { get => db.GetRepository<Membership>("memberships"); }
         public IRepository<Member> members { get => db.GetRepository<Member>("members"); }
+        public IRepository<Member> eventPresence { get => db.GetRepository<Member>("event_presence"); }
         public IRepository<BumpConfig> bumpCfg { get => db.GetRepository<BumpConfig>("bump_config"); }
         public IRepository<AdemirConfig> ademirCfg { get => db.GetRepository<AdemirConfig>("ademir_cfg"); }
         public IRepository<DenunciaConfig> denunciaCfg { get => db.GetRepository<DenunciaConfig>("denuncia_config"); }

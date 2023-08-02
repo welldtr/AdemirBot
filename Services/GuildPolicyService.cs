@@ -130,6 +130,22 @@ namespace DiscordBot.Services
 
                                     if(@event != null)
                                     {
+                                        var presence = await _db.eventPresence.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
+
+                                        if(presence == null)
+                                        {
+                                            presence = new EventPresence
+                                            {
+                                                GuildId = guild.Id,
+                                                MemberId = member.MemberId,
+                                                EventId = @event.Id,
+                                                ConnectedTime = TimeSpan.Zero
+                                            };
+                                            member.EventsPresent++;
+                                        }
+                                        presence.ConnectedTime += TimeSpan.FromMinutes(2);
+                                        await _db.eventPresence.UpsertAsync(presence, a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
+
                                         earnedXp *= 2;
                                     }
 
