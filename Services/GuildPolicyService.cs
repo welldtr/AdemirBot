@@ -103,13 +103,13 @@ namespace DiscordBot.Services
 
                                     if (user.IsSelfMuted || user.IsSelfDeafened)
                                     {
-                                        _log.LogInformation($"+2xp de call: {member.MemberUserName}");
+                                        Console.WriteLine($"+2xp de call: {member.MemberUserName}");
                                         earnedXp += 2;
                                         member.MutedTime += TimeSpan.FromMinutes(2);
                                     }
                                     else
                                     {
-                                        _log.LogInformation($"+5xp de call: {member.MemberUserName}");
+                                        Console.WriteLine($"+5xp de call: {member.MemberUserName}");
                                         earnedXp += 5;
                                         member.VoiceTime += TimeSpan.FromMinutes(2);
                                     }
@@ -117,14 +117,14 @@ namespace DiscordBot.Services
                                     if (user.IsVideoing)
                                     {
                                         earnedXp += 7;
-                                        _log.LogInformation($"+7xp de camera: {member.MemberUserName}");
+                                        Console.WriteLine($"+7xp de camera: {member.MemberUserName}");
                                         member.VideoTime += TimeSpan.FromMinutes(2);
                                     }
 
                                     if (user.IsStreaming)
                                     {
                                         earnedXp += 2;
-                                        _log.LogInformation($"+2xp de streaming: {member.MemberUserName}");
+                                        Console.WriteLine($"+2xp de streaming: {member.MemberUserName}");
                                         member.StreamingTime += TimeSpan.FromMinutes(2);
                                     }
 
@@ -154,9 +154,12 @@ namespace DiscordBot.Services
                                     if (qtdPessoasEntraramNaMesmaEpoca > 2)
                                     {
                                         earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
-                                    }
 
+                                        Console.WriteLine($"dividido por {qtdPessoasEntraramNaMesmaEpoca}: {member.MemberUserName}");
+                                    }
                                     member.XP += earnedXp;
+
+                                    Console.WriteLine($"{member.MemberUserName} +{earnedXp} member xp -> {member.XP}");
                                     member.Level = LevelUtils.GetLevel(member.XP);
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
 
