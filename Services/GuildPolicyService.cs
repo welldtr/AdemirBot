@@ -88,13 +88,6 @@ namespace DiscordBot.Services
                                 if (voice.ConnectedUsers.Where(a => !a.IsBot).Count() < 2)
                                     continue;
 
-                                var older = voice.ConnectedUsers.Min(a => a.JoinedAt);
-                                var newer = voice.ConnectedUsers.Max(a => a.JoinedAt);
-                                var delta = newer - older;
-
-                                if (delta == null)
-                                    continue;
-
                                 foreach (var user in voice.ConnectedUsers)
                                 {
                                     if (user.IsMuted || user.IsDeafened)
@@ -117,20 +110,20 @@ namespace DiscordBot.Services
                                     else
                                     {
                                         _log.LogInformation($"+5xp de call: {member.MemberUserName}");
-                                        earnedXp += 10;
+                                        earnedXp += 5;
                                         member.VoiceTime += TimeSpan.FromMinutes(2);
                                     }
 
                                     if (user.IsVideoing)
                                     {
-                                        earnedXp += 10;
+                                        earnedXp += 7;
                                         _log.LogInformation($"+7xp de camera: {member.MemberUserName}");
                                         member.VideoTime += TimeSpan.FromMinutes(2);
                                     }
 
                                     if (user.IsStreaming)
                                     {
-                                        earnedXp += 5;
+                                        earnedXp += 2;
                                         _log.LogInformation($"+2xp de streaming: {member.MemberUserName}");
                                         member.StreamingTime += TimeSpan.FromMinutes(2);
                                     }
@@ -156,9 +149,11 @@ namespace DiscordBot.Services
                                         earnedXp *= 2;
                                     }
 
-                                    if(delta < TimeSpan.FromDays(60))
+                                    var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
+                              
+                                    if (qtdPessoasEntraramNaMesmaEpoca > 1)
                                     {
-                                        earnedXp /= 3;
+                                        earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
                                     }
 
                                     member.XP += earnedXp;
