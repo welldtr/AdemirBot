@@ -149,7 +149,7 @@ namespace DiscordBot.Services
                                         earnedXp *= 2;
                                     }
 
-                                    member.XP = earnedXp;
+                                    member.XP += earnedXp;
                                     member.Level = LevelUtils.GetLevel(member.XP);
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
 
