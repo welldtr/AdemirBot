@@ -44,7 +44,7 @@ namespace DiscordBot.Services
             var message = await _db.messagelog.FindOneAsync(a => a.MessageId == arg1.Id && a.ChannelId == arg2.Id);
             if (message != null)
             {
-                var reactionkey = arg3.ToString()!;
+                var reactionkey = arg3.Emote.ToString()!;
                 message.Reactions = message.Reactions ?? new Dictionary<string, int>();
                 if (message.Reactions.ContainsKey(reactionkey))
                     message.Reactions[reactionkey]++;
