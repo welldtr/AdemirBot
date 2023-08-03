@@ -163,14 +163,14 @@ namespace DiscordBot.Modules
                 int additionalRect2CornerRadius = 30;
                 canvas.DrawRoundRect(new SKRect(additionalRect2X, additionalRect2Y, additionalRect2X + additionalRect2Width, additionalRect2Y + additionalRect2Height), additionalRect2CornerRadius, additionalRect2CornerRadius, new SKPaint { IsAntialias = true, Color = additionalRect2Color });
 
-                (string text, string color, int size, int x, int y) userName = (user.Username, "#FFFFFF", 66, 380, 283);
-                (string text, string color, int size, int x, int y) rank = ($"RANK#{rankPosition}", "#99AAB5", 55, 1570, 154);
+                (string text, string color, int size, int x, int y) userName = (user.Username, "#FFFFFF", 66, 380, 273);
+                (string text, string color, int size, int x, int y) rank = ($"RANK#{rankPosition}", "#99AAB5", 55, 1570, 150);
                 (string text, string color, int size, int x, int y) lvl = ($"LEVEL {member.Level}", "#FFFFFF", 96, 1570, 104);
-                (string text, string color, int size, int x, int y) xp = ($"{member.XP:n0} XP", "#FFFFFF", 55, 1232, 283);
-                (string text, string color, int size, int x, int y) remain = ($"({remainigXp} to Next Level)", "#99AAB5", 35, 1569, 283);
-                (string text, string color, int size, int x, int y) voiceTime = ($"Audio: {member.VoiceTime.TotalHours:n0}h{member.VoiceTime.Minutes:00}", "#eeeeee", 28, 1570, 190);
-                (string text, string color, int size, int x, int y) videoTime = ($"Video: {member.VideoTime.TotalHours:n0}h{member.VoiceTime.Minutes:00}", "#eeeeee", 28, 1570, 220);
-                (string text, string color, int size, int x, int y) events = ($"Been to {member.EventsPresent:n0} events", "#eeeeee", 28, 1570, 250);
+                (string text, string color, int size, int x, int y) xp = ($"{member.XP:n0} XP", "#FFFFFF", 55, 1232, 273);
+                (string text, string color, int size, int x, int y) remain = ($"({remainigXp} to Next Level)", "#99AAB5", 30, 1569, 273);
+                (string text, string color, int size, int x, int y) voiceTime = ($"Audio: {member.VoiceTime.TotalHours:n0}h{member.VoiceTime.Minutes:00}", "#eeeeee", 28, 1570, 180);
+                (string text, string color, int size, int x, int y) videoTime = ($"Video: {member.VideoTime.TotalHours:n0}h{member.VoiceTime.Minutes:00}", "#eeeeee", 28, 1570, 210);
+                (string text, string color, int size, int x, int y) events = ($"Been to {member.EventsPresent:n0} events", "#eeeeee", 28, 1570, 240);
 
                 canvas.DrawText(userName.text, userName.x, userName.y, new SKFont(typeface, userName.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(userName.color) });
                 canvas.DrawText(rank.text, rank.x, rank.y, new SKFont(typeface, rank.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(rank.color), TextAlign = SKTextAlign.Right });

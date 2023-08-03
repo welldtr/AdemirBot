@@ -103,28 +103,28 @@ namespace DiscordBot.Services
 
                                     if (user.IsSelfMuted || user.IsSelfDeafened)
                                     {
-                                        _log.LogInformation($"+2xp de call: {member.MemberUserName}");
+                                        Console.WriteLine($"+2xp de call: {member.MemberUserName}");
                                         earnedXp += 2;
                                         member.MutedTime += TimeSpan.FromMinutes(2);
                                     }
                                     else
                                     {
-                                        _log.LogInformation($"+5xp de call: {member.MemberUserName}");
-                                        earnedXp += 10;
+                                        Console.WriteLine($"+5xp de call: {member.MemberUserName}");
+                                        earnedXp += 5;
                                         member.VoiceTime += TimeSpan.FromMinutes(2);
                                     }
 
                                     if (user.IsVideoing)
                                     {
-                                        earnedXp += 10;
-                                        _log.LogInformation($"+7xp de camera: {member.MemberUserName}");
+                                        earnedXp += 7;
+                                        Console.WriteLine($"+7xp de camera: {member.MemberUserName}");
                                         member.VideoTime += TimeSpan.FromMinutes(2);
                                     }
 
                                     if (user.IsStreaming)
                                     {
-                                        earnedXp += 5;
-                                        _log.LogInformation($"+2xp de streaming: {member.MemberUserName}");
+                                        earnedXp += 2;
+                                        Console.WriteLine($"+2xp de streaming: {member.MemberUserName}");
                                         member.StreamingTime += TimeSpan.FromMinutes(2);
                                     }
 
@@ -149,7 +149,17 @@ namespace DiscordBot.Services
                                         earnedXp *= 2;
                                     }
 
-                                    member.XP = earnedXp;
+                                    var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
+                              
+                                    if (qtdPessoasEntraramNaMesmaEpoca > 2)
+                                    {
+                                        earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
+
+                                        Console.WriteLine($"dividido por {qtdPessoasEntraramNaMesmaEpoca}: {member.MemberUserName}");
+                                    }
+                                    member.XP += earnedXp;
+
+                                    Console.WriteLine($"{member.MemberUserName} +{earnedXp} member xp -> {member.XP}");
                                     member.Level = LevelUtils.GetLevel(member.XP);
                                     await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
 
@@ -328,6 +338,8 @@ namespace DiscordBot.Services
             Console.WriteLine($"PPM: {ppm}");
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
+
+
             var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
             if (member == null)
             {
@@ -353,10 +365,23 @@ namespace DiscordBot.Services
             var ppmMax = ppm > raidPpm ? raidPpm : ppm;
             var gainReward = ((raidPpm - ppmMax) / raidPpm) * 25M;
             var earnedXp = (int)gainReward + 15;
-            member.XP += earnedXp;
-            member.Level = LevelUtils.GetLevel(member.XP);
+            var guild = _client.GetGuild(arg.GetGuildId());
+
+            if(arg.Channel.Id != guild.SystemChannel.Id)
+            {
+                earnedXp /= 3;
+            }
 
             var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+            config.ChannelXpMultipliers = config.ChannelXpMultipliers ?? new Dictionary<ulong, double>();
+
+            if (config.ChannelXpMultipliers.ContainsKey(arg.Channel.Id))
+            { 
+                earnedXp *= (int)config.ChannelXpMultipliers[arg.Channel.Id];
+            }
+
+            member.XP += earnedXp;
+            member.Level = LevelUtils.GetLevel(member.XP);
             await ProcessRoleRewards(config, member);
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 

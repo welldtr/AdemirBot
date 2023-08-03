@@ -12,5 +12,6 @@ namespace DiscordBot.Domain.Entities
         public string Content { get; set; }
         public DateTime MessageDate { get; set; }
         public long MessageLength { get; set; }
+        public Dictionary<string, int> Reactions { get; set; }
     }
 }

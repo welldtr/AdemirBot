@@ -24,5 +24,6 @@ namespace DiscordBot.Domain.Entities
         public bool Premium { get; set; }
         public bool EnableRoleRewards { get; set; }
         public RoleReward[] RoleRewards { get; set; }
+        public Dictionary<ulong, double> ChannelXpMultipliers { get; set; }
     }
 }

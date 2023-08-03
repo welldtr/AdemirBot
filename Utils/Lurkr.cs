@@ -74,7 +74,7 @@ namespace DiscordBot.Utils
                     member.MessageCount = info.MessageCount;
                     member.LurkrXP = info.XP;
                     member.LurkrLevel = info.Level;
-                    member.XP = member.XP < member.LurkrXP ? member.LurkrXP : member.XP;
+                    member.XP = member.XP <= member.LurkrXP ? LevelUtils.GetXPProgression(member.MessageCount) + 1000 : member.XP;
                     member.Level = LevelUtils.GetLevel(member.XP);
                     member.LastMessageTime = null;
                     await db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
