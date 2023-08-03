@@ -88,6 +88,13 @@ namespace DiscordBot.Services
                                 if (voice.ConnectedUsers.Where(a => !a.IsBot).Count() < 2)
                                     continue;
 
+                                var older = voice.ConnectedUsers.Min(a => a.JoinedAt);
+                                var newer = voice.ConnectedUsers.Max(a => a.JoinedAt);
+                                var delta = newer - older;
+
+                                if (delta == null)
+                                    continue;
+
                                 foreach (var user in voice.ConnectedUsers)
                                 {
                                     if (user.IsMuted || user.IsDeafened)
@@ -147,6 +154,11 @@ namespace DiscordBot.Services
                                         await _db.eventPresence.UpsertAsync(presence, a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
 
                                         earnedXp *= 2;
+                                    }
+
+                                    if(delta < TimeSpan.FromDays(60))
+                                    {
+                                        earnedXp /= 3;
                                     }
 
                                     member.XP += earnedXp;
