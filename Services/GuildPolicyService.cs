@@ -360,6 +360,13 @@ namespace DiscordBot.Services
             var ppmMax = ppm > raidPpm ? raidPpm : ppm;
             var gainReward = ((raidPpm - ppmMax) / raidPpm) * 25M;
             var earnedXp = (int)gainReward + 15;
+            var guild = _client.GetGuild(arg.GetGuildId());
+
+            if(arg.Channel.Id != guild.SystemChannel.Id)
+            {
+                earnedXp /= 3;
+            }
+
             member.XP += earnedXp;
             member.Level = LevelUtils.GetLevel(member.XP);
 
