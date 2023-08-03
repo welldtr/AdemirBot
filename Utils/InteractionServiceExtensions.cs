@@ -24,6 +24,9 @@ namespace DiscordBot.Utils
 
                 shard.ShardReady += async (client) =>
                 {
+                    if (!initialized)
+                        initialized = true;
+
                     await client.BulkOverwriteGlobalApplicationCommandsAsync(new ApplicationCommandProperties[] { });
                     var _interactionService = new InteractionService(client.Rest);
 
