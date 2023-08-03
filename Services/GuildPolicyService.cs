@@ -307,7 +307,8 @@ namespace DiscordBot.Services
                     Content = arg.Content,
                     MessageDate = arg.Timestamp.UtcDateTime,
                     UserId = arg.Author?.Id ?? 0,
-                    MessageLength = arg.Content.Length
+                    MessageLength = arg.Content.Length,
+                    Reactions = arg.Reactions.ToDictionary(a => a.Key.ToString()!, b => b.Value.ReactionCount)
                 });
 
             if (arg is IThreadChannel && ((IThreadChannel)arg).OwnerId == _client.CurrentUser.Id)
