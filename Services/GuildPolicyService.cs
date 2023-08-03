@@ -335,6 +335,8 @@ namespace DiscordBot.Services
             Console.WriteLine($"PPM: {ppm}");
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
+
+
             var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
             if (member == null)
             {
@@ -367,10 +369,16 @@ namespace DiscordBot.Services
                 earnedXp /= 3;
             }
 
+            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+            config.ChannelXpMultipliers = config.ChannelXpMultipliers ?? new Dictionary<ulong, double>();
+
+            if (config.ChannelXpMultipliers.ContainsKey(arg.Channel.Id))
+            { 
+                earnedXp *= (int)config.ChannelXpMultipliers[arg.Channel.Id];
+            }
+
             member.XP += earnedXp;
             member.Level = LevelUtils.GetLevel(member.XP);
-
-            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
             await ProcessRoleRewards(config, member);
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 
