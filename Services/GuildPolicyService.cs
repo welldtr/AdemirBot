@@ -36,6 +36,22 @@ namespace DiscordBot.Services
             _client.UserJoined += _client_UserJoined;
             _client.UserLeft += _client_UserLeft;
             _client.ShardReady += _client_ShardReady;
+            _client.ReactionAdded += _client_ReactionAdded;
+        }
+
+        private async Task _client_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, Cacheable<IMessageChannel, ulong> arg2, SocketReaction arg3)
+        {
+            var message = await _db.messagelog.FindOneAsync(a => a.MessageId == arg1.Id && a.ChannelId == arg2.Id);
+            if (message != null)
+            {
+                var reactionkey = arg3.ToString()!;
+                message.Reactions = message.Reactions ?? new Dictionary<string, int>();
+                if (message.Reactions.ContainsKey(reactionkey))
+                    message.Reactions[reactionkey]++;
+                else
+                    message.Reactions.Add(reactionkey, 1);
+                await _db.messagelog.UpsertAsync(message);
+            }
         }
 
         private async Task _client_ShardReady(DiscordSocketClient arg)
@@ -128,11 +144,11 @@ namespace DiscordBot.Services
                                         member.StreamingTime += TimeSpan.FromMinutes(2);
                                     }
 
-                                    if(@event != null)
+                                    if (@event != null)
                                     {
                                         var presence = await _db.eventPresence.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
 
-                                        if(presence == null)
+                                        if (presence == null)
                                         {
                                             presence = new EventPresence
                                             {
@@ -150,7 +166,7 @@ namespace DiscordBot.Services
                                     }
 
                                     var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
-                              
+
                                     if (qtdPessoasEntraramNaMesmaEpoca > 2)
                                     {
                                         earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
@@ -187,7 +203,7 @@ namespace DiscordBot.Services
         private async Task _client_UserJoined(SocketGuildUser user)
         {
             var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
-            if(member == null)
+            if (member == null)
             {
                 member = Member.FromGuildUser(user);
                 await _db.members.AddAsync(member);
@@ -218,7 +234,7 @@ namespace DiscordBot.Services
             var role = user.Guild.GetRole(config.MinorRoleId);
             if (role != null)
             {
-                if(user.Roles.Any(a => a.Id == role.Id))
+                if (user.Roles.Any(a => a.Id == role.Id))
                     await user.KickAsync("Menor de Idade");
             }
         }
@@ -368,7 +384,7 @@ namespace DiscordBot.Services
             var earnedXp = (int)gainReward + 15;
             var guild = _client.GetGuild(arg.GetGuildId());
 
-            if(arg.Channel.Id != guild.SystemChannel.Id)
+            if (arg.Channel.Id != guild.SystemChannel.Id)
             {
                 earnedXp /= 3;
             }
@@ -377,7 +393,7 @@ namespace DiscordBot.Services
             config.ChannelXpMultipliers = config.ChannelXpMultipliers ?? new Dictionary<ulong, double>();
 
             if (config.ChannelXpMultipliers.ContainsKey(arg.Channel.Id))
-            { 
+            {
                 earnedXp *= (int)config.ChannelXpMultipliers[arg.Channel.Id];
             }
 
@@ -409,7 +425,7 @@ namespace DiscordBot.Services
                 .FirstOrDefault()?.Roles.Select(a => ulong.Parse(a.Id)) ?? new ulong[] { };
 
             var levelRolesToRemove = config.RoleRewards.SelectMany(a => a.Roles)
-                .Where(a => user.Roles.Any(b => b.Id == ulong.Parse(a.Id)) 
+                .Where(a => user.Roles.Any(b => b.Id == ulong.Parse(a.Id))
                         && !levelRolesToAdd.Any(b => b == ulong.Parse(a.Id)))
                 .Select(a => ulong.Parse(a.Id));
 
