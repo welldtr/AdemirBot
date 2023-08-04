@@ -194,25 +194,23 @@ namespace DiscordBot.Services
                 try
                 {
                     var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
-                
 
-                    if (ademirConfig?.VoiceChannel != null && (ademirConfig?.PlaybackState ?? PlaybackState.Stopped) != PlaybackState.Stopped)
+                    var tracks = await _db.tracks.Find(a => a.GuildId == guild.Id)
+                                        .SortBy(a => a.QueuePosition)
+                                        .ToListAsync();
+
+                    var track = tracks.FirstOrDefault();
+                    if (track == null)
                     {
-                        guild.GetVoiceChannel(ademirConfig.VoiceChannel.Value!);
-
-                        var tracks = await _db.tracks.Find(a => a.GuildId == guild.Id)
-                                            .SortBy(a => a.QueuePosition)
-                                            .ToListAsync();
-
-                        var track = tracks.FirstOrDefault();
-                        if (track != null)
-                        {
-                            var channel = guild.GetTextChannel(track.ChannelId);
-                            var user = guild.GetUser(track.UserId);
-                            var playback = guild.GetPlayback();
-                            playback.LoadConfig(ademirConfig);
-                            var _ = Task.Run(() => PlayMusic(channel, user, tracks: tracks.ToArray()));
-                        }
+                        PlaybackExtensions.InitPlayback(guild.Id);
+                    }
+                    else
+                    {
+                        var channel = guild.GetTextChannel(track.ChannelId);
+                        var user = guild.GetUser(track.UserId);
+                        var playback = guild.GetPlayback();
+                        playback.LoadConfig(ademirConfig);
+                        var _ = Task.Run(() => PlayMusic(channel, user, tracks: tracks.ToArray()));
                     }
                 }
                 catch (Exception ex)
@@ -263,8 +261,11 @@ namespace DiscordBot.Services
         private async Task SavePlaybackstate(SocketGuild guild)
         {
             var playback = guild.GetPlayback();
+            if (playback == null)
+                return;
+
             var ademirConfig = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
-            if(ademirConfig == null)
+            if (ademirConfig == null)
             {
                 ademirConfig = new AdemirConfig
                 {
@@ -291,17 +292,17 @@ namespace DiscordBot.Services
         {
             var playback = guild.GetPlayback();
             var tracks = new List<Track>();
-          
+
             await _db.tracks.DeleteAsync(a => a.GuildId == guild.Id);
             int position = 0;
 
-            foreach (var track in tracks)
+            foreach (var track in playback.Tracks)
             {
                 position++;
                 track.QueuePosition = position;
                 track._id = ObjectId.Empty;
             }
-            await _db.tracks.AddAsync(tracks);
+            await _db.tracks.AddAsync(playback.Tracks);
         }
 
         private void ExecuteTrackPositionLoop()
@@ -356,7 +357,7 @@ namespace DiscordBot.Services
                     .WithFooter($"Adicionada por {user.DisplayName}", user.GetDisplayAvatarUrl())
                     .Build());
 
-            for(int i = 0; i < tracks.Length; i++)
+            for (int i = 0; i < tracks.Length; i++)
             {
                 if (tracks[i] == null)
                 {
@@ -577,14 +578,14 @@ namespace DiscordBot.Services
 
                             try
                             {
+
+                                await playback.PlayAsync(output, discord);
+
                                 await msg.ModifyAsync(a =>
                                 {
                                     a.Embed = banner.WithAuthor("Reproduzida").WithColor(Color.Default).Build();
                                     a.Components = new ComponentBuilder().Build();
                                 });
-
-                                await playback.PlayAsync(output, discord);
-
                                 //playback.PlayerState = PlaybackState.Playing;
                                 //await playback.AudioClient!.SetSpeakingAsync(true);
                                 //await ProcessarBuffer(channel.GuildId, output, discord, token);

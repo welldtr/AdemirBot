@@ -10,6 +10,11 @@ namespace DiscordBot.Domain.ValueObjects
 {
     public class Playback
     {
+        public Playback()
+        {
+            Tracks = new List<Track> { };
+        }
+
         public float Decorrido { get; private set; }
         public PlaybackState PlayerState { get; private set; }
         public PlayMode PlayMode { get; private set; }
@@ -227,6 +232,10 @@ namespace DiscordBot.Domain.ValueObjects
         static PlaybackExtensions()
         {
             _playback = new ConcurrentDictionary<ulong, Playback>();
+        }
+        public static void InitPlayback(ulong guildId)
+        {
+            _playback[guildId] = new Playback {  };
         }
 
         public static Playback GetPlayback(ulong guildId)
