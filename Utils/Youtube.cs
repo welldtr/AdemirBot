@@ -64,7 +64,8 @@ namespace DiscordBot.Utils
                 return playListTracks;
             }
         }
-        public static async Task<string> ExtractAsync(this YoutubeClient _youtubeClient, Track track, CancellationToken cancellationToken)
+
+        public static async Task<string> ExtractAsync(this YoutubeClient _youtubeClient, Track track, CancellationToken cancellationToken = default)
         {
             try
             {
