@@ -152,6 +152,7 @@ namespace DiscordBot.Services
                                         {
                                             presence = new EventPresence
                                             {
+                                                EventPresenceId = Guid.NewGuid(),
                                                 GuildId = guild.Id,
                                                 MemberId = member.MemberId,
                                                 EventId = @event.Id,
