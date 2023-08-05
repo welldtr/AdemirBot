@@ -163,7 +163,7 @@ namespace DiscordBot.Services
                                         presence.ConnectedTime += TimeSpan.FromMinutes(2);
                                         await _db.eventPresence.UpsertAsync(presence, a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
 
-                                        earnedXp *= 2;
+                                        earnedXp *= 4;
                                     }
 
                                     var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
