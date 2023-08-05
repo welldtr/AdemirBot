@@ -167,7 +167,7 @@ namespace DiscordBot.Services
                                     }
 
                                     var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
-
+                                    var outrasPessoas = voice.Users.Count - qtdPessoasEntraramNaMesmaEpoca;
                                     if (qtdPessoasEntraramNaMesmaEpoca > 2)
                                     {
                                         earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
