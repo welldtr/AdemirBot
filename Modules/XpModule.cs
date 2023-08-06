@@ -93,7 +93,6 @@ namespace DiscordBot.Modules
             }
         }
 
-
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("importlevelinfo", "Importar informações de level de outro bot")]
         public async Task ImportLevelInfo(ImportBot bot)

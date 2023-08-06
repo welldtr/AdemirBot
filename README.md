@@ -34,6 +34,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 ## Comandos do Administrador
 - :white_check_mark: Configurar o Canal de Denúncias: Comando `/config-denuncias`
 - :white_check_mark: Criar macros através do comando `/macro`
+- :white_check_mark: Listar macros: comando `/listar-macros`
 - :white_check_mark: Editar macros: comando `/editar-macro`
 - :white_check_mark: Excluir macro: comando `/excluir-macro`
 - :white_check_mark: Banir em massa: comando `/massban`
@@ -45,18 +46,19 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
 
 ## Comandos de Música
-- :white_check_mark: `>>play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum.
-- :white_check_mark: `>>skip`: Pula para a próxima música da fila.
-- :white_check_mark: `>>back`: Pula para a música anterior da fila.
-- :white_check_mark: `>>replay`: Reinicia a música atual.
-- :white_check_mark: `>>pause`: Pausa/Retoma a reprodução da música atual.
-- :white_check_mark: `>>stop`: Interrompe completamente a reprodução de música.
-- :white_check_mark: `>>loop`: Habilita/Desabilita o modo de repetição de faixa.
-- :white_check_mark: `>>loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
-- :white_check_mark: `>>queue`: Lista as próximas 20 músicas da fila.
-- :white_check_mark: `>>join`: Puxa o bot para o seu canal de voz.
-- :white_check_mark: `>>quit`: Remove o bot da chamada de voz.
-- :white_check_mark: `>>volume <valor>`: Ajusta o volume da música.
+- :white_check_mark: `/help`: Lista os comandos de áudio.
+- :white_check_mark: `/play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum.
+- :white_check_mark: `/skip`: Pula para a próxima música da fila.
+- :white_check_mark: `/back`: Pula para a música anterior da fila.
+- :white_check_mark: `/replay`: Reinicia a música atual.
+- :white_check_mark: `/pause`: Pausa/Retoma a reprodução da música atual.
+- :white_check_mark: `stop`: Interrompe completamente a reprodução de música.
+- :white_check_mark: `/loop`: Habilita/Desabilita o modo de repetição de faixa.
+- :white_check_mark: `/loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
+- :white_check_mark: `/queue`: Lista as próximas 20 músicas da fila.
+- :white_check_mark: `/join`: Puxa o bot para o seu canal de voz.
+- :white_check_mark: `/quit`: Remove o bot da chamada de voz.
+- :white_check_mark: `/volume <valor>`: Ajusta o volume da música.
 
 ## Instalação (DevEnv)
 

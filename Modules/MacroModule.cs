@@ -2,6 +2,8 @@
 using Discord.Interactions;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Modules.Modals;
+using DiscordBot.Services;
+using MongoDB.Driver;
 using System.Text.RegularExpressions;
 
 namespace DiscordBot.Modules
@@ -9,10 +11,13 @@ namespace DiscordBot.Modules
     public class MacroModule : InteractionModuleBase
     {
         private readonly Context db;
+        private readonly PaginationService paginator;
 
-        public MacroModule(Context context)
+        public MacroModule(Context context, PaginationService paginationService)
         {
             db = context;
+
+            paginator = paginationService;
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -52,6 +57,23 @@ namespace DiscordBot.Modules
                 await ModifyOriginalResponseAsync(a => a.Content = "Essa macro não existe.");
             else
                 await ModifyOriginalResponseAsync(a => a.Content = "Macro excluída.");
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("list-macros", "Listar as macros cadastradas")]
+        public async Task GetMacros()
+        {
+            var pages = await db.macros.Find(a => a.GuildId == Context.Guild.Id).ToListAsync();
+            var message = new PaginatedMessage(pages.Select(a => new Page
+            {
+                Fields = new EmbedFieldBuilder[] {
+                    new EmbedFieldBuilder().WithIsInline(true).WithName("Nome").WithValue(a.Nome),
+                    new EmbedFieldBuilder().WithName("Mensagem").WithValue(a.Mensagem)
+                },                
+            }),
+            "Macros", new Color(0xb100c1), Context.User, new AppearanceOptions { });
+
+            await paginator.SendPaginatedMessageAsync(Context.Channel, message);
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]

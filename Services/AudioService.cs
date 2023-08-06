@@ -71,6 +71,10 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await SkipMusic(channel));
                     break;
 
+                case ">>help":
+                    _ = Task.Run(async () => await Help(channel));
+                    break;
+
                 case string s when s.Matches(@">>skip (\d+)"):
                     var skipstr = arg.Content.Match(@">>skip (\d+)").Groups[1].Value;
                     var qtd = int.Parse(skipstr);
@@ -129,8 +133,7 @@ namespace DiscordBot.Services
 
                 case ">>join":
                     var voicechannel = user.VoiceChannel;
-                    if (voicechannel != null)
-                        _ = Task.Run(async () => await MoveToChannel(voicechannel));
+                    _ = Task.Run(async () => await Join(channel, voicechannel));
                     break;
 
                 case string s when s.Matches(@">>volume (\d+)"):
@@ -146,26 +149,32 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task Shuffle(ITextChannel channel)
+        public async Task Shuffle(ITextChannel channel)
         {
             await channel.SendEmbedText($"Modo aleatório ainda não disponível nessa versão");
         }
 
-        private async Task ToggleLoopQueue(ITextChannel channel)
+        public async Task Join(ITextChannel channel, SocketVoiceChannel voicechannel)
+        {
+            if (voicechannel != null)
+                _ = Task.Run(async () => await MoveToChannel(voicechannel));
+        }
+
+        public async Task ToggleLoopQueue(ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.ToggleLoopQueue();
             await channel.SendEmbedText($"Playlist em modo {playback.PlayMode}");
         }
 
-        private async Task ToggleLoopTrack(ITextChannel channel)
+        public async Task ToggleLoopTrack(ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.ToggleLoopTrack();
             await channel.SendEmbedText($"Playlist em modo {playback.PlayMode}");
         }
 
-        private async Task MoveToChannel(SocketVoiceChannel voicechannel)
+        public async Task MoveToChannel(SocketVoiceChannel voicechannel)
         {
             var playback = voicechannel.GetPlayback();
             await playback.ConnectAsync(voicechannel);
@@ -226,7 +235,7 @@ namespace DiscordBot.Services
             Task.WaitAll(tasks);
         }
 
-        private async Task ShowQueue(ITextChannel channel)
+        public async Task ShowQueue(ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             var plStr = new StringBuilder();
@@ -420,6 +429,27 @@ namespace DiscordBot.Services
             await channel.SendEmbedText("Lista de reprodução limpa.");
             var guild = _client.GetGuild(channel.GuildId);
             await SavePlaylistInfo(guild);
+        }
+
+        public async Task Help(ITextChannel channel)
+        {
+            await channel.SendMessageAsync($" ", embed: new EmbedBuilder()
+                .WithDescription(@"
+### Comandos de Música (também com o prefixo >>)
+- `/help`: Lista os comandos de áudio.
+- `/play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum do Spotify ou Youtube.
+- `/skip`: Pula para a próxima música da fila.
+- `/back`: Pula para a música anterior da fila.
+- `/replay`: Reinicia a música atual.
+- `/pause`: Pausa/Retoma a reprodução da música atual.
+- `/stop`: Interrompe completamente a reprodução de música.
+- `/loop`: Habilita/Desabilita o modo de repetição de faixa.
+- `/loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
+- `/queue`: Lista as próximas 20 músicas da fila.
+- `/join`: Puxa o bot para o seu canal de voz.
+- `/quit`: Remove o bot da chamada de voz.
+- `/volume <valor>`: Ajusta o volume da música.
+").Build());
         }
 
         public async Task SkipMusic(ITextChannel channel, int qtd = 1)

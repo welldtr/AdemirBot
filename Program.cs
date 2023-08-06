@@ -5,6 +5,7 @@ using OpenAI;
 using MongoDB.Driver;
 using DiscordBot.Utils;
 using Discord.Interactions;
+using DiscordBot.Services;
 
 namespace DiscordBot
 {
@@ -44,8 +45,10 @@ namespace DiscordBot
                .AddSingleton(db)
                .AddSingleton(config)
                .AddSingleton(_client)
+               .AddSingleton((s) => new PaginationService(_client, s.GetRequiredService<ILogger<PaginationService>>()))
                .AddSingleton(commands)
                .AddSingleton(openAI)
+               .AddSingleton<Context>()
                .AddSingleton<Context>()
                .AddDiscordServices()
                .AddMemoryCache()
