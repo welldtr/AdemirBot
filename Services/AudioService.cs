@@ -200,11 +200,9 @@ namespace DiscordBot.Services
                                         .ToListAsync();
 
                     var track = tracks.FirstOrDefault();
-                    if (track == null)
-                    {
-                        PlaybackExtensions.InitPlayback(guild.Id);
-                    }
-                    else
+
+                    PlaybackExtensions.InitPlayback(guild.Id);
+                    if (track != null)
                     {
                         var channel = guild.GetTextChannel(track.ChannelId);
                         var user = guild.GetUser(track.UserId);
