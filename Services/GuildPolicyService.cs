@@ -60,12 +60,35 @@ namespace DiscordBot.Services
             {
                 while (true)
                 {
+                    foreach (var guild in _client.Guilds)
+                    {
+                        try
+                        {
+                            var progression = await _db.progression.Find(t => t.Date == DateTime.Today).FirstOrDefaultAsync();
+
+                            if (progression == null)
+                            {
+                                progression = new ServerNumberProgression
+                                {
+                                    ServerNumberProgressionId = Guid.NewGuid(),
+                                    GuildId = guild.Id,
+                                    Date = DateTime.Today,
+                                    MemberCount = guild.MemberCount
+                                };
+                            }
+
+                            await _db.progression.UpsertAsync(progression);
+                        }
+                        catch
+                        {
+                            _log.LogError($"Erro ao registrar quantidade de membros do server {guild.Name}.");
+                        }
+                    }
 
                     foreach (var guild in _client.Guilds)
                     {
                         try
                         {
-                            // await Lurkr.ImportLevelInfo(_client, guild, _db);
                             var threads = await _db.threads.Find(t => t.LastMessageTime >= DateTime.UtcNow.AddHours(-72) && t.LastMessageTime <= DateTime.UtcNow.AddHours(-12)).ToListAsync();
 
                             foreach (var thread in threads)
@@ -80,7 +103,8 @@ namespace DiscordBot.Services
                             _log.LogError("Erro ao trancar threads do Ademir.");
                         }
                     }
-                    await Task.Delay(TimeSpan.FromMinutes(15));
+
+                    await Task.Delay(TimeSpan.FromMinutes(10));
                 }
             });
 
