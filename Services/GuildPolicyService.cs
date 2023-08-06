@@ -62,28 +62,7 @@ namespace DiscordBot.Services
                 {
                     foreach (var guild in _client.Guilds)
                     {
-                        try
-                        {
-                            var progression = await _db.progression.Find(t => t.GuildId == guild.Id && t.Date == DateTime.Today).FirstOrDefaultAsync();
-
-                            if (progression == null)
-                            {
-                                progression = new ServerNumberProgression
-                                {
-                                    ServerNumberProgressionId = Guid.NewGuid(),
-                                    GuildId = guild.Id,
-                                    Date = DateTime.Today
-                                };
-                            }
-                            progression.MemberCount = guild.MemberCount;
-
-                            await _db.progression.UpsertAsync(progression);
-                            _log.LogInformation($"Membros em {guild.Name}: {guild.MemberCount}. Owner: {guild.Owner.Username}.");
-                        }
-                        catch
-                        {
-                            _log.LogError($"Erro ao registrar quantidade de membros do server {guild.Name}.");
-                        }
+                        await ProcessMemberProgression(guild);
                     }
 
                     foreach (var guild in _client.Guilds)
@@ -105,7 +84,7 @@ namespace DiscordBot.Services
                         }
                     }
 
-                    await Task.Delay(TimeSpan.FromMinutes(10));
+                    await Task.Delay(TimeSpan.FromMinutes(20));
                 }
             });
 
@@ -220,6 +199,34 @@ namespace DiscordBot.Services
             });
         }
 
+        private async Task ProcessMemberProgression(SocketGuild guild)
+        {
+            try
+            {
+                var progression = await _db.progression.Find(t => t.GuildId == guild.Id && t.Date == DateTime.Today).FirstOrDefaultAsync();
+                var joinsToday = await _db.memberships.Find(t => t.GuildId == guild.Id && t.DateJoined >= DateTime.Today).CountDocumentsAsync();
+                var leftToday = await _db.memberships.Find(t => t.GuildId == guild.Id && t.DateLeft >= DateTime.Today).CountDocumentsAsync();
+
+                if (progression == null)
+                {
+                    progression = new ServerNumberProgression
+                    {
+                        ServerNumberProgressionId = Guid.NewGuid(),
+                        GuildId = guild.Id,
+                        Date = DateTime.Today
+                    };
+                }
+                progression.GrowthToday = joinsToday - leftToday;
+                progression.MemberCount = guild.MemberCount;
+
+                await _db.progression.UpsertAsync(progression);
+                _log.LogInformation($"Membros em {guild.Name}: {guild.MemberCount}. Owner: {guild.Owner.Username}.");
+            }
+            catch
+            {
+                _log.LogError($"Erro ao registrar quantidade de membros do server {guild.Name}.");
+            }
+        }
 
         private async Task _client_MessageReceived(SocketMessage arg)
         {
@@ -228,29 +235,13 @@ namespace DiscordBot.Services
 
         private async Task _client_UserJoined(SocketGuildUser user)
         {
-            var guild = (SocketGuild)_client.GetGuild(user.Guild.Id);
+            var guild = _client.GetGuild(user.Guild.Id);
             var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
             if (member == null)
             {
                 member = Member.FromGuildUser(user);
                 await _db.members.AddAsync(member);
             }
-
-            var progression = await _db.progression.Find(t => t.Date == DateTime.Today && t.GuildId == user.Guild.Id).FirstOrDefaultAsync();
-
-            if (progression == null)
-            {
-                progression = new ServerNumberProgression
-                {
-                    ServerNumberProgressionId = Guid.NewGuid(),
-                    GuildId = user.Guild.Id,
-                    Date = DateTime.Today,
-                };
-            }
-            progression.GrowthToday++;
-            progression.MemberCount = guild.MemberCount;
-
-            await _db.progression.UpsertAsync(progression);
 
             await IncluirMembroNovo(user);
             var _ = Task.Run(async () =>
@@ -261,24 +252,41 @@ namespace DiscordBot.Services
                 await ProcessRoleRewards(config, member);
                 await CheckIfMinorsAndKickEm(config, user);
             });
+
+            await ProcessMemberProgression(guild);
         }
 
         private async Task GiveAutoRole(AdemirConfig config, SocketGuildUser user)
         {
-            var role = user.Guild.GetRole(config.AutoRoleId);
-            if (role != null)
+            try
             {
-                await user.AddRoleAsync(role);
+                var role = user.Guild.GetRole(config.AutoRoleId);
+                if (role != null)
+                {
+                    await user.AddRoleAsync(role);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, $"Erro ao definir cargo automatico para {user.Username}.");
             }
         }
 
         private async Task CheckIfMinorsAndKickEm(AdemirConfig config, SocketGuildUser user)
         {
-            var role = user.Guild.GetRole(config.MinorRoleId);
-            if (role != null)
+            try
             {
-                if (user.Roles.Any(a => a.Id == role.Id))
-                    await user.KickAsync("Menor de Idade");
+                var role = user.Guild.GetRole(config.MinorRoleId);
+                if (role != null)
+                {
+                    if (user.Roles.Any(a => a.Id == role.Id))
+                        await user.KickAsync("Menor de Idade");
+
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, $"Erro ao expulsar o menor de idade: {user.Username}.");
             }
         }
 
@@ -287,20 +295,6 @@ namespace DiscordBot.Services
             var userId = user.Id;
             var guildId = guild.Id;
             var member = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
-
-            var progression = await _db.progression.Find(t => t.Date == DateTime.Today && t.GuildId == guild.Id).FirstOrDefaultAsync();
-
-            if (progression == null)
-            {
-                progression = new ServerNumberProgression
-                {
-                    ServerNumberProgressionId = Guid.NewGuid(),
-                    GuildId = guildId,
-                    Date = DateTime.Today,
-                };
-            }
-            progression.GrowthToday--;
-            progression.MemberCount = guild.MemberCount;
 
             var dateleft = DateTime.UtcNow;
             if (member == null)
@@ -328,6 +322,8 @@ namespace DiscordBot.Services
                 member.DateLeft = dateleft;
                 await _db.memberships.UpsertAsync(member);
             }
+
+            await ProcessMemberProgression(guild);
         }
 
         private async Task ProcurarEApagarMensagemDeBoasVindas(SocketGuild guild, Membership member, DateTime untilDate)
@@ -347,7 +343,7 @@ namespace DiscordBot.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.ToString());
+                    _log.LogError(ex, $"Erro ao apagar mensagem de boas vindas para: {member.MemberUserName}");
                 }
             }
         }
@@ -441,11 +437,6 @@ namespace DiscordBot.Services
             var earnedXp = (int)gainReward + 15;
             var guild = _client.GetGuild(arg.GetGuildId());
 
-            if (arg.Channel.Id != guild.SystemChannel.Id)
-            {
-                earnedXp /= 3;
-            }
-
             var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
             config.ChannelXpMultipliers = config.ChannelXpMultipliers ?? new Dictionary<ulong, double>();
 
@@ -467,7 +458,7 @@ namespace DiscordBot.Services
             var guild = _client.GetGuild(member.GuildId);
             var user = guild.GetUser(member.MemberId);
 
-            if (config == null)
+            if (config == null || user == null)
             {
                 _log.LogError("Impossível processar recompensas de nivel. Configuração de level nao executada");
                 return;
