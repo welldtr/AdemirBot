@@ -3,6 +3,7 @@ using Discord.Interactions;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Modules.Modals;
 using DiscordBot.Services;
+using DiscordBot.Utils;
 using MongoDB.Driver;
 using System.Text.RegularExpressions;
 
@@ -63,17 +64,23 @@ namespace DiscordBot.Modules
         [SlashCommand("list-macros", "Listar as macros cadastradas")]
         public async Task GetMacros()
         {
+            await RespondAsync();
             var pages = await db.macros.Find(a => a.GuildId == Context.Guild.Id).ToListAsync();
             var message = new PaginatedMessage(pages.Select(a => new Page
             {
-                Fields = new EmbedFieldBuilder[] {
-                    new EmbedFieldBuilder().WithIsInline(true).WithName("Nome").WithValue(a.Nome),
-                    new EmbedFieldBuilder().WithName("Mensagem").WithValue(a.Mensagem)
-                },                
+                Fields = GetFields(a.Nome, a.Mensagem)
             }),
             "Macros", new Color(0xb100c1), Context.User, new AppearanceOptions { });
 
             await paginator.SendPaginatedMessageAsync(Context.Channel, message);
+        }
+
+        private List<EmbedFieldBuilder> GetFields(string nome, string mensagem)
+        {
+            var embedFieldBuilders = new List<EmbedFieldBuilder>();
+            embedFieldBuilders.Add(new EmbedFieldBuilder().WithIsInline(true).WithName($"Nome ({mensagem.Length} caracteres)").WithValue(nome));
+            embedFieldBuilders.AddRange(mensagem.SplitInChunksOf(1024).Select(a => new EmbedFieldBuilder().WithName($"Mensagem").WithValue(a)));
+            return embedFieldBuilders;
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
