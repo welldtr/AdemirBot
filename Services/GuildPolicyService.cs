@@ -64,6 +64,9 @@ namespace DiscordBot.Services
                     {
                         try
                         {
+                            if (!guild.HasAllMembers)
+                                continue;
+
                             var progression = await _db.progression.Find(t => t.Date == DateTime.Today).FirstOrDefaultAsync();
 
                             if (progression == null)
