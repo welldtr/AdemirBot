@@ -64,9 +64,6 @@ namespace DiscordBot.Services
                     {
                         try
                         {
-                            if (!guild.HasAllMembers)
-                                continue;
-
                             var progression = await _db.progression.Find(t => t.GuildId == guild.Id && t.Date == DateTime.Today).FirstOrDefaultAsync();
 
                             if (progression == null)
@@ -81,6 +78,7 @@ namespace DiscordBot.Services
                             progression.MemberCount = guild.MemberCount;
 
                             await _db.progression.UpsertAsync(progression);
+                            _log.LogInformation($"Membros em {guild.Name}: {guild.MemberCount}. Owner: {guild.Owner.Username}.");
                         }
                         catch
                         {
