@@ -53,7 +53,7 @@ namespace DiscordBot.Services
             {
                 foreach (var mentionedUser in arg.MentionedUsers)
                 {
-                    await mentionedUser.SendMessageAsync($"Você ganhou {config.XPPerBump}xp por bumpar o servidor {guild.Name}");
+                    await canal.SendMessageAsync($"Obrigado {mentionedUser.Mention}. Você ganhou +{config.XPPerBump}xp por bumpar o servidor {guild.Name}. Para manter seu novo XP, recepcione os novatos.");
                     _log.LogInformation($"{mentionedUser.Username} ganhou {config.XPPerBump}xp.");
 
                     var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == guildId);

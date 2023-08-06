@@ -71,15 +71,10 @@ namespace DiscordBot.Domain.ValueObjects
             PlayMode = PlayMode == PlayMode.Normal ? PlayMode.LoopQueue : PlayMode.Normal;
         }
 
-        public event EventHandler Stopped;
         internal void Stop()
         {
-            if (Stopped != null)
-            {
-                Reset();
-                InterruptPlayer();
-                Stopped.Invoke(this, EventArgs.Empty);
-            }
+            Reset();
+            InterruptPlayer();
         }
 
 
@@ -113,7 +108,7 @@ namespace DiscordBot.Domain.ValueObjects
 
         private void InterruptPlayer()
         {
-            if(Interrupted != null)
+            if (Interrupted != null)
             {
                 Interrupted.Invoke(this, EventArgs.Empty);
             }
@@ -235,7 +230,7 @@ namespace DiscordBot.Domain.ValueObjects
         }
         public static void InitPlayback(ulong guildId)
         {
-            _playback[guildId] = new Playback {  };
+            _playback[guildId] = new Playback { };
         }
 
         public static Playback GetPlayback(ulong guildId)
