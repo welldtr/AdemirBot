@@ -9,5 +9,6 @@ namespace DiscordBot.Domain.Entities
         public ulong GuildId { get; set; }
         public long MemberCount { get; set; }
         public DateTime Date { get; set; }
+        public long GrowthToday { get; internal set; }
     }
 }

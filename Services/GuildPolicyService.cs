@@ -72,10 +72,10 @@ namespace DiscordBot.Services
                                 {
                                     ServerNumberProgressionId = Guid.NewGuid(),
                                     GuildId = guild.Id,
-                                    Date = DateTime.Today,
-                                    MemberCount = guild.MemberCount
+                                    Date = DateTime.Today
                                 };
                             }
+                            progression.MemberCount = guild.MemberCount;
 
                             await _db.progression.UpsertAsync(progression);
                         }
@@ -227,12 +227,30 @@ namespace DiscordBot.Services
 
         private async Task _client_UserJoined(SocketGuildUser user)
         {
+            var guild = (SocketGuild)_client.GetGuild(user.Guild.Id);
             var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
             if (member == null)
             {
                 member = Member.FromGuildUser(user);
                 await _db.members.AddAsync(member);
             }
+
+
+            var progression = await _db.progression.Find(t => t.Date == DateTime.Today).FirstOrDefaultAsync();
+
+            if (progression == null)
+            {
+                progression = new ServerNumberProgression
+                {
+                    ServerNumberProgressionId = Guid.NewGuid(),
+                    GuildId = user.Guild.Id,
+                    Date = DateTime.Today,
+                };
+            }
+            progression.GrowthToday++;
+            progression.MemberCount = guild.MemberCount;
+
+            await _db.progression.UpsertAsync(progression);
 
             await IncluirMembroNovo(user);
             var _ = Task.Run(async () =>
@@ -269,6 +287,20 @@ namespace DiscordBot.Services
             var userId = user.Id;
             var guildId = guild.Id;
             var member = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
+
+            var progression = await _db.progression.Find(t => t.Date == DateTime.Today).FirstOrDefaultAsync();
+
+            if (progression == null)
+            {
+                progression = new ServerNumberProgression
+                {
+                    ServerNumberProgressionId = Guid.NewGuid(),
+                    GuildId = guildId,
+                    Date = DateTime.Today,
+                };
+            }
+            progression.GrowthToday--;
+            progression.MemberCount = guild.MemberCount;
 
             var dateleft = DateTime.UtcNow;
             if (member == null)
