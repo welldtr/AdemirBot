@@ -236,8 +236,7 @@ namespace DiscordBot.Services
                 await _db.members.AddAsync(member);
             }
 
-
-            var progression = await _db.progression.Find(t => t.Date == DateTime.Today).FirstOrDefaultAsync();
+            var progression = await _db.progression.Find(t => t.Date == DateTime.Today && t.GuildId == user.Guild.Id).FirstOrDefaultAsync();
 
             if (progression == null)
             {
@@ -289,7 +288,7 @@ namespace DiscordBot.Services
             var guildId = guild.Id;
             var member = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
 
-            var progression = await _db.progression.Find(t => t.Date == DateTime.Today).FirstOrDefaultAsync();
+            var progression = await _db.progression.Find(t => t.Date == DateTime.Today && t.GuildId == guild.Id).FirstOrDefaultAsync();
 
             if (progression == null)
             {
