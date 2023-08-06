@@ -60,14 +60,18 @@ namespace DiscordBot.Modules
         [SlashCommand("syncrolerewards", "Sincroniza os cargos do usuario pelo level")]
         public async Task SyncLevels([Summary(description: "Usuario")] IUser usuario = null)
         {
-            if (Context.User.Id != 596787570881462391 && Context.User.Id != 695465058913746964)
-            {
-                await RespondAsync("Você não pode usar esse comando. Fale com os embaixadores do projeto para solicitar liberação.");
-                return;
-            }
+            var guild = Context.Guild;
+            var admin = (await guild.GetUserAsync(Context.User.Id)).GuildPermissions.Administrator;
+
             await DeferAsync();
 
             var id = usuario?.Id ?? Context.User.Id;
+
+            if (usuario?.Id != Context.User.Id && !admin)
+            {
+                await RespondAsync("Apenas administradores podem sincronizar outros usuários.", ephemeral: true);
+                return;
+            }
 
             var member = await db.members.FindOneAsync(a => a.MemberId == id && a.GuildId == Context.Guild.Id);
 
