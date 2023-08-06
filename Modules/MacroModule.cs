@@ -64,7 +64,7 @@ namespace DiscordBot.Modules
         [SlashCommand("list-macros", "Listar as macros cadastradas")]
         public async Task GetMacros()
         {
-            await RespondAsync();
+            await DeferAsync();
             var pages = await db.macros.Find(a => a.GuildId == Context.Guild.Id).ToListAsync();
             var message = new PaginatedMessage(pages.Select(a => new Page
             {
