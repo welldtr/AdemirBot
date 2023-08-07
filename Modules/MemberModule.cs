@@ -55,6 +55,7 @@ namespace DiscordBot.Modules
         [SlashCommand("avatar", "Mostra o Avatar de um usuário")]
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
         {
+            await DeferAsync(); 
             var url = usuario.GetAvatarUrl();
 
             using var client = new HttpClient();
