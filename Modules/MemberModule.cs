@@ -24,7 +24,7 @@ namespace DiscordBot.Modules
         {
             await DeferAsync();
             var progression = await db.progression.Find(t => t.Date == DateTime.Today).FirstOrDefaultAsync();
-            
+
             if (progression == null)
             {
                 await ModifyOriginalResponseAsync(a =>
@@ -49,6 +49,22 @@ namespace DiscordBot.Modules
                 })
                 .Build();
             });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("avatar", "Mostra o Avatar de um usuário")]
+        public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
+        {
+            var url = usuario.GetAvatarUrl();
+
+            using var client = new HttpClient();
+            using (var ms = new MemoryStream())
+            {
+                var info = await client.GetStreamAsync(url);
+                info.CopyTo(ms);
+                ms.Position = 0;
+                await ModifyOriginalResponseAsync(a => a.Attachments = new[] { new FileAttachment(ms, "avatar.png") });
+            }
         }
     }
 }

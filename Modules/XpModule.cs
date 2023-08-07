@@ -219,13 +219,15 @@ namespace DiscordBot.Modules
                 if (!string.IsNullOrEmpty(avatarUrl))
                 {
                     using var client = new HttpClient();
-                    var ms = new MemoryStream();
-                    var info = await client.GetStreamAsync(avatarUrl);
-                    info.CopyTo(ms);
-                    ms.Position = 0;
-                    using var avatar = SKBitmap.Decode(ms);
-                    var avatarRect = new SKRect(75, 75, 325, 325);
-                    canvas.DrawBitmap(avatar, avatarRect);
+                    using (var ms = new MemoryStream())
+                    {
+                        var info = await client.GetStreamAsync(avatarUrl);
+                        info.CopyTo(ms);
+                        ms.Position = 0;
+                        using var avatar = SKBitmap.Decode(ms);
+                        var avatarRect = new SKRect(75, 75, 325, 325);
+                        canvas.DrawBitmap(avatar, avatarRect);
+                    }
                 }
 
                 var filename = Path.GetTempFileName();
