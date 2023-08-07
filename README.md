@@ -17,10 +17,15 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Suporte a links de albuns do Spotify
 - :white_check_mark: Suporte a links de playlists públicas do Spotify
 - :white_check_mark: Suporte a links de playlists públicas do YouTube
+- :white_check_mark: Suporte a contabilização de eventos participados
+- :white_check_mark: Suporte a contabilização de bumps efetuados
 - :white_check_mark: Suporte a contabilização de XP por envio de mensagens
 - :white_check_mark: Suporte a contabilização de XP por tempo de call
-- :white_square_button: Suporte a contabilização de XP por bump no server
+- :white_check_mark: Suporte a contabilização de XP por bump no server
+- :white_check_mark: Multiplicador de XP ao participar de eventos
+- :white_check_mark: Multiplicador de XP por canal de texto
 - :white_check_mark: Importação de informações de level de outro bot (Lurkr)
+- :white_check_mark: Listas os comandos por módulo com `/help`
 - :white_check_mark: Obter card de XP através do comando `/rank`
 - :white_check_mark: Denunciar um usuário através do comando `/denunciar`
 - :white_check_mark: Visualizar avatar com o comando `/avatar`
@@ -50,7 +55,6 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
 
 ## Comandos de Música
-- :white_check_mark: `/help`: Lista os comandos de áudio.
 - :white_check_mark: `/play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum.
 - :white_check_mark: `/skip`: Pula para a próxima música da fila.
 - :white_check_mark: `/back`: Pula para a música anterior da fila.
