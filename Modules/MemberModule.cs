@@ -56,7 +56,8 @@ namespace DiscordBot.Modules
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
-            var url = ((IGuildUser)(usuario ?? Context.User)).GetDisplayAvatarUrl(size: 1024);
+            var userId = (usuario ?? Context.User).Id;
+            var url = (await Context.Guild.GetUserAsync(userId)).GetDisplayAvatarUrl(size: 1024);
 
             await ModifyOriginalResponseAsync(a =>
             {
@@ -75,7 +76,7 @@ namespace DiscordBot.Modules
         public async Task Banner([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
-            var userId = ((IGuildUser)(usuario ?? Context.User)).Id;
+            var userId = (usuario ?? Context.User).Id;
             var restUser = await ((DiscordSocketClient)Context.Client).Rest.GetUserAsync(userId);
 
             await ModifyOriginalResponseAsync(a =>
