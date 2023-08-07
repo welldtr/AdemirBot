@@ -76,7 +76,7 @@ namespace DiscordBot.Modules
         {
             await DeferAsync();
             var userId = ((IGuildUser)(usuario ?? Context.User)).Id;
-            var restUser = await ((DiscordShardedClient)Context.Client).Rest.GetUserAsync(userId);
+            var restUser = await ((DiscordSocketClient)Context.Client).Rest.GetUserAsync(userId);
 
             await ModifyOriginalResponseAsync(a =>
             {

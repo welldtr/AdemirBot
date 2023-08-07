@@ -23,6 +23,9 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Importação de informações de level de outro bot (Lurkr)
 - :white_check_mark: Obter card de XP através do comando `/rank`
 - :white_check_mark: Denunciar um usuário através do comando `/denunciar`
+- :white_check_mark: Visualizar avatar com o comando `/avatar`
+- :white_check_mark: Visualizar banner com o comando `/banner`
+- :white_check_mark: Visualizar contagem de membros com `/membercount`
 - :white_check_mark: Denunciar uma mensagem com o menu de contexto
 
 ## Comandos de Booster
