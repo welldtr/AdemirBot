@@ -12,10 +12,12 @@ namespace DiscordBot.Modules
     {
         private readonly Context db;
         private readonly GuildPolicyService guildPolicy;
+        private readonly PaginationService paginator;
 
-        public XpModule(Context context, GuildPolicyService guildPolicy)
+        public XpModule(Context context, GuildPolicyService guildPolicy, PaginationService paginationService)
         {
             db = context;
+            paginator = paginationService;
             this.guildPolicy = guildPolicy;
         }
 
@@ -32,6 +34,34 @@ namespace DiscordBot.Modules
                 a.Attachments = new[] { new FileAttachment(cardfilename, "rank-card.png") };
             });
         }
+
+        [SlashCommand("leaderboard", "Mostra o ranking atual dos membros")]
+        public async Task Leaderboard()
+        {
+            await DeferAsync();
+            var members = await db.members.Find(a => a.GuildId == Context.Guild.Id).SortByDescending(a => a.Level).ToListAsync();
+            var member = members.FirstOrDefault(m => m.MemberId == Context.User.Id);
+
+            var currentPage = 1;
+            if (member != null)
+            {
+                currentPage = ((members.IndexOf(member) + 1)/10)+1;
+            }
+            var numPaginas = (int)Math.Ceiling(members.Count / 10M);
+            var paginas = new List<Page>(Enumerable.Range(0, numPaginas).Select(a => new Page()).ToList());
+            for (var i = 0; i < numPaginas; i++)
+            {
+                var page = paginas[i];
+                var lines = members.Where(a => (int)Math.Ceiling((members.IndexOf(a) +1) / 10M)-1 == i).Select(a => $"**{members.IndexOf(a) + 1}.** <@{a.MemberId}>: **level {a.Level}** ({a.XP:n0}xp)");
+                page.Description = string.Join("\n", lines);
+                page.Fields = new EmbedFieldBuilder[0];
+            }
+
+            var message = new PaginatedMessage(paginas, $"Ranking {Context.Guild.Name}", new Color(0xb100c1), Context.User, new AppearanceOptions { });
+            message.CurrentPage = currentPage;
+            await paginator.SendPaginatedMessageAsync(Context.Channel, message);
+        }
+
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("togglerolerewards", "Ativar/Desativar o módulo de cargos por XP")]

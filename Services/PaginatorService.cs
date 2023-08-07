@@ -29,7 +29,7 @@ namespace DiscordBot.Services
         {
             Log.LogInformation($"Sending message to {channel}");
 
-            var message = await channel.SendMessageAsync("", embed: paginated.GetEmbed());
+            var message = await channel.SendMessageAsync(" ", embed: paginated.GetEmbed());
 
             await message.AddReactionAsync(paginated.Options.EmoteFirst);
             await message.AddReactionAsync(paginated.Options.EmoteBack);

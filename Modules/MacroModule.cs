@@ -17,7 +17,6 @@ namespace DiscordBot.Modules
         public MacroModule(Context context, PaginationService paginationService)
         {
             db = context;
-
             paginator = paginationService;
         }
 
