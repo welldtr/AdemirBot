@@ -85,7 +85,7 @@ namespace DiscordBot.Modules
 - A XP por call só começa a contabilizar a partir do segundo membro não bot entrar na call.
 - A XP por call tem maior ganho durante um evento do servidor, stream e camera abertas.
 - A XP por call tem menor ganho em caso de microfone mutado ou ensurdecido
-- A XP não conta para membros mutados ou ensurdecidos pela staff
+- A XP não conta para membros mutados ou ensurdecidos pela staff ou em canal AFK
 - Denunciar um membro pode render mute/kick/ban se indentificado trote, meme, ou falso
 ");
                     break;
