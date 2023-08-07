@@ -137,19 +137,6 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Connect)]
-        [SlashCommand("help", "Lista os comandos do módulo")]
-        public async Task Help([Summary(description: "Módulo")] HelpType help)
-        {
-            switch (help)
-            {
-                case HelpType.Musica:
-                    await svc.Help((ITextChannel)Context.Channel);
-                    break;
-            }
-            await RespondAsync();
-        }
-
-        [RequireUserPermission(GuildPermission.Connect)]
         [SlashCommand("replay", "Reinicia a música atual")]
         public async Task Replay()
         {

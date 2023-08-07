@@ -25,11 +25,13 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Multiplicador de XP ao participar de eventos
 - :white_check_mark: Multiplicador de XP por canal de texto
 - :white_check_mark: Importação de informações de level de outro bot (Lurkr)
-- :white_check_mark: Listas os comandos por módulo com `/help`
+- :white_check_mark: Listar os comandos por módulo com `/help`
 - :white_check_mark: Obter card de XP através do comando `/rank`
 - :white_check_mark: Denunciar um usuário através do comando `/denunciar`
 - :white_check_mark: Visualizar avatar com o comando `/avatar`
 - :white_check_mark: Visualizar banner com o comando `/banner`
+- :white_check_mark: Sincronizar recompensas de nível com `/syncrolerewards`
+- :white_check_mark: Visualizar ranking com `/leaderboard`
 - :white_check_mark: Visualizar contagem de membros com `/membercount`
 - :white_check_mark: Visualizar evolução de membros com `/membergraph`
 - :white_check_mark: Denunciar uma mensagem com o menu de contexto
@@ -49,7 +51,6 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Banir em massa: comando `/massban`
 - :white_check_mark: Expulsar em massa: comando `/masskick`
 - :white_check_mark: Importar levels de outro bot (Lurkr): comando `/importlevelinfo`
-- :white_check_mark: Sincronizar recompensas de nível: comando `/syncrolerewards`
 - :white_check_mark: Importar histórico de mensagens: comando `/importar-historico-mensagens`
 - :white_check_mark: Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
@@ -60,7 +61,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: `/back`: Pula para a música anterior da fila.
 - :white_check_mark: `/replay`: Reinicia a música atual.
 - :white_check_mark: `/pause`: Pausa/Retoma a reprodução da música atual.
-- :white_check_mark: `stop`: Interrompe completamente a reprodução de música.
+- :white_check_mark: `/stop`: Interrompe completamente a reprodução de música.
 - :white_check_mark: `/loop`: Habilita/Desabilita o modo de repetição de faixa.
 - :white_check_mark: `/loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
 - :white_check_mark: `/queue`: Lista as próximas 20 músicas da fila.
