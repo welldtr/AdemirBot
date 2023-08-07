@@ -56,18 +56,18 @@ namespace DiscordBot.Modules
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
-            var userId = (usuario ?? Context.User).Id;
-            var url = (await Context.Guild.GetUserAsync(userId)).GetDisplayAvatarUrl(size: 1024);
+            var usuarioGuilda = await Context.Guild.GetUserAsync((usuario ?? Context.User).Id);
+            var url = (await Context.Guild.GetUserAsync(usuarioGuilda.Id)).GetDisplayAvatarUrl(size: 1024);
 
             await ModifyOriginalResponseAsync(a =>
             {
                 a.Content = " ";
                 a.Embed = new EmbedBuilder()
-                .WithAuthor(usuario)
-                .WithColor(Color.Default)
-                .WithCurrentTimestamp()
-                .WithImageUrl(url)
-                .Build();
+                    .WithAuthor(usuarioGuilda)
+                    .WithColor(Color.Default)
+                    .WithCurrentTimestamp()
+                    .WithImageUrl(url)
+                    .Build();
             });
         }
 
@@ -76,18 +76,18 @@ namespace DiscordBot.Modules
         public async Task Banner([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
-            var userId = (usuario ?? Context.User).Id;
-            var restUser = await ((DiscordSocketClient)Context.Client).Rest.GetUserAsync(userId);
+            var usuarioGuilda = await Context.Guild.GetUserAsync((usuario ?? Context.User).Id);
+            var restUser = await ((DiscordSocketClient)Context.Client).Rest.GetUserAsync(usuarioGuilda.Id);
             var url = restUser.GetBannerUrl();
             await ModifyOriginalResponseAsync(a =>
             {
                 a.Content = " ";
                 a.Embed = new EmbedBuilder()
-                .WithAuthor(usuario)
-                .WithColor(Color.Default)
-                .WithCurrentTimestamp()
-                .WithImageUrl(url)
-                .Build();
+                    .WithAuthor(usuarioGuilda)
+                    .WithColor(Color.Default)
+                    .WithCurrentTimestamp()
+                    .WithImageUrl(url)
+                    .Build();
             });
         }
     }
