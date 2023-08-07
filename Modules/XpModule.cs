@@ -93,8 +93,6 @@ namespace DiscordBot.Modules
             var guild = Context.Guild;
             var admin = (await guild.GetUserAsync(Context.User.Id)).GuildPermissions.Administrator;
 
-            await DeferAsync();
-
             var id = usuario?.Id ?? Context.User.Id;
 
             if (usuario?.Id != Context.User.Id && !admin)
@@ -102,6 +100,8 @@ namespace DiscordBot.Modules
                 await RespondAsync("Apenas administradores podem sincronizar outros usuários.", ephemeral: true);
                 return;
             }
+
+            await DeferAsync();
 
             var member = await db.members.FindOneAsync(a => a.MemberId == id && a.GuildId == Context.Guild.Id);
 
