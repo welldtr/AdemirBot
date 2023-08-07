@@ -56,7 +56,7 @@ namespace DiscordBot.Modules
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
-            var url = (usuario ?? Context.User).GetAvatarUrl(size: 1024);
+            var url = ((IGuildUser)(usuario ?? Context.User)).GetDisplayAvatarUrl(size: 1024);
 
             await ModifyOriginalResponseAsync(a =>
             {
@@ -66,6 +66,26 @@ namespace DiscordBot.Modules
                 .WithColor(Color.Default)
                 .WithCurrentTimestamp()
                 .WithImageUrl(url)
+                .Build();
+            });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("banner", "Mostra o Banner de um usuário")]
+        public async Task Banner([Summary(description: "Usuario")] IUser usuario = null)
+        {
+            await DeferAsync();
+            var userId = ((IGuildUser)(usuario ?? Context.User)).Id;
+            var restUser = await ((DiscordShardedClient)Context.Client).Rest.GetUserAsync(userId);
+
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = " ";
+                a.Embed = new EmbedBuilder()
+                .WithAuthor(usuario)
+                .WithColor(Color.Default)
+                .WithCurrentTimestamp()
+                .WithImageUrl(restUser.GetBannerUrl())
                 .Build();
             });
         }
