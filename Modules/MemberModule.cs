@@ -107,7 +107,7 @@ namespace DiscordBot.Modules
 
         private async Task<string> ProcessMemberGraph(IGuild guild, int dias)
         {
-            var progression = await db.progression.Find(a => a.GuildId == 917286921259089930 && a.Date > DateTime.UtcNow.Date.AddDays(-dias)).SortBy(a => a.Date).ToListAsync();
+            var progression = await db.progression.Find(a => a.GuildId == guild.Id && a.Date > DateTime.UtcNow.Date.AddDays(-dias)).SortBy(a => a.Date).ToListAsync();
             // Configurações do gráfico
             int width = 840;
             int height = 640;
