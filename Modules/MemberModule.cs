@@ -78,7 +78,7 @@ namespace DiscordBot.Modules
             await DeferAsync();
             var userId = (usuario ?? Context.User).Id;
             var restUser = await ((DiscordSocketClient)Context.Client).Rest.GetUserAsync(userId);
-
+            var url = restUser.GetBannerUrl();
             await ModifyOriginalResponseAsync(a =>
             {
                 a.Content = " ";
@@ -86,7 +86,7 @@ namespace DiscordBot.Modules
                 .WithAuthor(usuario)
                 .WithColor(Color.Default)
                 .WithCurrentTimestamp()
-                .WithImageUrl(restUser.GetBannerUrl())
+                .WithImageUrl(url)
                 .Build();
             });
         }
