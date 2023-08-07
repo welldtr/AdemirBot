@@ -52,7 +52,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("avatar", "Mostra o Avatar de um usuário")]
+        [SlashCommand("avatar", "Mostra o Avatar de um usuario")]
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
@@ -72,7 +72,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("banner", "Mostra o Banner de um usuário")]
+        [SlashCommand("banner", "Mostra o Banner de um usuario")]
         public async Task Banner([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
