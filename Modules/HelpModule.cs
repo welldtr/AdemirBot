@@ -59,6 +59,7 @@ namespace DiscordBot.Modules
 - `/completar`: Gerar texto com um prompt GPT
 
 ### Dinâmica do bot de IA:
+- O bot só responde a um membro Booster, Staff ou membro que optou por participar atiavamente no server.
 - O bot responde ao mencioná-lo (@Ademir) em qualquer chat.
 - Para que o bot se lembre da conversa, lembre-se de dar reply na mensagem dele.
 - Após sua segunda resposta à mensagem do bot, ele abrirá um tópico para você poder falar sem ter que dar reply.
