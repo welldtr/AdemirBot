@@ -55,20 +55,19 @@ namespace DiscordBot.Modules
         [SlashCommand("avatar", "Mostra o Avatar de um usuário")]
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
         {
-            await DeferAsync(); 
-            var url = usuario.GetAvatarUrl();
+            await DeferAsync();
+            var url = (usuario ?? Context.User).GetAvatarUrl(size: 1024);
 
-            using var client = new HttpClient();
-            using (var ms = new MemoryStream())
+            await ModifyOriginalResponseAsync(a =>
             {
-                var info = await client.GetStreamAsync(url);
-                info.CopyTo(ms);
-                ms.Position = 0;
-                await ModifyOriginalResponseAsync(a => {
-                    a.Content = " ";
-                    a.Attachments = new[] { new FileAttachment(ms, "avatar.png") };
-                });
-            }
+                a.Content = " ";
+                a.Embed = new EmbedBuilder()
+                .WithAuthor(usuario)
+                .WithColor(Color.Default)
+                .WithCurrentTimestamp()
+                .WithImageUrl(url)
+                .Build();
+            });
         }
     }
 }
