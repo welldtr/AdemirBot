@@ -64,7 +64,10 @@ namespace DiscordBot.Modules
                 var info = await client.GetStreamAsync(url);
                 info.CopyTo(ms);
                 ms.Position = 0;
-                await ModifyOriginalResponseAsync(a => a.Attachments = new[] { new FileAttachment(ms, "avatar.png") });
+                await ModifyOriginalResponseAsync(a => {
+                    a.Content = " ";
+                    a.Attachments = new[] { new FileAttachment(ms, "avatar.png") };
+                });
             }
         }
     }
