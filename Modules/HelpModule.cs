@@ -45,6 +45,7 @@ namespace DiscordBot.Modules
 - `/massban`: Banir em massa
 - `/masskick`: Expulsar em massa
 - `/importlevelinfo`: Importar levels de outro bot (Lurkr)
+- `/togglerolerewards`: Habilitar módulo de cargos
 - `/importar-historico-mensagens`: Importar histórico de mensagens
 - `/usuarios-inativos`: Extrair lista de usuarios por atividade no servidor
 ");

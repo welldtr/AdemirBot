@@ -409,7 +409,6 @@ namespace DiscordBot.Services
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
 
-
             var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
             if (member == null)
             {
@@ -447,7 +446,12 @@ namespace DiscordBot.Services
 
             member.XP += earnedXp;
             member.Level = LevelUtils.GetLevel(member.XP);
-            await ProcessRoleRewards(config, member);
+
+            if (!arg.Author?.IsBot ?? false || arg.Author.Id == _client.CurrentUser.Id)
+            {
+                await ProcessRoleRewards(config, member);
+            }
+
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 
             Console.WriteLine($"{arg.Author?.Username} +{earnedXp} member xp -> {member.XP}");

@@ -50,6 +50,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Excluir macro: comando `/excluir-macro`
 - :white_check_mark: Banir em massa: comando `/massban`
 - :white_check_mark: Expulsar em massa: comando `/masskick`
+- :white_check_mark: Habilitar módulo de cargos: comando `/togglerolerewards`
 - :white_check_mark: Importar levels de outro bot (Lurkr): comando `/importlevelinfo`
 - :white_check_mark: Importar histórico de mensagens: comando `/importar-historico-mensagens`
 - :white_check_mark: Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
