@@ -267,9 +267,6 @@ namespace DiscordBot.Services
             if (!arg.Author?.IsBot ?? false)
                 mensagensUltimos5Minutos.Add(arg);
 
-            var ppm = ProcessWPM();
-            Console.WriteLine($"PPM: {ppm}");
-
             if (arg.Author != null)
             {
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-5));
@@ -446,10 +443,12 @@ namespace DiscordBot.Services
                     LastMessageTime = arg.Timestamp.UtcDateTime,
                 });
 
-            await ProcessXPPerMessage(arg);
+            var ppm = ProcessWPM();
+            Console.WriteLine($"PPM: {ppm}");
+            await ProcessXPPerMessage(ppm, arg);
         }
 
-        private async Task ProcessXPPerMessage(SocketMessage arg)
+        private async Task ProcessXPPerMessage(int ppm, SocketMessage arg)
         {
             if (arg.Channel is IThreadChannel)
                 return;
