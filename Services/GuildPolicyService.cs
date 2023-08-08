@@ -274,7 +274,7 @@ namespace DiscordBot.Services
                 {
                     var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
                     var delecoes = mensagensUltimos10Segundos
-                        .Select(async(msg) => await (arg.Channel as IMessageChannel)!.DeleteMessageAsync(msg))
+                        .Select(async(msg) => await (arg.Channel as IMessageChannel)!.DeleteMessageAsync(msg.Id))
                         .ToArray();
 
                     Task.WaitAll(delecoes);
