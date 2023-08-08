@@ -15,6 +15,7 @@ namespace DiscordBot.Services
         private Context _db;
         private DiscordShardedClient _client;
         private ILogger<GuildPolicyService> _log;
+        private Dictionary<ulong, List<string>> backlistPatterns = new Dictionary<ulong, List<string>>();
 
         public GuildPolicyService(Context context, DiscordShardedClient client, ILogger<GuildPolicyService> logger)
         {
@@ -63,25 +64,7 @@ namespace DiscordBot.Services
                     foreach (var guild in _client.Guilds)
                     {
                         await ProcessMemberProgression(guild);
-                    }
-
-                    foreach (var guild in _client.Guilds)
-                    {
-                        try
-                        {
-                            var threads = await _db.threads.Find(t => t.LastMessageTime >= DateTime.UtcNow.AddHours(-72) && t.LastMessageTime <= DateTime.UtcNow.AddHours(-12)).ToListAsync();
-
-                            foreach (var thread in threads)
-                            {
-                                var threadCh = guild.GetThreadChannel(thread.ThreadId);
-                                if (threadCh != null)
-                                    await threadCh.ModifyAsync(a => a.Archived = true);
-                            }
-                        }
-                        catch
-                        {
-                            _log.LogError("Erro ao trancar threads do Ademir.");
-                        }
+                        await TrancarThreadAntigasDoAdemir(guild);
                     }
 
                     await Task.Delay(TimeSpan.FromMinutes(20));
@@ -95,108 +78,146 @@ namespace DiscordBot.Services
                     var sw = new Stopwatch();
                     var tasks = _client.Guilds.Select(guild => Task.Run(async () =>
                     {
-                        try
-                        {
-                            var events = await guild.GetEventsAsync();
-                            foreach (var voice in guild.VoiceChannels)
-                            {
-                                var @event = events.FirstOrDefault(a => a.ChannelId == voice.Id && a.Status == GuildScheduledEventStatus.Active);
-                                var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
-                                if (voice.Id == guild.AFKChannel.Id)
-                                    continue;
-
-                                if (voice.ConnectedUsers.Where(a => !a.IsBot).Count() < 2)
-                                    continue;
-
-                                foreach (var user in voice.ConnectedUsers)
-                                {
-                                    if (user.IsMuted || user.IsDeafened)
-                                        continue;
-
-                                    var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
-                                    var initialLevel = member.Level;
-                                    int earnedXp = 0;
-                                    if (member == null)
-                                    {
-                                        member = Member.FromGuildUser(user);
-                                    }
-
-                                    if (user.IsSelfMuted || user.IsSelfDeafened)
-                                    {
-                                        Console.WriteLine($"+2xp de call: {member.MemberUserName}");
-                                        earnedXp += 2;
-                                        member.MutedTime += TimeSpan.FromMinutes(2);
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($"+5xp de call: {member.MemberUserName}");
-                                        earnedXp += 5;
-                                        member.VoiceTime += TimeSpan.FromMinutes(2);
-                                    }
-
-                                    if (user.IsVideoing)
-                                    {
-                                        earnedXp += 7;
-                                        Console.WriteLine($"+7xp de camera: {member.MemberUserName}");
-                                        member.VideoTime += TimeSpan.FromMinutes(2);
-                                    }
-
-                                    if (user.IsStreaming)
-                                    {
-                                        earnedXp += 2;
-                                        Console.WriteLine($"+2xp de streaming: {member.MemberUserName}");
-                                        member.StreamingTime += TimeSpan.FromMinutes(2);
-                                    }
-
-                                    if (@event != null)
-                                    {
-                                        var presence = await _db.eventPresence.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
-
-                                        if (presence == null)
-                                        {
-                                            presence = new EventPresence
-                                            {
-                                                EventPresenceId = Guid.NewGuid(),
-                                                GuildId = guild.Id,
-                                                MemberId = member.MemberId,
-                                                EventId = @event.Id,
-                                                ConnectedTime = TimeSpan.Zero
-                                            };
-                                            member.EventsPresent++;
-                                        }
-                                        presence.ConnectedTime += TimeSpan.FromMinutes(2);
-                                        await _db.eventPresence.UpsertAsync(presence, a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
-
-                                        earnedXp *= 4;
-                                    }
-
-                                    var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
-                                    var outrasPessoas = voice.Users.Count - qtdPessoasEntraramNaMesmaEpoca;
-                                    if (qtdPessoasEntraramNaMesmaEpoca > 2)
-                                    {
-                                        earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
-
-                                        Console.WriteLine($"dividido por {qtdPessoasEntraramNaMesmaEpoca}: {member.MemberUserName}");
-                                    }
-                                    member.XP += earnedXp;
-
-                                    Console.WriteLine($"{member.MemberUserName} +{earnedXp} member xp -> {member.XP}");
-                                    member.Level = LevelUtils.GetLevel(member.XP);
-                                    await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
-
-                                    await ProcessRoleRewards(config, member);
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            _log.LogError(ex, "Erro ao apurar XP de audio");
-                        }
+                        await ProcessarXPDeAudio(guild);
+                        await BuscarPadroesBlacklistados(guild);
                     })).ToArray();
                     Task.WaitAll(tasks);
                     await Task.Delay(TimeSpan.FromSeconds(120) - sw.Elapsed);
                 }
             });
+        }
+
+        private async Task BuscarPadroesBlacklistados(SocketGuild guild)
+        {
+            var blacklist = await _db.backlistPatterns.Find(a => a.GuildId == guild.Id).ToListAsync();
+            if(backlistPatterns.ContainsKey(guild.Id))
+            {
+                backlistPatterns[guild.Id] = blacklist.Select(a => a.Pattern).ToList();
+            }
+            else
+            {
+                backlistPatterns.Add(guild.Id, blacklist.Select(a => a.Pattern).ToList());
+            }
+        }
+
+        private async Task ProcessarXPDeAudio(SocketGuild guild)
+        {
+            try
+            {
+                var events = await guild.GetEventsAsync();
+                foreach (var voice in guild.VoiceChannels)
+                {
+                    var @event = events.FirstOrDefault(a => a.ChannelId == voice.Id && a.Status == GuildScheduledEventStatus.Active);
+                    var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
+                    if (voice.Id == guild.AFKChannel.Id)
+                        continue;
+
+                    if (voice.ConnectedUsers.Where(a => !a.IsBot).Count() < 2)
+                        continue;
+
+                    foreach (var user in voice.ConnectedUsers)
+                    {
+                        if (user.IsMuted || user.IsDeafened)
+                            continue;
+
+                        var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
+                        var initialLevel = member.Level;
+                        int earnedXp = 0;
+                        if (member == null)
+                        {
+                            member = Member.FromGuildUser(user);
+                        }
+
+                        if (user.IsSelfMuted || user.IsSelfDeafened)
+                        {
+                            Console.WriteLine($"+2xp de call: {member.MemberUserName}");
+                            earnedXp += 2;
+                            member.MutedTime += TimeSpan.FromMinutes(2);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"+5xp de call: {member.MemberUserName}");
+                            earnedXp += 5;
+                            member.VoiceTime += TimeSpan.FromMinutes(2);
+                        }
+
+                        if (user.IsVideoing)
+                        {
+                            earnedXp += 7;
+                            Console.WriteLine($"+7xp de camera: {member.MemberUserName}");
+                            member.VideoTime += TimeSpan.FromMinutes(2);
+                        }
+
+                        if (user.IsStreaming)
+                        {
+                            earnedXp += 2;
+                            Console.WriteLine($"+2xp de streaming: {member.MemberUserName}");
+                            member.StreamingTime += TimeSpan.FromMinutes(2);
+                        }
+
+                        if (@event != null)
+                        {
+                            var presence = await _db.eventPresence.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
+
+                            if (presence == null)
+                            {
+                                presence = new EventPresence
+                                {
+                                    EventPresenceId = Guid.NewGuid(),
+                                    GuildId = guild.Id,
+                                    MemberId = member.MemberId,
+                                    EventId = @event.Id,
+                                    ConnectedTime = TimeSpan.Zero
+                                };
+                                member.EventsPresent++;
+                            }
+                            presence.ConnectedTime += TimeSpan.FromMinutes(2);
+                            await _db.eventPresence.UpsertAsync(presence, a => a.MemberId == user.Id && a.GuildId == guild.Id && a.EventId == @event.Id);
+
+                            earnedXp *= 4;
+                        }
+
+                        var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
+                        var outrasPessoas = voice.Users.Count - qtdPessoasEntraramNaMesmaEpoca;
+                        if (qtdPessoasEntraramNaMesmaEpoca > 2)
+                        {
+                            earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
+
+                            Console.WriteLine($"dividido por {qtdPessoasEntraramNaMesmaEpoca}: {member.MemberUserName}");
+                        }
+                        member.XP += earnedXp;
+
+                        Console.WriteLine($"{member.MemberUserName} +{earnedXp} member xp -> {member.XP}");
+                        member.Level = LevelUtils.GetLevel(member.XP);
+                        await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == guild.Id);
+
+                        await ProcessRoleRewards(config, member);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Erro ao apurar XP de audio");
+            }
+        }
+
+        private async Task TrancarThreadAntigasDoAdemir(SocketGuild guild)
+        {
+            try
+            {
+                var threads = await _db.threads.Find(t => t.LastMessageTime >= DateTime.UtcNow.AddHours(-72) && t.LastMessageTime <= DateTime.UtcNow.AddHours(-12)).ToListAsync();
+
+                foreach (var thread in threads)
+                {
+                    var threadCh = guild.GetThreadChannel(thread.ThreadId);
+                    if (threadCh != null)
+                        await threadCh.ModifyAsync(a => a.Archived = true);
+                }
+            }
+            catch
+            {
+                _log.LogError("Erro ao trancar threads do Ademir.");
+            }
         }
 
         private async Task ProcessMemberProgression(SocketGuild guild)
@@ -236,7 +257,7 @@ namespace DiscordBot.Services
             await LogMessage(arg);
         }
 
-        private async Task ProtectFromFlood(SocketMessage arg)
+        private async Task ProtectFromFloodAndBlacklisted(SocketMessage arg)
         {
             if (arg.Author != null)
             {
@@ -247,7 +268,11 @@ namespace DiscordBot.Services
                 }
                 else if (arg.Content.Matches(@"\S{80}"))
                 {
-                    await(arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
+                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
+                }
+                else if (backlistPatterns[arg.GetGuildId()].Any(a => arg.Content.Matches(a)))
+                {
+                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
                 }
             }
         }
