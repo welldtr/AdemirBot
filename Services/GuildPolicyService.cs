@@ -245,7 +245,7 @@ namespace DiscordBot.Services
                 {
                     await(arg.Channel as ITextChannel)!.DeleteMessagesAsync(mensagensUltimos5Segundos);
                 }
-                else if (arg.Content.Matches(@"\S") && arg.Content.Length > 80)
+                else if (arg.Content.Matches(@"\S{80}"))
                 {
                     await(arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
                 }
