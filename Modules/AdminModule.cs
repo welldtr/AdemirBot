@@ -5,7 +5,7 @@ using DiscordBot.Modules.Modals;
 
 namespace DiscordBot.Modules
 {
-    public class BanModule : InteractionModuleBase
+    public class AdminModule : InteractionModuleBase
     {
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("massban", "Banir membros em massa.")]
@@ -41,6 +41,18 @@ namespace DiscordBot.Modules
                     await user.KickAsync();
             }
             await Context.Channel.SendMessageAsync($"{memberIds.Length} Usuários Expulsos.");
+        }
+
+        [RequireUserPermission(ChannelPermission.ManageMessages)]
+        [RequireBotPermission(ChannelPermission.ManageMessages)]
+        [SlashCommand("purge", "Remover uma certa quantidade de mensagens de um canal")]
+        public async Task PurgeMessages(
+            [Summary(description: "Quantidade de mensgens a excluir")] int qtd,
+            [Summary("canal", "Canal a ser limpo")] IMessageChannel channel = default)
+        {
+            channel = channel ?? Context.Channel;
+            IEnumerable<IMessage> messages = await channel.GetMessagesAsync(qtd).FlattenAsync();
+            await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages);
         }
     }
 }

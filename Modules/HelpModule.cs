@@ -47,6 +47,7 @@ namespace DiscordBot.Modules
 - `/importlevelinfo`: Importar levels de outro bot (Lurkr)
 - `/togglerolerewards`: Habilitar módulo de cargos
 - `/importar-historico-mensagens`: Importar histórico de mensagens
+- `/purge`: Remover uma certa quantidade de mensagens de um canal
 - `/usuarios-inativos`: Extrair lista de usuarios por atividade no servidor
 ");
                     break;

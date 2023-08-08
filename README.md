@@ -57,6 +57,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Definir XP de um membro: comando `/xp set`
 - :white_check_mark: Adicionar XP a um membro: comando `/xp add`
 - :white_check_mark: Remover XP de um membro: comando `/xp remove`
+- :white_check_mark: Remover uma certa quantidade de mensagens de um canal: comando `/purge`
 - :white_check_mark: Importar histórico de mensagens: comando `/importar-historico-mensagens`
 - :white_check_mark: Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
