@@ -447,10 +447,7 @@ namespace DiscordBot.Services
             member.XP += earnedXp;
             member.Level = LevelUtils.GetLevel(member.XP);
 
-            if (!arg.Author?.IsBot ?? false || arg.Author.Id == _client.CurrentUser.Id)
-            {
-                await ProcessRoleRewards(config, member);
-            }
+            await ProcessRoleRewards(config, member);
 
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 
@@ -470,6 +467,13 @@ namespace DiscordBot.Services
 
             if (!config.EnableRoleRewards)
                 return;
+
+
+            if (user.IsBot && user.Id != _client.CurrentUser.Id)
+            {
+                _log.LogError("Dos bots, só o Ademir pode ganhar XP.");
+                return;
+            }
 
             var levelRolesToAdd = config.RoleRewards
                 .Where(a => a.Level <= member.Level)
