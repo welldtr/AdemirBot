@@ -228,9 +228,28 @@ namespace DiscordBot.Services
             }
         }
 
+        private static TimeSpan _floodInterval = TimeSpan.FromSeconds(2);
+
         private async Task _client_MessageReceived(SocketMessage arg)
         {
+            await ProtectFromFlood(arg);
             await LogMessage(arg);
+        }
+
+        private async Task ProtectFromFlood(SocketMessage arg)
+        {
+            if (arg.Author != null)
+            {
+                var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-5));
+                if (mensagensUltimos5Segundos.Count() > 8)
+                {
+                    await(arg.Channel as ITextChannel)!.DeleteMessagesAsync(mensagensUltimos5Segundos);
+                }
+                else if (arg.Content.Matches(@"\S") && arg.Content.Length > 80)
+                {
+                    await(arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
+                }
+            }
         }
 
         private async Task _client_UserJoined(SocketGuildUser user)
@@ -467,7 +486,6 @@ namespace DiscordBot.Services
 
             if (!config.EnableRoleRewards)
                 return;
-
 
             if (user.IsBot && user.Id != _client.CurrentUser.Id)
             {
