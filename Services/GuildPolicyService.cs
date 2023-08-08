@@ -14,6 +14,7 @@ namespace DiscordBot.Services
         private DiscordShardedClient _client;
         private ILogger<GuildPolicyService> _log;
         private Dictionary<ulong, List<string>> backlistPatterns = new Dictionary<ulong, List<string>>();
+        List<IMessage> mensagensUltimos5Minutos = new List<IMessage>();
 
         public GuildPolicyService(Context context, DiscordShardedClient client, ILogger<GuildPolicyService> logger)
         {
@@ -263,6 +264,12 @@ namespace DiscordBot.Services
 
         private async Task ProtectFromFloodAndBlacklisted(SocketMessage arg)
         {
+            if (!arg.Author?.IsBot ?? false)
+                mensagensUltimos5Minutos.Add(arg);
+
+            var ppm = ProcessWPM();
+            Console.WriteLine($"PPM: {ppm}");
+
             if (arg.Author != null)
             {
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-5));
@@ -440,7 +447,6 @@ namespace DiscordBot.Services
             await ProcessXPPerMessage(arg);
         }
 
-        List<IMessage> mensagensUltimos5Minutos = new List<IMessage>();
         private async Task ProcessXPPerMessage(SocketMessage arg)
         {
             if (arg.Channel is IThreadChannel)
@@ -448,12 +454,6 @@ namespace DiscordBot.Services
 
             if (!(arg is SocketUserMessage userMessage) || userMessage.Author == null)
                 return;
-
-            if (!arg.Author?.IsBot ?? false)
-                mensagensUltimos5Minutos.Add(arg);
-
-            var ppm = ProcessWPM();
-            Console.WriteLine($"PPM: {ppm}");
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
 
