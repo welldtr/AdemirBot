@@ -5,6 +5,7 @@ using DiscordBot.Domain.Entities;
 namespace DiscordBot.Modules
 {
     [Group("xp", "Commandos de XP")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public class XpModule : InteractionModuleBase
     {
         private readonly Context db;
@@ -14,7 +15,6 @@ namespace DiscordBot.Modules
             db = context;
         }
 
-        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("add", "Adicionar XP a um usuário")]
         public async Task AddXP([Summary(description: "Usuario")] IUser usuario, [Summary(description: "XP a adicionar")] int xp)
         {
