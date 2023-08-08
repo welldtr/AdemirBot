@@ -115,7 +115,7 @@ namespace DiscordBot.Services
                 {
                     var @event = events.FirstOrDefault(a => a.ChannelId == voice.Id && a.Status == GuildScheduledEventStatus.Active);
                     var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
-                    if (voice.Id == guild.AFKChannel.Id)
+                    if (voice.Id == guild.AFKChannel?.Id)
                         continue;
 
                     if (voice.ConnectedUsers.Where(a => !a.IsBot).Count() < 2)
