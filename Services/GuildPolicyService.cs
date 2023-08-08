@@ -275,7 +275,9 @@ namespace DiscordBot.Services
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-5));
                 if (mensagensUltimos5Segundos.Count() > 5)
                 {
-                    await(arg.Channel as ITextChannel)!.DeleteMessagesAsync(mensagensUltimos5Segundos);
+                    var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
+                    foreach(var msg in mensagensUltimos10Segundos)
+                        await(arg.Channel as IMessageChannel)!.DeleteMessageAsync(msg);
                 }
                 else if (arg.Content.Matches(@"\S{80}"))
                 {
