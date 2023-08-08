@@ -1,9 +1,7 @@
-﻿using Amazon.Runtime.Internal.Util;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Utils;
-using Microsoft.Extensions.Logging;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using System.Diagnostics;
@@ -63,6 +61,7 @@ namespace DiscordBot.Services
                 {
                     foreach (var guild in _client.Guilds)
                     {
+                        await SairDeServidoresNaoAutorizados(guild);
                         await ProcessMemberProgression(guild);
                         await TrancarThreadAntigasDoAdemir(guild);
                     }
@@ -85,6 +84,13 @@ namespace DiscordBot.Services
                     await Task.Delay(TimeSpan.FromSeconds(120) - sw.Elapsed);
                 }
             });
+        }
+
+        private async Task SairDeServidoresNaoAutorizados(SocketGuild guild)
+        {
+            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
+            if (config == null || !config.Premium)
+                await guild.LeaveAsync();
         }
 
         public async Task BuscarPadroesBlacklistados(IGuild guild)
