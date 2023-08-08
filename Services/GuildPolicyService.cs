@@ -253,7 +253,7 @@ namespace DiscordBot.Services
 
         private async Task _client_MessageReceived(SocketMessage arg)
         {
-            await ProtectFromFlood(arg);
+            await ProtectFromFloodAndBlacklisted(arg);
             await LogMessage(arg);
         }
 
