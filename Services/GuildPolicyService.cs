@@ -249,8 +249,6 @@ namespace DiscordBot.Services
             }
         }
 
-        private static TimeSpan _floodInterval = TimeSpan.FromSeconds(2);
-
         private async Task _client_MessageReceived(SocketMessage arg)
         {
             await ProtectFromFloodAndBlacklisted(arg);
@@ -261,8 +259,8 @@ namespace DiscordBot.Services
         {
             if (arg.Author != null)
             {
-                var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-5));
-                if (mensagensUltimos5Segundos.Count() > 8)
+                var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
+                if (mensagensUltimos5Segundos.Count() > 4)
                 {
                     await(arg.Channel as ITextChannel)!.DeleteMessagesAsync(mensagensUltimos5Segundos);
                 }
