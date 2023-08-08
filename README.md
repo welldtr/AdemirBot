@@ -20,6 +20,8 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Suporte a contabilização de eventos participados
 - :white_check_mark: Suporte a contabilização de bumps efetuados
 - :white_check_mark: Suporte a contabilização de XP por envio de mensagens
+- :white_check_mark: Suporte a proteção de flood
+- :white_check_mark: Suporte a blacklist de padrão de mensagens
 - :white_check_mark: Suporte a contabilização de XP por tempo de call
 - :white_check_mark: Suporte a contabilização de XP por bump no server
 - :white_check_mark: Multiplicador de XP ao participar de eventos
@@ -52,6 +54,9 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Expulsar em massa: comando `/masskick`
 - :white_check_mark: Habilitar módulo de cargos: comando `/togglerolerewards`
 - :white_check_mark: Importar levels de outro bot (Lurkr): comando `/importlevelinfo`
+- :white_check_mark: Definir XP de um membro: comando `/xp set`
+- :white_check_mark: Adicionar XP a um membro: comando `/xp add`
+- :white_check_mark: Remover XP de um membro: comando `/xp remove`
 - :white_check_mark: Importar histórico de mensagens: comando `/importar-historico-mensagens`
 - :white_check_mark: Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
