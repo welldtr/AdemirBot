@@ -87,7 +87,7 @@ namespace DiscordBot.Services
             });
         }
 
-        private async Task BuscarPadroesBlacklistados(SocketGuild guild)
+        public async Task BuscarPadroesBlacklistados(IGuild guild)
         {
             var blacklist = await _db.backlistPatterns.Find(a => a.GuildId == guild.Id).ToListAsync();
             if(backlistPatterns.ContainsKey(guild.Id))

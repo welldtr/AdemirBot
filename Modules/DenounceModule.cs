@@ -1,17 +1,21 @@
 ﻿using Discord;
 using Discord.Interactions;
 using DiscordBot.Domain.Entities;
+using DiscordBot.Services;
 using MongoDB.Driver;
+using System.Text.RegularExpressions;
 
 namespace DiscordBot.Modules
 {
     public class DenounceModule : InteractionModuleBase
     {
         private readonly Context db;
+        private readonly GuildPolicyService policySvc;
 
-        public DenounceModule(Context context)
+        public DenounceModule(Context context, GuildPolicyService policySvc)
         {
             db = context;
+            this.policySvc = policySvc;
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -124,6 +128,23 @@ namespace DiscordBot.Modules
                 DenunciadoUserId = denunciado.Id,
                 DenuncianteUserId = Context.User.Id,
             });
+        }
+
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [MessageCommand("Blacklist")]
+        public async Task Blacklist(IMessage msg)
+        {
+            await RespondAsync($"Padrão colocado na lista negra.", ephemeral: true);
+
+            var guildId = Context.Guild.Id;
+            await db.backlistPatterns.AddAsync(new BlacklistChatPattern
+            {
+                PatternId = Guid.NewGuid(),
+                GuildId = guildId,
+                Pattern = Regex.Escape(msg.Content)
+            });
+            await policySvc.BuscarPadroesBlacklistados(Context.Guild);
         }
     }
 }
