@@ -6,19 +6,16 @@ using MongoDB.Driver;
 using DiscordBot.Utils;
 using Discord.Interactions;
 using DiscordBot.Services;
+using System.Reflection;
 
 namespace DiscordBot
 {
     internal class Program
     {
         private DiscordShardedClient _client;
-        private string? mongoServer = Environment.GetEnvironmentVariable("MongoServer");
-        private string? gptKey = Environment.GetEnvironmentVariable("ChatGPTKey");
+        private string? mongoServer { get => Environment.GetEnvironmentVariable("MongoServer"); }
+        private string? gptKey { get => Environment.GetEnvironmentVariable("ChatGPTKey"); }
 
-        public Program()
-        {
-            CreateProvider();
-        }
 
         private IServiceProvider CreateProvider()
         {
@@ -34,7 +31,7 @@ namespace DiscordBot
 
             var mongo = new MongoClient(mongoServer);
             var db = mongo.GetDatabase("ademir");
-            
+
             _client = new DiscordShardedClient(config);
             var commands = new InteractionService(_client.Rest, new InteractionServiceConfig
             {
@@ -65,18 +62,46 @@ namespace DiscordBot
 
         public async Task MainAsync(string[] args)
         {
-            //await aternosClient.StartServer();
-
+            DotEnv.Load();
+            CreateProvider();
             var builder = WebApplication.CreateBuilder(args);
             var app = builder.Build();
             app.MapGet("/", () => "Hello World!");
-            var provider = CreateProvider();        
+            var provider = CreateProvider();
             await provider.InitializeInteractionModulesAsync();
             var token = Environment.GetEnvironmentVariable("AdemirAuth");
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
             await app.RunAsync();
             await Task.Delay(-1);
+        }
+    }
+
+    public static class DotEnv
+    {
+        public static void Load(string filePath)
+        {
+            if (!File.Exists(filePath))
+                return;
+
+            foreach (var line in File.ReadAllLines(filePath))
+            {
+                var parts = line.Split(
+                    '=',
+                    StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length < 2)
+                    continue;
+
+                Environment.SetEnvironmentVariable(parts[0], line.Substring(line.IndexOf("=") + 1));
+            }
+        }
+        public static void Load()
+        {
+            var appRoot = Directory.GetCurrentDirectory();
+            var dotEnv = Path.Combine(appRoot, ".env");
+
+            Load(dotEnv);
         }
     }
 }

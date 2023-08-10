@@ -13,3 +13,9 @@
 /.vscode/launch.json
 /.vscode/tasks.json
 /.vs/DiscordBot/project-colors.json
+/bin/Release/net6.0/linux-x64
+/bin/Release/net6.0/publish
+/bin/Release/net6.0/ref
+/bin/Release/net6.0/refs
+/bin/Release/net6.0
+/.env

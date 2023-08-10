@@ -37,6 +37,16 @@ namespace DiscordBot.Services
             _client.UserLeft += _client_UserLeft;
             _client.ShardReady += _client_ShardReady;
             _client.ReactionAdded += _client_ReactionAdded;
+            _client.GuildMemberUpdated += _client_GuildMemberUpdated;
+        }
+
+        private async Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
+        {
+            var _ = Task.Run(async () =>
+            {
+                var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == user.Guild.Id);
+                await CheckIfMinorsAndKickEm(config, user);
+            });
         }
 
         private async Task _client_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, Cacheable<IMessageChannel, ulong> arg2, SocketReaction arg3)
@@ -279,7 +289,7 @@ namespace DiscordBot.Services
 
                     Task.WaitAll(delecoes);
                 }
-                else if (arg.Content.Matches(@"\S{80}"))
+                else if (arg.Content.Matches(@"\S{80}") && arg.Content.Distinct().Count() < 9)
                 {
                     await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
                 }

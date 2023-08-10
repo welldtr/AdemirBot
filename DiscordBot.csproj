@@ -39,6 +39,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update=".env">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="shared\fonts\gg sans Bold Italic.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

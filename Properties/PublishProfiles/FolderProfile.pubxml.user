@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121. 
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_PublishTargetUrl>C:\Users\welld\source\AdemirBot\AdemirBot\bin\Release\net6.0\publish\</_PublishTargetUrl>
+    <History>True|2023-08-09T03:08:21.1563548Z;True|2023-08-09T00:00:14.0050848-03:00;True|2023-08-08T23:58:09.7747788-03:00;True|2023-08-08T23:51:30.2473601-03:00;True|2023-08-08T23:49:17.7817170-03:00;True|2023-08-08T23:47:49.8041399-03:00;True|2023-08-08T23:42:12.0503781-03:00;True|2023-08-08T23:11:07.5625073-03:00;True|2023-08-08T23:10:01.7727175-03:00;</History>
+  </PropertyGroup>
+</Project>
