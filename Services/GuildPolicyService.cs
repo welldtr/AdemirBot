@@ -45,7 +45,7 @@ namespace DiscordBot.Services
             var _ = Task.Run(async () =>
             {
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == user.Guild.Id);
-                await CheckIfMinorsAndKickEm(config, user);
+                await CheckIfMinorsAndBanEm(config, user);
             });
         }
 
@@ -317,7 +317,7 @@ namespace DiscordBot.Services
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
-                await CheckIfMinorsAndKickEm(config, user);
+                await CheckIfMinorsAndBanEm(config, user);
             });
 
             await ProcessMemberProgression(guild);
@@ -339,7 +339,7 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task CheckIfMinorsAndKickEm(AdemirConfig config, SocketGuildUser user)
+        private async Task CheckIfMinorsAndBanEm(AdemirConfig config, SocketGuildUser user)
         {
             try
             {
@@ -347,8 +347,10 @@ namespace DiscordBot.Services
                 if (role != null)
                 {
                     if (user.Roles.Any(a => a.Id == role.Id))
-                        await user.KickAsync("Menor de Idade");
-
+                    {
+                        await user.SendMessageAsync("Oi. Tudo bem? Infelizmente não podemos aceitar menores de idade no nosso grupo. Desculpe.");
+                        await user.BanAsync(0, "Menor de Idade");
+                    }
                 }
             }
             catch (Exception ex)
