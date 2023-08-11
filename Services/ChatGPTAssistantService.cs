@@ -55,7 +55,7 @@ namespace DiscordBot.Services
             {
                 if (guild.IsPremium())
                 {
-                    if ((arg.Channel as IThreadChannel) != null && ((IThreadChannel)arg.Channel).OwnerId == _client.CurrentUser.Id && arg.Author.Id != _client.CurrentUser.Id)
+                    if ((arg.Channel as IThreadChannel) != null && ((IThreadChannel)arg.Channel).OwnerId == _client.CurrentUser.Id && arg.Author?.Id != _client.CurrentUser.Id)
                     {
                         await ProcessarMensagemNoChatGPT(arg);
                     }
@@ -64,7 +64,7 @@ namespace DiscordBot.Services
                         if (arg.Reference != null && arg.Reference.MessageId.IsSpecified)
                         {
                             var msg = await arg.Channel.GetMessageAsync(arg.Reference.MessageId.Value!);
-                            if (msg.Author.Id == _client.CurrentUser.Id && msg.Embeds.Count > 0)
+                            if (msg.Author?.Id == _client.CurrentUser.Id && msg.Embeds.Count > 0)
                             {
                                 return;
                             }
@@ -74,12 +74,12 @@ namespace DiscordBot.Services
                     else if (arg.Reference != null && arg.Reference.MessageId.IsSpecified)
                     {
                         var msg = await arg.Channel.GetMessageAsync(arg.Reference.MessageId.Value!);
-                        if (msg.Author.Id == _client.CurrentUser.Id && msg.Embeds.Count > 0)
+                        if (msg.Author?.Id == _client.CurrentUser.Id && msg.Embeds.Count > 0)
                         {
                             return;
                         }
 
-                        if (msg?.Author.Id == _client.CurrentUser.Id)
+                        if (msg?.Author?.Id == _client.CurrentUser.Id)
                         {
                             await ProcessarMensagemNoChatGPT(arg);
                         }
