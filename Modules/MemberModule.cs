@@ -83,7 +83,7 @@ namespace DiscordBot.Modules
         {
             await DeferAsync();
 
-            var initdate = DateTime.UtcNow.AddDays(-60);
+            var initdate = DateTime.UtcNow.AddDays(-90);
             var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.GuildId == Context.Guild.Id).SortBy(a => a.Date).ToListAsync();
             var data = prog.Select(a => new DadosPredicao { Data = (float)(int)(a.Date - initdate).TotalDays, QtdMembros = (float)a.MemberCount });
             var context = new MLContext();
