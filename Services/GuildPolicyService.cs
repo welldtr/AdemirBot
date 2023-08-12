@@ -317,7 +317,7 @@ namespace DiscordBot.Services
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
-                await CheckIfMinorsAndBanEm(config, user);
+                await CheckIfMinorsAndBanEm(config, member);
             });
 
             await ProcessMemberProgression(guild);
@@ -339,23 +339,27 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task CheckIfMinorsAndBanEm(AdemirConfig config, SocketGuildUser user)
+        private async Task CheckIfMinorsAndBanEm(AdemirConfig config, Member member)
         {
             try
             {
-                var role = user.Guild.GetRole(config.MinorRoleId);
+                var guild = _client.GetGuild(config.GuildId);
+                var role = guild.GetRole(config.MinorRoleId);
+                var user = guild.GetUser(member.MemberId);
                 if (role != null)
                 {
                     if (user.Roles.Any(a => a.Id == role.Id))
                     {
                         await user.SendMessageAsync("Oi. Tudo bem? Infelizmente não podemos aceitar menores de idade no nosso grupo. Desculpe.");
                         await user.BanAsync(0, "Menor de Idade");
+                        member.DateBanned = DateTime.UtcNow;
+                        await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, $"Erro ao expulsar o menor de idade: {user.Username}.");
+                _log.LogError(ex, $"Erro ao expulsar o menor de idade: {member.MemberUserName}.");
             }
         }
 
