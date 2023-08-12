@@ -309,7 +309,9 @@ namespace DiscordBot.Services
                 track.QueuePosition = position;
                 track._id = ObjectId.Empty;
             }
-            await _db.tracks.AddAsync(playback.Tracks);
+
+            if (tracks.Count > 0)
+                await _db.tracks.AddAsync(playback.Tracks);
         }
 
         private void ExecuteTrackPositionLoop()

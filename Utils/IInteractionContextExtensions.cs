@@ -23,13 +23,21 @@ namespace DiscordBot.Utils
             return name.AsAlphanumeric();
         }
 
-        public static async Task<IUserMessage> SendEmbedText(this ITextChannel channel, string text, string desc = default)
+        public static async Task<IUserMessage> SendEmbedText(this ITextChannel channel, string text)
         {
             var embed = new EmbedBuilder()
-                   .WithAuthor(text);
+                   .WithDescription(text);
 
-            if(!string.IsNullOrEmpty(desc))
-                embed = embed.WithDescription(desc);
+            return await channel.SendMessageAsync(embed: embed.Build());
+        }
+
+        public static async Task<IUserMessage> SendEmbedText(this ITextChannel channel, string title, string text)
+        {
+            var embed = new EmbedBuilder()
+                   .WithDescription(text);
+
+            if (!string.IsNullOrEmpty(title))
+                embed = embed.WithAuthor(title);
 
             return await channel.SendMessageAsync(embed: embed.Build());
         }
