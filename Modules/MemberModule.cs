@@ -98,7 +98,7 @@ namespace DiscordBot.Modules
                         new EmbedFieldBuilder
                         {
                             Name = $"Data prevista de {qtd} membros",
-                            Value = $"{TimestampTag.FromDateTime(DateTime.Today.AddDays(x))}",
+                            Value = $"{TimestampTag.FromDateTime(DateTime.Today.AddDays(x), TimestampTagStyles.ShortDate)}",
                             IsInline = true
                         },
                         new EmbedFieldBuilder
