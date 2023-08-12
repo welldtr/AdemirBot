@@ -33,6 +33,7 @@ namespace DiscordBot.Domain.ValueObjects
 
         public void Clear()
         {
+            CurrentTrack = 0;
             Tracks.Clear();
         }
 
