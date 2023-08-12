@@ -89,9 +89,8 @@ namespace DiscordBot.Modules
             var context = new MLContext();
             var dataView = context.Data.LoadFromEnumerable(data);
             var pipeline = context.Transforms.Concatenate("Features", "QtdMembros")
-                .Append(context.Transforms.NormalizeMinMax("Features"))
                 .Append(context.Transforms.CopyColumns("Label", "Data"))
-                .Append(context.Regression.Trainers.LbfgsPoissonRegression(l1Regularization: 0.5f));
+                .Append(context.Regression.Trainers.LbfgsPoissonRegression());
 
             var model1 = pipeline.Fit(dataView);
             var predictionEngine1 = context.Model.CreatePredictionEngine<DadosPredicao, DadosPreditos>(model1);
