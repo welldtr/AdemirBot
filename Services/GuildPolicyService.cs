@@ -38,6 +38,7 @@ namespace DiscordBot.Services
             _client.ShardReady += _client_ShardReady;
             _client.ReactionAdded += _client_ReactionAdded;
             _client.GuildMemberUpdated += _client_GuildMemberUpdated;
+            _client.UserBanned += _client_UserBanned;
         }
 
         private async Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
@@ -339,6 +340,15 @@ namespace DiscordBot.Services
             }
         }
 
+        private async Task _client_UserBanned(SocketUser user, SocketGuild guild)
+        {
+            var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
+            var ban = await guild.GetBanAsync(user);
+            member.DateBanned = DateTime.UtcNow;
+            member.ReasonBanned = ban.Reason;
+            await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
+        }
+
         private async Task CheckIfMinorsAndBanEm(AdemirConfig config, Member member)
         {
             try
@@ -352,8 +362,6 @@ namespace DiscordBot.Services
                     {
                         await user.SendMessageAsync("Oi. Tudo bem? Infelizmente não podemos aceitar menores de idade no nosso grupo. Desculpe.");
                         await user.BanAsync(0, "Menor de Idade");
-                        member.DateBanned = DateTime.UtcNow;
-                        await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
                     }
                 }
             }
