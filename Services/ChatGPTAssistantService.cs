@@ -49,10 +49,11 @@ namespace DiscordBot.Services
                 return;
             }
 
-            var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
-            var guild = _client.Guilds.First(a => a.Id == guildId);
             try
             {
+                var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
+                var guild = _client.Guilds.First(a => a.Id == guildId);
+
                 if (guild.IsPremium())
                 {
                     if ((arg.Channel as IThreadChannel) != null && ((IThreadChannel)arg.Channel).OwnerId == _client.CurrentUser.Id && arg.Author?.Id != _client.CurrentUser.Id)
@@ -224,7 +225,7 @@ namespace DiscordBot.Services
                 var boostersSumary = string.Join(" \n", boosterUsers);
                 var usersInCallSummary = string.Join(" \n", usersInCall);
                 var welcomeDescription = await guild.GetWelcomeDescriptionScreenAsync();
-                
+
                 var channels = guild.Channels
                     .Where(a => a.GetPermissionOverwrite(guild.EveryoneRole).HasValue && a.GetPermissionOverwrite(guild.EveryoneRole)!.Value.ViewChannel != PermValue.Deny);
                 var tipoCanal = channel is ThreadChannel ? "tópico" : "canal";

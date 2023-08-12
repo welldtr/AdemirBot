@@ -22,6 +22,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Suporte a contabilização de XP por envio de mensagens
 - :white_check_mark: Suporte a proteção de flood
 - :white_check_mark: Suporte a blacklist de padrão de mensagens
+- :white_check_mark: Suporte a auto banimento de menores de idade por cargo
 - :white_check_mark: Suporte a contabilização de XP por tempo de call
 - :white_check_mark: Suporte a contabilização de XP por bump no server
 - :white_check_mark: Multiplicador de XP ao participar de eventos
@@ -36,6 +37,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Visualizar ranking com `/leaderboard`
 - :white_check_mark: Visualizar contagem de membros com `/membercount`
 - :white_check_mark: Visualizar evolução de membros com `/membergraph`
+- :white_check_mark: Prever quando o server vai ter n membros com `/predict`
 - :white_check_mark: Denunciar uma mensagem com o menu de contexto
 
 ## Comandos de Booster

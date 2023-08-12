@@ -2,8 +2,10 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Domain.Enum;
+using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Services;
 using DiscordBot.Utils;
+using Microsoft.ML;
 using MongoDB.Driver;
 using SkiaSharp;
 
@@ -71,6 +73,45 @@ namespace DiscordBot.Modules
                     .WithColor(Color.Default)
                     .WithCurrentTimestamp()
                     .WithImageUrl(url)
+                    .Build();
+            });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("predict", "Prever a data que o servidor terá a determinada quantidade de membros")]
+        public async Task Banner([Summary(description: "Qtd. Membros")] int qtd)
+        {
+            await DeferAsync();
+
+            var initdate = DateTime.UtcNow.AddDays(-60);
+            var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.GuildId == Context.Guild.Id).SortBy(a => a.Date).ToListAsync();
+            var data = prog.Select(a => new DadosPredicao { Data = (float)(int)(a.Date - initdate).TotalDays, QtdMembros = (float)a.MemberCount });
+            var context = new MLContext();
+            var dataView = context.Data.LoadFromEnumerable(data);
+            var pipeline = context.Transforms.Concatenate("Features", "QtdMembros")
+                .Append(context.Transforms.CopyColumns("Label", "Data"))
+                .Append(context.Regression.Trainers.LbfgsPoissonRegression());
+
+            var model1 = pipeline.Fit(dataView);
+
+            var predictionEngine1 = context.Model.CreatePredictionEngine<DadosPredicao, DadosPreditos>(model1);
+            var input = new DadosPredicao { QtdMembros = qtd };
+            var output = predictionEngine1.Predict(input);
+
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = " ";
+                a.Embed = new EmbedBuilder()
+                    .WithColor(Color.Default)
+                    .WithFields(new[]
+                    {
+                        new EmbedFieldBuilder 
+                        {
+                            Name = $"Data prevista de {qtd} membros", 
+                            Value = $"{TimestampTag.FromDateTime(initdate.AddDays(output.DiaPredito))}" 
+                        }
+                    })
+                    .WithCurrentTimestamp()
                     .Build();
             });
         }
