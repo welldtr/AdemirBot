@@ -20,6 +20,7 @@ stages:
   - job: Build
     displayName: Build
     steps:
+
     - task: Docker@2
       displayName: Build an image
       inputs:
@@ -30,3 +31,15 @@ stages:
         tags: |
           latest
           $(tag)
+    
+    - task: SSH@0
+      displayName: Update Docker Digital Ocean
+      inputs:
+        sshEndpoint: 'SSH DigitaOcean'
+        runOptions: 'commands'
+        commands: |
+          docker pull emmanuelpereira/ademir-bot
+          docker stop ademir
+          docker rm ademir
+          docker run --name=ademir --restart=always -v /var/ademir/.env:/App/.env emmanuelpereira/ademir-bot
+        readyTimeout: '20000'
