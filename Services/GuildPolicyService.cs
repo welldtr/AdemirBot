@@ -39,14 +39,16 @@ namespace DiscordBot.Services
             _client.ReactionAdded += _client_ReactionAdded;
             _client.GuildMemberUpdated += _client_GuildMemberUpdated;
             _client.UserBanned += _client_UserBanned;
+            _client.UserUnbanned += _client_UserUnbanned;
         }
 
         private async Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
         {
             var _ = Task.Run(async () =>
             {
+                var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == user.Guild.Id);
-                await CheckIfMinorsAndBanEm(config, user);
+                await CheckIfMinorsAndBanEm(config, member);
             });
         }
 
@@ -346,6 +348,14 @@ namespace DiscordBot.Services
             var ban = await guild.GetBanAsync(user);
             member.DateBanned = DateTime.UtcNow;
             member.ReasonBanned = ban.Reason;
+            await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
+        }
+
+        private async Task _client_UserUnbanned(SocketUser user, SocketGuild guild)
+        {
+            var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
+            member.DateBanned = null;
+            member.ReasonBanned = null;
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
         }
 
