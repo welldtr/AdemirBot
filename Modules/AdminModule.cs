@@ -50,6 +50,7 @@ namespace DiscordBot.Modules
             [Summary(description: "Quantidade de mensgens a excluir")] int qtd,
             [Summary("canal", "Canal a ser limpo")] IMessageChannel channel = default)
         {
+            await RespondAsync();
             channel = channel ?? Context.Channel;
             IEnumerable<IMessage> messages = await channel.GetMessagesAsync(qtd).FlattenAsync();
             await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages);

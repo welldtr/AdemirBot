@@ -84,16 +84,16 @@ namespace DiscordBot.Modules
             await DeferAsync();
 
             var initdate = DateTime.UtcNow.AddDays(-90);
-            var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.Date < DateTime.UtcNow.Date && a.GuildId == Context.Guild.Id).SortBy(a => a.Date).ToListAsync();
+            var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.Date < DateTime.UtcNow.Date && a.GuildId == 917286921259089930).SortBy(a => a.Date).ToListAsync();
             var data = prog.Select(a => new DadosPredicao { Data = (float)(int)(a.Date - initdate).TotalDays, QtdMembros = (float)a.MemberCount });
             var context = new MLContext();
             var dataView = context.Data.LoadFromEnumerable(data);
             var pipeline = context.Transforms.Concatenate("Features", "QtdMembros")
+                .Append(context.Transforms.NormalizeMinMax("Features"))
                 .Append(context.Transforms.CopyColumns("Label", "Data"))
-                .Append(context.Regression.Trainers.LbfgsPoissonRegression());
+                .Append(context.Regression.Trainers.LbfgsPoissonRegression(l1Regularization: 0.5f));
 
             var model1 = pipeline.Fit(dataView);
-
             var predictionEngine1 = context.Model.CreatePredictionEngine<DadosPredicao, DadosPreditos>(model1);
             var input = new DadosPredicao { QtdMembros = qtd };
             var output = predictionEngine1.Predict(input);
@@ -105,10 +105,10 @@ namespace DiscordBot.Modules
                     .WithColor(Color.Default)
                     .WithFields(new[]
                     {
-                        new EmbedFieldBuilder 
+                        new EmbedFieldBuilder
                         {
-                            Name = $"Data prevista de {qtd} membros", 
-                            Value = $"{TimestampTag.FromDateTime(initdate.AddDays(output.DiaPredito))}" 
+                            Name = $"Data prevista de {qtd} membros",
+                            Value = $"{TimestampTag.FromDateTime(initdate.AddDays(output.DiaPredito))}"
                         }
                     })
                     .WithCurrentTimestamp()
