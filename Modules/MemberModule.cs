@@ -5,7 +5,6 @@ using DiscordBot.Domain.Enum;
 using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Services;
 using DiscordBot.Utils;
-using Microsoft.ML;
 using MongoDB.Driver;
 using SkiaSharp;
 
@@ -84,19 +83,10 @@ namespace DiscordBot.Modules
             await DeferAsync();
 
             var initdate = DateTime.UtcNow.AddDays(-90);
-            var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.Date < DateTime.UtcNow.Date && a.GuildId == 917286921259089930).SortBy(a => a.Date).ToListAsync();
-            var data = prog.Select(a => new DadosPredicao { Data = (float)(int)(a.Date - initdate).TotalDays, QtdMembros = (float)a.MemberCount });
-            var context = new MLContext();
-            var dataView = context.Data.LoadFromEnumerable(data);
-            var pipeline = context.Transforms.Concatenate("Features", "QtdMembros")
-                .Append(context.Transforms.NormalizeMinMax("Features"))
-                .Append(context.Transforms.CopyColumns("Label", "Data"))
-                .Append(context.Regression.Trainers.LbfgsPoissonRegression(l1Regularization: 0.5f));
-
-            var model1 = pipeline.Fit(dataView);
-            var predictionEngine1 = context.Model.CreatePredictionEngine<DadosPredicao, DadosPreditos>(model1);
-            var input = new DadosPredicao { QtdMembros = qtd };
-            var output = predictionEngine1.Predict(input);
+            var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.Date < DateTime.Today && a.GuildId == 917286921259089930).SortBy(a => a.Date).ToListAsync();
+            var members = prog.Last().MemberCount;
+            var avg = Math.Round(prog.Average(a => a.GrowthToday));
+            var x = (qtd - members) / avg;
 
             await ModifyOriginalResponseAsync(a =>
             {
@@ -108,8 +98,15 @@ namespace DiscordBot.Modules
                         new EmbedFieldBuilder
                         {
                             Name = $"Data prevista de {qtd} membros",
-                            Value = $"{TimestampTag.FromDateTime(initdate.AddDays(output.DiaPredito))}"
-                        }
+                            Value = $"{TimestampTag.FromDateTime(DateTime.Today.AddDays(x))}",
+                            IsInline = true
+                        },
+                        new EmbedFieldBuilder
+                        {
+                            Name = $"Média de crescimento",
+                            Value = $"{avg} membros por dia",
+                            IsInline = true
+                        },
                     })
                     .WithCurrentTimestamp()
                     .Build();
