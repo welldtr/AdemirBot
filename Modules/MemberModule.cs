@@ -83,7 +83,7 @@ namespace DiscordBot.Modules
             await DeferAsync();
 
             var initdate = DateTime.UtcNow.AddDays(-90);
-            var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.Date < DateTime.Today && a.GuildId == 917286921259089930).SortBy(a => a.Date).ToListAsync();
+            var prog = await db.progression.Find(a => a.Date > initdate.AddDays(1) && a.Date < DateTime.Today && a.GuildId == Context.Guild.Id).SortBy(a => a.Date).ToListAsync();
             var members = prog.Last().MemberCount;
             var avg = Math.Round(prog.Average(a => a.GrowthToday));
             var x = (qtd - members) / avg;
