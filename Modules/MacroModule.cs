@@ -61,7 +61,7 @@ namespace DiscordBot.Modules
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("list-macros", "Listar as macros cadastradas")]
-        public async Task GetMacros()
+        public async Task ListMacros()
         {
             await DeferAsync();
             var pages = await db.macros.Find(a => a.GuildId == Context.Guild.Id).ToListAsync();
@@ -72,6 +72,7 @@ namespace DiscordBot.Modules
             "Macros", new Color(0xb100c1), Context.User, new AppearanceOptions { });
 
             await paginator.SendPaginatedMessageAsync(Context.Channel, message);
+            await DeleteOriginalResponseAsync();
         }
 
         private List<EmbedFieldBuilder> GetFields(string nome, string mensagem)
