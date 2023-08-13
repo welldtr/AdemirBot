@@ -2,6 +2,7 @@
 using Discord.Audio;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
+using DiscordBot.Domain.Enum;
 using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Utils;
 using MongoDB.Bson;
@@ -17,7 +18,6 @@ namespace DiscordBot.Services
         private Context _db;
         private DiscordShardedClient _client;
         private ILogger<AudioService> _log;
-        private Dictionary<string, Emote> emote;
 
         public AudioService(Context context, DiscordShardedClient client, ILogger<AudioService> logger)
         {
@@ -182,20 +182,6 @@ namespace DiscordBot.Services
 
         private async Task _client_ShardReady(DiscordSocketClient client)
         {
-            emote = new Dictionary<string, Emote>()
-            {
-                {"clear", Emote.Parse("<:clear:1125482680490930196>") },
-                {"stop", Emote.Parse("<:stop:1123770944784179210>") },
-                {"play", Emote.Parse("<:play:1123770947984437259>") },
-                {"pause", Emote.Parse("<:pause:1123770941235794033>") },
-                {"skip", Emote.Parse("<:skip:1123771732243787887>") },
-                {"repeat", Emote.Parse("<:repeat:1123770942863200377>") },
-                {"shuffle", Emote.Parse("<:shuffle:1123770938425622591>") },
-                {"back", Emote.Parse("<:back:1125481896416125040>") },
-                {"playlist", Emote.Parse("<:playlist:1125481706783256707>") },
-                {"download", Emote.Parse("<:download:1123771345667358720>") },
-            };
-
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
             foreach (var guild in client.Guilds)
@@ -745,11 +731,11 @@ namespace DiscordBot.Services
         {
             var paused = state == PlaybackState.Paused;
             return new ComponentBuilder()
-                .WithButton(null, "back-music", ButtonStyle.Primary, emote["back"], disabled: paused)
-                .WithButton(null, "stop-music", ButtonStyle.Danger, emote["stop"], disabled: paused)
-                .WithButton(null, "pause-music", paused ? ButtonStyle.Success : ButtonStyle.Secondary, paused ? emote["play"] : emote["pause"])
-                .WithButton(null, "skip-music", ButtonStyle.Primary, emote["skip"], disabled: paused)
-                .WithButton(null, "download-music", ButtonStyle.Success, emote["download"])
+                .WithButton(null, "back-music", ButtonStyle.Primary, PlayerEmote.Back, disabled: paused)
+                .WithButton(null, "stop-music", ButtonStyle.Danger, PlayerEmote.Stop, disabled: paused)
+                .WithButton(null, "pause-music", paused ? ButtonStyle.Success : ButtonStyle.Secondary, paused ? PlayerEmote.Play : PlayerEmote.Pause)
+                .WithButton(null, "skip-music", ButtonStyle.Primary, PlayerEmote.Skip, disabled: paused)
+                .WithButton(null, "download-music", ButtonStyle.Success, PlayerEmote.Download)
                 .Build();
         }
 

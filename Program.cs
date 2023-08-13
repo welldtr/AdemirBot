@@ -42,7 +42,7 @@ namespace DiscordBot
                .AddSingleton(db)
                .AddSingleton(config)
                .AddSingleton(_client)
-               .AddSingleton((s) => new PaginationService(_client, s.GetRequiredService<ILogger<PaginationService>>()))
+               .AddSingleton<PaginationService>()
                .AddSingleton(commands)
                .AddSingleton(openAI)
                .AddSingleton<Context>()
@@ -68,10 +68,10 @@ namespace DiscordBot
             var app = builder.Build();
             app.MapGet("/", () => "Hello World!");
             var provider = CreateProvider();
-            await provider.InitializeInteractionModulesAsync();
             var token = Environment.GetEnvironmentVariable("AdemirAuth");
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
+            await provider.InitializeInteractionModulesAsync();
             await app.RunAsync();
             await Task.Delay(-1);
         }

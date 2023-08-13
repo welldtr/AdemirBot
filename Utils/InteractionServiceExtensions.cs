@@ -5,6 +5,7 @@ using Discord.Net;
 using Newtonsoft.Json;
 using Discord;
 using System.Reflection;
+using DiscordBot.Services;
 
 namespace DiscordBot.Utils
 {
@@ -27,6 +28,7 @@ namespace DiscordBot.Utils
                     if (!initialized)
                         initialized = true;
 
+                    var paginationService = provider.GetRequiredService<PaginationService>();
                     await client.BulkOverwriteGlobalApplicationCommandsAsync(new ApplicationCommandProperties[] { });
                     var _interactionService = new InteractionService(client.Rest);
 
@@ -38,7 +40,7 @@ namespace DiscordBot.Utils
 
                         foreach (var guild in client.Guilds)
                             await _interactionService.RegisterCommandsToGuildAsync(guild.Id, true);
-
+                        paginationService.InitInteractionServicePagination(_interactionService);
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
                         shard.InteractionCreated += async (x) =>
                         {

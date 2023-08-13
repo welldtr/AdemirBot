@@ -186,6 +186,7 @@ namespace DiscordBot.Modules
             var message = new PaginatedMessage(paginas, $"Ranking {Context.Guild.Name}", new Color(0xb100c1), Context.User, new AppearanceOptions { });
             message.CurrentPage = currentPage;
             await paginator.SendPaginatedMessageAsync(Context.Channel, message);
+            await DeleteOriginalResponseAsync();
         }
 
         private async Task<string> ProcessMemberGraph(IGuild guild, int dias)
