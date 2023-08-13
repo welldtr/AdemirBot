@@ -69,7 +69,7 @@ namespace DiscordBot.Modules
             {
                 Fields = GetFields(a.Nome, a.Mensagem)
             }),
-            "Macros", new Color(0xb100c1), Context.User, new AppearanceOptions { });
+            "Macros", Color.Default, Context.User, new AppearanceOptions { });
 
             await paginator.SendPaginatedMessageAsync(Context.Channel, message);
             await DeleteOriginalResponseAsync();

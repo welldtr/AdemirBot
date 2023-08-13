@@ -183,7 +183,7 @@ namespace DiscordBot.Modules
                 page.Fields = new EmbedFieldBuilder[0];
             }
 
-            var message = new PaginatedMessage(paginas, $"Ranking {Context.Guild.Name}", new Color(0xb100c1), Context.User, new AppearanceOptions { });
+            var message = new PaginatedMessage(paginas, $"Ranking {Context.Guild.Name}", Color.Default, Context.User, new AppearanceOptions { });
             message.CurrentPage = currentPage;
             await paginator.SendPaginatedMessageAsync(Context.Channel, message);
             await DeleteOriginalResponseAsync();

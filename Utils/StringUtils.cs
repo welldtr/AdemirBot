@@ -34,5 +34,19 @@ namespace DiscordBot.Utils
             var r = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(1));
             return r.Replace(entrada, replacement);
         }
+
+        public static string FormatRushTime(this TimeSpan span)
+        {
+            if (span.Days != 0)
+            {
+                return $"{span:dd hh\\:mm\\:ss}";
+            }
+            if (span.Hours != 0)
+            {
+                return $"{span:hh\\:mm\\:ss}";
+            }
+
+            return $"{span:mm\\:ss}";
+        }
     }
 }

@@ -73,7 +73,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: `/stop`: Interrompe completamente a reprodução de música.
 - :white_check_mark: `/loop`: Habilita/Desabilita o modo de repetição de faixa.
 - :white_check_mark: `/loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
-- :white_check_mark: `/queue`: Lista as próximas 20 músicas da fila.
+- :white_check_mark: `/queue`: Mostra a lista de reprodução.
 - :white_check_mark: `/join`: Puxa o bot para o seu canal de voz.
 - :white_check_mark: `/quit`: Remove o bot da chamada de voz.
 - :white_check_mark: `/volume <valor>`: Ajusta o volume da música.

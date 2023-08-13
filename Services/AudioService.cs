@@ -18,12 +18,15 @@ namespace DiscordBot.Services
         private Context _db;
         private DiscordShardedClient _client;
         private ILogger<AudioService> _log;
+        private readonly PaginationService paginator;
 
-        public AudioService(Context context, DiscordShardedClient client, ILogger<AudioService> logger)
+        public AudioService(Context context, DiscordShardedClient client, ILogger<AudioService> logger, PaginationService paginationService)
         {
             _db = context;
             _client = client;
             _log = logger;
+
+            paginator = paginationService;
         }
 
         public override void Activate()
@@ -226,28 +229,39 @@ namespace DiscordBot.Services
             var playback = channel.GetPlayback();
             var plStr = new StringBuilder();
             int c = playback.CurrentTrack - 1;
-            for (int i = c; i < c + 15; i++)
+
+            var currentPage = 1;
+            var pagesize = 15M;
+            var track = playback.Tracks[c];
+            if (track != null)
             {
-                if (i >= playback.Tracks.Count)
-                    break;
-                var track = playback.Tracks[i];
-                var position = $"{(i == c ? "▶" : "#")}{i + 1}".PadLeft(3);
-                var title = track.Title;
-                var author = track.Author;
-                var trackstring = $"`[{position}]`: `{title}` - `{author}` `({track.Duration:mm\\:ss})`";
-                plStr.AppendLine(trackstring);
+                currentPage = ((playback.Tracks.IndexOf(track) + 1) / (int)pagesize) + 1;
             }
+            var numPaginas = (int)Math.Ceiling(playback.Tracks.Count / pagesize);
+            var paginas = new List<Page>(Enumerable.Range(0, numPaginas).Select(a => new Page()).ToList());
+
+            var tempoRestante = TimeSpan.FromSeconds((int)-playback.Decorrido + playback.Tracks.Where(a => a.QueuePosition > c).Sum(a => (int)a.Duration.TotalSeconds));
+
+            for (var i = 0; i < numPaginas; i++)
+            {
+                var page = paginas[i];
+                var lines = playback.Tracks
+                    .Where(a => (int)Math.Ceiling((playback.Tracks.IndexOf(a) + 1) / pagesize) - 1 == i)
+                    .Select(a => $"`[{(playback.Tracks.IndexOf(a) + 1).ToString().PadLeft(3)}]` `{(playback.Tracks.IndexOf(a) == c ? "▶" : " ")}{a.Title}` | `{a.Duration.FormatRushTime()}` (por: <@{a.UserId}>)");
+
+                page.Description = string.Join("\n", lines) + $"\n\nTempo restante: {tempoRestante.FormatRushTime()}";
+                page.Fields = new EmbedFieldBuilder[0];
+            }
+
             if (playback.Tracks.Count == 0)
             {
                 await channel.SendEmbedText("Esta é a ultima música da fila no momento.");
             }
             else
             {
-                var tempoRestante = TimeSpan.FromSeconds((int)-playback.Decorrido + playback.Tracks.Where(a => a.QueuePosition > c).Sum(a => (int)a.Duration.TotalSeconds));
-                await channel.SendMessageAsync(embed: new EmbedBuilder()
-                    .WithAuthor($"Lista de próximas 15 músicas:")
-                    .WithDescription($"{plStr}\nTempo restante: {tempoRestante}")
-                    .Build());
+                var message = new PaginatedMessage(paginas, $"Lista de Reprodução", Color.Default);
+                message.CurrentPage = currentPage;
+                await paginator.SendPaginatedMessageAsync(channel, message);
             }
         }
 
@@ -348,7 +362,7 @@ namespace DiscordBot.Services
             else if (tracks.Length > 0 && playback.Tracks.Count > 0)
                 await channel.SendMessageAsync(embed: new EmbedBuilder()
                     .WithAuthor("Adicionada à fila:")
-                    .WithDescription($"[{tracks[0].Title}]({tracks[0].Url})\n`00:00 / {tracks[0].Duration:mm\\:ss}`")
+                    .WithDescription($"[{tracks[0].Title}]({tracks[0].Url})\n`00:00 / {tracks[0].Duration.FormatRushTime()}`")
                     .WithFooter($"Adicionada por {user.DisplayName}", user.GetDisplayAvatarUrl())
                     .Build());
 
@@ -433,7 +447,7 @@ namespace DiscordBot.Services
 - `/stop`: Interrompe completamente a reprodução de música.
 - `/loop`: Habilita/Desabilita o modo de repetição de faixa.
 - `/loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
-- `/queue`: Lista as próximas 20 músicas da fila.
+- `/queue`: Mostra a lista de reprodução.
 - `/join`: Puxa o bot para o seu canal de voz.
 - `/quit`: Remove o bot da chamada de voz.
 - `/volume <valor>`: Ajusta o volume da música.
@@ -551,7 +565,7 @@ namespace DiscordBot.Services
                         playback.SetCurrentTrack(1);
                     }
 
-                    while (playback.CurrentTrack <= playback.Tracks.Count)
+                    while (playback.CurrentTrack > 0 && playback.CurrentTrack <= playback.Tracks.Count)
                     {
                         var track = playback.Tracks[playback.CurrentTrack - 1];
                         await SavePlaylistInfo(guild);
@@ -567,7 +581,7 @@ namespace DiscordBot.Services
                         {
                             await channel.SendEmbedText(
                                 "Esta música não está disponível:",
-                                $"{track.Title} - {track.Author} Duração: {track.Duration:mm\\:ss}");
+                                $"{track.Title} - {track.Author} Duração: {track.Duration.FormatRushTime()}");
                             continue;
                         }
 
@@ -589,7 +603,7 @@ namespace DiscordBot.Services
                             var modFunc = async (TimeSpan position) => await msg.ModifyAsync(a =>
                             {
                                 a.Embed = banner.WithDescription(
-                                    $"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration:mm\\:ss}`").Build();
+                                    $"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration.FormatRushTime()}`").Build();
                             });
 
                             try
@@ -602,27 +616,6 @@ namespace DiscordBot.Services
                                     a.Embed = banner.WithAuthor("Reproduzida").WithColor(Color.Default).Build();
                                     a.Components = new ComponentBuilder().Build();
                                 });
-                                //playback.PlayerState = PlaybackState.Playing;
-                                //await playback.AudioClient!.SetSpeakingAsync(true);
-                                //await ProcessarBuffer(channel.GuildId, output, discord, token);
-                                //await msg.ModifyAsync(a =>
-                                //{
-                                //    a.Embed = banner.WithAuthor("Reproduzida").WithColor(Color.Default).Build();
-                                //    a.Components = new ComponentBuilder().Build();
-                                //});
-                                //switch (playback.PlayMode)
-                                //{
-                                //    case PlayMode.Normal:
-                                //        playback.CurrentTrack++;
-                                //        break;
-
-                                //    case PlayMode.LoopQueue:
-                                //        if (playback.CurrentTrack == playback.Tracks.Count)
-                                //            playback.CurrentTrack = 1;
-                                //        else
-                                //            playback.CurrentTrack++;
-                                //        break;
-                                //}
                             }
                             catch (OperationCanceledException)
                             {
@@ -705,7 +698,7 @@ namespace DiscordBot.Services
             return new EmbedBuilder()
                 .WithColor(Color.Red)
                 .WithAuthor("Tocando Agora ♪")
-                .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration:mm\\:ss}`")
+                .WithDescription($"[{track.Title}]({track.Url})\n`00:00 / {track.Duration.FormatRushTime()}`")
                 .WithThumbnailUrl(track.ThumbUrl)
                 .WithFooter($"Pedida por {queuedBy.DisplayName}", queuedBy.GetDisplayAvatarUrl());
         }
