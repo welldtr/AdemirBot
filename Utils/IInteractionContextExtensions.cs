@@ -18,7 +18,7 @@ namespace DiscordBot.Utils
         {
             var channel = (ITextChannel)msg.Channel;
             var author = await channel.GetUserAsync(msg?.Author?.Id ?? 0);
-            var authorBestName = author.GlobalName.Matches("^[a-zA-Z0-9_-]{1,64}$") ? author.GlobalName : author.Username;
+            var authorBestName = author.DisplayName.Matches("^[a-zA-Z0-9_-]{1,64}$") ? author.DisplayName : author.Username;
             var me = await channel.Guild.GetCurrentUserAsync();
             var name = msg!.Author.Id == me.Id ? "Ademir" : authorBestName;
             return name.AsAlphanumeric();
