@@ -40,6 +40,6 @@ stages:
         commands: |
           docker pull emmanuelpereira/ademir-bot:$(tag)
           docker stop ademir
-          docker rm ademir
+          docker rm -f ademir
           docker run --name=ademir --restart=always -v /var/ademir/.env:/App/.env -d emmanuelpereira/ademir-bot
         readyTimeout: '20000'
