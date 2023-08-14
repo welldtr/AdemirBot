@@ -441,7 +441,7 @@ namespace DiscordBot.Services
                 .WithDescription(@"
 ### Comandos de Música (também com o prefixo >>)
 - `/help`: Lista os comandos de áudio.
-- `/play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum do Spotify ou Youtube.
+- `/play <link/track/playlist/album/artista>`: Reproduz uma música, playlist, artista ou álbum do Spotify ou Youtube.
 - `/skip`: Pula para a próxima música da fila.
 - `/back`: Pula para a música anterior da fila.
 - `/replay`: Reinicia a música atual.
@@ -698,7 +698,7 @@ namespace DiscordBot.Services
 
         private async Task<Track[]> GetSpotifyTracks(string query)
         {
-            var match = query.Trim().Match(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album)\/([a-zA-Z0-9]+)");
+            var match = query.Trim().Match(@"https\:\/\/open\.spotify\.com\/(?:intl-\w+/)?(playlist|track|album|artist)\/([a-zA-Z0-9]+)");
             var type = match.Groups[1].Value;
             var id = match.Groups[2].Value;
             var tracks = await Spotify.GetListOfTracksAsync(id, type);

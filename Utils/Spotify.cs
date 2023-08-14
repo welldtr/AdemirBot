@@ -2,6 +2,9 @@
 using YoutubeExplode;
 using DiscordBot.Domain.Entities;
 using SpotifyExplode;
+using Microsoft.ClearScript.JavaScript;
+using SpotifyExplode.Albums;
+using System.Linq;
 
 namespace DiscordBot.Utils
 {
@@ -16,7 +19,12 @@ namespace DiscordBot.Utils
             {
                 { "track", async(i) => new List<SpotifyExplode.Tracks.Track> { await spotify.Tracks.GetAsync(i) } },
                 { "playlist", async(i) => await spotify.Playlists.GetAllTracksAsync(i) },
-                { "album", async(i) => await spotify.Albums.GetAllTracksAsync(i) }
+                { "album", async(i) => await spotify.Albums.GetAllTracksAsync(i) },
+                { "artist", async(i) => (await spotify.Artists.GetAllAlbumsAsync(i))
+                                            .SelectMany(a => spotify.Albums.GetTracksAsync(a.Id).GetAwaiter().GetResult())
+                                            .OrderBy(a => a.Popularity)
+                                            .Take(50)
+                                            .ToList() }
             };
 
             var spotifyTracks = await apis[type](id);

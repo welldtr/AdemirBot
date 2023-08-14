@@ -65,7 +65,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
 
 ## Comandos de Música
-- :white_check_mark: `/play <link/track/playlist/album>`: Reproduz uma música, playlist ou álbum.
+- :white_check_mark: `/play <link/track/playlist/album/artista>`: Reproduz uma música, playlist, artista ou álbum.
 - :white_check_mark: `/skip`: Pula para a próxima música da fila.
 - :white_check_mark: `/back`: Pula para a música anterior da fila.
 - :white_check_mark: `/replay`: Reinicia a música atual.
