@@ -78,7 +78,7 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await Help(channel));
                     break;
 
-                case string s when s.Matches(@">>skip (\d+)"):
+                case string s when s.Matches(@"^>>skip (\d+)$"):
                     var skipstr = arg.Content.Match(@">>skip (\d+)").Groups[1].Value;
                     var qtd = int.Parse(skipstr);
                     _ = Task.Run(async () => await SkipMusic(channel, qtd));
@@ -139,13 +139,13 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await Join(channel, voicechannel));
                     break;
 
-                case string s when s.Matches(@">>volume (\d+)"):
+                case string s when s.Matches(@"^>>volume (\d+)$"):
                     var volumestr = arg.Content.Match(@">>volume (\d+)").Groups[1].Value;
                     var volume = int.Parse(volumestr);
                     _ = Task.Run(async () => await SetVolume(channel, volume));
                     break;
 
-                case string s when s.Matches(@">>(.+)"):
+                case string s when s.Matches(@"^>>(.+)$"):
                     var query = arg.Content.Substring(2);
                     if (!string.IsNullOrEmpty(query))
                         _ = Task.Run(async () => await PlayMusic(channel, user, query));
