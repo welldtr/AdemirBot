@@ -53,6 +53,13 @@ namespace DiscordBot.Modules
             await Context.Interaction.DeferAsync();
         }
 
+        [ComponentInteraction("show-queue")]
+        public async Task ShowQueue()
+        {
+            await svc.ShowQueue((ITextChannel)Context.Channel);
+            await Context.Interaction.DeferAsync();
+        }
+
         [ComponentInteraction("download-music", false, RunMode.Async)]
         public async Task DownloadMusic()
         {

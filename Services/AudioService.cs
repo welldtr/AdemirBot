@@ -721,6 +721,7 @@ namespace DiscordBot.Services
                 .WithButton(null, "stop-music", ButtonStyle.Danger, PlayerEmote.Stop, disabled: paused)
                 .WithButton(null, "pause-music", paused ? ButtonStyle.Success : ButtonStyle.Secondary, paused ? PlayerEmote.Play : PlayerEmote.Pause)
                 .WithButton(null, "skip-music", ButtonStyle.Primary, PlayerEmote.Skip, disabled: paused)
+                .WithButton(null, "show-queue", ButtonStyle.Secondary, PlayerEmote.Playlist)
                 .WithButton(null, "download-music", ButtonStyle.Success, PlayerEmote.Download)
                 .Build();
         }
