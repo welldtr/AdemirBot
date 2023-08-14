@@ -140,7 +140,7 @@ namespace DiscordBot.Services
                     break;
 
                 case string s when s.Matches(@"^>>volume (\d+)$"):
-                    var volumestr = arg.Content.Match(@">>volume (\d+)").Groups[1].Value;
+                    var volumestr = arg.Content.Match(@"^>>volume (\d+)$").Groups[1].Value;
                     var volume = int.Parse(volumestr);
                     _ = Task.Run(async () => await SetVolume(channel, volume));
                     break;
