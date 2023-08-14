@@ -25,8 +25,11 @@ namespace DiscordBot.Utils
 
                 shard.ShardReady += async (client) =>
                 {
-                    if (!initialized)
-                        initialized = true;
+                    if (initialized)
+                    {
+                        return;
+                    }
+                    initialized = true;
 
                     var paginationService = provider.GetRequiredService<PaginationService>();
                     await client.BulkOverwriteGlobalApplicationCommandsAsync(new ApplicationCommandProperties[] { });

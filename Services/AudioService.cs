@@ -145,9 +145,10 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await SetVolume(channel, volume));
                     break;
 
-                case string s when s.StartsWith(">>"):
+                case string s when s.Matches(@">>(.+)"):
                     var query = arg.Content.Substring(2);
-                    _ = Task.Run(async () => await PlayMusic(channel, user, query));
+                    if (!string.IsNullOrEmpty(query))
+                        _ = Task.Run(async () => await PlayMusic(channel, user, query));
                     break;
             }
         }
@@ -157,10 +158,11 @@ namespace DiscordBot.Services
             await channel.SendEmbedText($"Modo aleatório ainda não disponível nessa versão");
         }
 
-        public async Task Join(ITextChannel channel, SocketVoiceChannel voicechannel)
+        public Task Join(ITextChannel channel, SocketVoiceChannel voicechannel)
         {
             if (voicechannel != null)
                 _ = Task.Run(async () => await MoveToChannel(voicechannel));
+            return Task.CompletedTask;
         }
 
         public async Task ToggleLoopQueue(ITextChannel channel)
@@ -599,16 +601,8 @@ namespace DiscordBot.Services
                         using (var output = ffmpeg?.StandardOutput.BaseStream)
                         using (var discord = playback.AudioClient!.CreatePCMStream(AudioApplication.Music))
                         {
-
-                            var modFunc = async (TimeSpan position) => await msg.ModifyAsync(a =>
-                            {
-                                a.Embed = banner.WithDescription(
-                                    $"[{track.Title}]({track.Url})\n`{position:mm\\:ss} / {track.Duration.FormatRushTime()}`").Build();
-                            });
-
                             try
                             {
-
                                 await playback.PlayAsync(output, discord);
 
                                 await msg.ModifyAsync(a =>
@@ -663,7 +657,6 @@ namespace DiscordBot.Services
 
             playback.Reset();
             await SavePlaylistInfo(guild);
-            await Task.Delay(10000);
 
             if (playback.AudioClient?.ConnectionState == ConnectionState.Connected || playback.PlayerState == PlaybackState.Stopped)
                 await playback.AudioClient!.StopAsync();
