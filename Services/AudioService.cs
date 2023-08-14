@@ -202,12 +202,12 @@ namespace DiscordBot.Services
                     var track = tracks.FirstOrDefault();
 
                     PlaybackExtensions.InitPlayback(guild.Id);
+                    var playback = guild.GetPlayback();
+                    playback.LoadConfig(ademirConfig);
                     if (track != null)
                     {
                         var channel = guild.GetTextChannel(track.ChannelId);
                         var user = guild.GetUser(track.UserId);
-                        var playback = guild.GetPlayback();
-                        playback.LoadConfig(ademirConfig);
                         var _ = Task.Run(() => PlayMusic(channel, user, tracks: tracks.ToArray()));
                     }
                 }
@@ -312,7 +312,7 @@ namespace DiscordBot.Services
                 track._id = ObjectId.Empty;
             }
 
-            if (tracks.Count > 0)
+            if (playback.Tracks.Count > 0)
                 await _db.tracks.AddAsync(playback.Tracks);
         }
 
