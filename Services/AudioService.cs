@@ -112,8 +112,8 @@ namespace DiscordBot.Services
                     _ = Task.Run(async () => await BackMusic(channel));
                     break;
 
-                case string s when s.Matches(@">>back (\d+)"):
-                    var backstr = arg.Content.Match(@">>back (\d+)").Groups[1].Value;
+                case string s when s.Matches(@"^>>back (\d+)$"):
+                    var backstr = arg.Content.Match(@"^>>back (\d+)$").Groups[1].Value;
                     var back = int.Parse(backstr);
                     _ = Task.Run(async () => await BackMusic(channel, back));
                     break;
