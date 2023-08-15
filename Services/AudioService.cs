@@ -599,7 +599,7 @@ namespace DiscordBot.Services
 
                         using (var ffmpeg = FFmpeg.CreateStream(sourceFilename, start))
                         using (var output = ffmpeg?.StandardOutput.BaseStream)
-                        using (var discord = playback.AudioClient!.CreatePCMStream(AudioApplication.Music))
+                        using (var discord = playback.AudioClient!.CreatePCMStream(AudioApplication.Mixed))
                         {
                             try
                             {
