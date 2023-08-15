@@ -627,6 +627,7 @@ namespace DiscordBot.Services
                                     a.Components = new ComponentBuilder().Build();
                                 });
                             }
+                            await playback.AudioClient.SetSpeakingAsync(false);
                         }
                     }
                 }
