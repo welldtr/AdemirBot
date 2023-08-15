@@ -209,6 +209,7 @@ namespace DiscordBot.Domain.ValueObjects
             }
             catch
             {
+                await discord.FlushAsync();
                 throw;
             }
             finally
