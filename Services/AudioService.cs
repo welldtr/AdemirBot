@@ -365,7 +365,7 @@ namespace DiscordBot.Services
             {
                 position++;
                 track.QueuePosition = position;
-                track._id = ObjectId.Empty;
+                track._id = ObjectId.GenerateNewId();
             }
 
             if (playback.Tracks.Count > 0)
