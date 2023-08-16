@@ -56,7 +56,7 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task _client_MessageReceived(SocketMessage arg)
+        private Task _client_MessageReceived(SocketMessage arg)
         {
             var guildId = ((SocketTextChannel)arg.Channel).Guild.Id;
             var guild = _client.Guilds.First(a => a.Id == guildId);
@@ -65,114 +65,170 @@ namespace DiscordBot.Services
 
             if (user == null)
             {
-                return;
+                return Task.CompletedTask;
+            }
+
+            if (arg.Content == ">>help")
+            {
+                _ = Task.Run(async () => await Help(channel));
             }
 
             switch (arg.Content)
             {
                 case ">>skip":
-                    _ = Task.Run(async () => await SkipMusic(channel));
-                    break;
-
-                case ">>help":
-                    _ = Task.Run(async () => await Help(channel));
+                    _ = Task.Run(async () => await SkipMusic(user, channel));
                     break;
 
                 case string s when s.Matches(@"^>>skip (\d+)$"):
                     var skipstr = arg.Content.Match(@">>skip (\d+)").Groups[1].Value;
                     var qtd = int.Parse(skipstr);
-                    _ = Task.Run(async () => await SkipMusic(channel, qtd));
-                    break;
-
-                case ">>transcript":
-                    _ = Task.Run(async () => await StopMusic(channel));
+                    _ = Task.Run(async () => await SkipMusic(user, channel, qtd));
                     break;
 
                 case ">>stop":
-                    _ = Task.Run(async () => await StopMusic(channel));
+                    _ = Task.Run(async () => await StopMusic(user, channel));
                     break;
 
                 case ">>pause":
-                    _ = Task.Run(async () => await PauseMusic(channel));
+                    _ = Task.Run(async () => await PauseMusic(user, channel));
                     break;
 
                 case ">>quit":
-                    _ = Task.Run(async () => await QuitVoice(channel));
+                    _ = Task.Run(async () => await QuitVoice(user, channel));
                     break;
 
                 case ">>queue":
-                    _ = Task.Run(async () => await ShowQueue(channel));
+                    _ = Task.Run(async () => await ShowQueue(user, channel));
                     break;
 
                 case ">>clear":
-                    _ = Task.Run(async () => await ClearQueue(channel));
+                    _ = Task.Run(async () => await ClearQueue(user, channel));
                     break;
 
                 case ">>back":
-                    _ = Task.Run(async () => await BackMusic(channel));
+                    _ = Task.Run(async () => await BackMusic(user, channel));
                     break;
 
                 case string s when s.Matches(@"^>>back (\d+)$"):
                     var backstr = arg.Content.Match(@"^>>back (\d+)$").Groups[1].Value;
                     var back = int.Parse(backstr);
-                    _ = Task.Run(async () => await BackMusic(channel, back));
+                    _ = Task.Run(async () => await BackMusic(user, channel, back));
                     break;
 
                 case ">>replay":
-                    _ = Task.Run(async () => await ReplayMusic(channel));
+                    _ = Task.Run(async () => await ReplayMusic(user, channel));
                     break;
 
                 case ">>loopqueue":
-                    _ = Task.Run(async () => await ToggleLoopQueue(channel));
+                    _ = Task.Run(async () => await ToggleLoopQueue(user, channel));
                     break;
 
                 case ">>loop":
-                    _ = Task.Run(async () => await ToggleLoopTrack(channel));
+                    _ = Task.Run(async () => await ToggleLoopTrack(user, channel));
                     break;
 
                 case ">>shuffle":
-                    _ = Task.Run(async () => await Shuffle(channel));
+                    _ = Task.Run(async () => await Shuffle(user, channel));
                     break;
 
                 case ">>join":
                     var voicechannel = user.VoiceChannel;
-                    _ = Task.Run(async () => await Join(channel, voicechannel));
+                    _ = Task.Run(async () => await Join(user, channel, voicechannel));
                     break;
 
-                case string s when s.Matches(@"^>>volume (\d+)$"):
+                case string s when s.Matches(@"^>>remove\s+(?:member\s+)<@(\d+)>$"):
+                    var memberMention = arg.Content.Match(@"^>>remove\s+(?:member\s+)<@(\d+)>$").Groups[1].Value;
+                    var idMember = ulong.Parse(memberMention);
+                    var member = guild.GetUser(idMember);
+                    _ = Task.Run(async () => await RemoveMemberTracks(user, channel, member));
+                    break;
+
+                case string s when s.Matches(@"^>>remove\s+(?:index\s+)\s+(\d+)$"):
+                    var position = arg.Content.Match(@"^>>remove\s+(?:index\s+)\s+(\d+)$").Groups[1].Value;
+                    var index = int.Parse(position);
+                    _ = Task.Run(async () => await RemoveIndex(user, channel, index));
+                    break;
+
+                case string s when s.Matches(@"^>>remove\s+(?:range\s+)\s+(\d+)-(\d+)$"):
+                    var matchnm = arg.Content.Match(@"^>>remove\s+(?:range\s+)\s+(\d+)-(\d+)$").Groups;
+                    var n = int.Parse(matchnm[1].Value);
+                    var m = int.Parse(matchnm[2].Value);
+                    _ = Task.Run(async () => await RemoveRange(user, channel, n, m));
+                    break;
+
+                case ">>remove last":
+                    _ = Task.Run(async () => await RemoveLast(user, channel));
+                    break;
+
+                case string s when s.Matches(@"^>>volume\s+(\d+)$"):
                     var volumestr = arg.Content.Match(@"^>>volume (\d+)$").Groups[1].Value;
                     var volume = int.Parse(volumestr);
-                    _ = Task.Run(async () => await SetVolume(channel, volume));
+                    _ = Task.Run(async () => await SetVolume(user, channel, volume));
                     break;
 
                 case string s when s.Matches(@"^>>(.+)$"):
                     var query = arg.Content.Substring(2);
                     if (!string.IsNullOrEmpty(query))
-                        _ = Task.Run(async () => await PlayMusic(channel, user, query));
+                        _ = Task.Run(async () => await PlayMusic(user, channel, query));
                     break;
             }
+            return Task.CompletedTask;
         }
 
-        public async Task Shuffle(ITextChannel channel)
+        public async Task RemoveMemberTracks(IGuildUser user, ITextChannel channel, IUser member)
+        {
+            var playback = channel.GetPlayback();
+            playback.Tracks.RemoveAll(a => a.UserId == member.Id);
+            await channel.SendEmbedText($"Removidas todas as faixas do usuario **{member.Username}**");
+        }
+
+        public async Task RemoveIndex(IGuildUser user, ITextChannel channel, int index)
+        {
+            var playback = channel.GetPlayback();
+            playback.Tracks.RemoveAt(index - 1);
+            await channel.SendEmbedText($"Faixa numero **{index}** removida.");
+        }
+
+        public async Task RemoveLast(IGuildUser user, ITextChannel channel)
+        {
+            var playback = channel.GetPlayback();
+            playback.Tracks.RemoveAt(playback.Tracks.Count - 1);
+            await channel.SendEmbedText($"Ultima faixa da fila removida.");
+        }
+
+        public async Task RemoveRange(IGuildUser user, ITextChannel channel, int n, int m)
+        {
+            if (m < n)
+            {
+                await channel.SendEmbedText($"Intervalo de faixas {n}-{m} inválido.");
+                return;
+            }
+
+            var playback = channel.GetPlayback();
+            playback.Tracks.RemoveRange(n, m - n + 1);
+            await channel.SendEmbedText($"Faixas de **{n}** a **{m}** removidas.");
+        }
+
+        public async Task Shuffle(IGuildUser user, ITextChannel channel)
         {
             await channel.SendEmbedText($"Modo aleatório ainda não disponível nessa versão");
         }
 
-        public Task Join(ITextChannel channel, SocketVoiceChannel voicechannel)
+        public Task Join(IGuildUser user, ITextChannel channel, SocketVoiceChannel voicechannel)
         {
             if (voicechannel != null)
                 _ = Task.Run(async () => await MoveToChannel(voicechannel));
             return Task.CompletedTask;
         }
 
-        public async Task ToggleLoopQueue(ITextChannel channel)
+        public async Task ToggleLoopQueue(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.ToggleLoopQueue();
             await channel.SendEmbedText($"Playlist em modo {playback.PlayMode}");
         }
 
-        public async Task ToggleLoopTrack(ITextChannel channel)
+        public async Task ToggleLoopTrack(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.ToggleLoopTrack();
@@ -208,7 +264,7 @@ namespace DiscordBot.Services
                     {
                         var channel = guild.GetTextChannel(track.ChannelId);
                         var user = guild.GetUser(track.UserId);
-                        var _ = Task.Run(() => PlayMusic(channel, user, tracks: tracks.ToArray()));
+                        var _ = Task.Run(() => PlayMusic(user, channel, tracks: tracks.ToArray()));
                     }
                 }
                 catch (Exception ex)
@@ -226,7 +282,7 @@ namespace DiscordBot.Services
             Task.WaitAll(tasks);
         }
 
-        public async Task ShowQueue(ITextChannel channel)
+        public async Task ShowQueue(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             var plStr = new StringBuilder();
@@ -383,7 +439,7 @@ namespace DiscordBot.Services
             }
         }
 
-        public async Task SetVolume(ITextChannel channel, int volume)
+        public async Task SetVolume(IGuildUser user, ITextChannel channel, int volume)
         {
             var playback = channel.GetPlayback();
             var cfg = await _db.ademirCfg.FindOneAsync(a => a.GuildId == channel.GuildId);
@@ -410,14 +466,14 @@ namespace DiscordBot.Services
             });
         }
 
-        public Task PauseMusic(ITextChannel channel)
+        public Task PauseMusic(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.TogglePlayPause();
             return Task.CompletedTask;
         }
 
-        public async Task StopMusic(ITextChannel channel)
+        public async Task StopMusic(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.Stop();
@@ -426,7 +482,7 @@ namespace DiscordBot.Services
             await channel.SendEmbedText("Interrompido.");
         }
 
-        private async Task ClearQueue(ITextChannel channel)
+        private async Task ClearQueue(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.Clear();
@@ -453,10 +509,16 @@ namespace DiscordBot.Services
 - `/join`: Puxa o bot para o seu canal de voz.
 - `/quit`: Remove o bot da chamada de voz.
 - `/volume <valor>`: Ajusta o volume da música.
+- `/remove member <membro>`: Remove as músicas de um membro da playlist.
+- `/remove index <posicao>`: Remove uma musica da playlist na posição fornecida.
+- `/remove range <inicio> <fim>`: Remove musicas de playlist no intervalor de inicio e fim.
+- `/remove last`: Remove a última música da playlist.
+
+Obs.: Os comandos acima só funcionam caso você esteja utilizando o player ou ninguém mais esteja.
 ").Build());
         }
 
-        public async Task SkipMusic(ITextChannel channel, int qtd = 1)
+        public async Task SkipMusic(IGuildUser user, ITextChannel channel, int qtd = 1)
         {
             var playback = channel.GetPlayback();
             var musicasRestantes = playback.Tracks.Count - playback.CurrentTrack;
@@ -475,7 +537,7 @@ namespace DiscordBot.Services
             }
         }
 
-        public async Task BackMusic(ITextChannel channel, int qtd = 1)
+        public async Task BackMusic(IGuildUser user, ITextChannel channel, int qtd = 1)
         {
             var playback = channel.GetPlayback();
             var musicasAnteriores = playback.CurrentTrack - 1;
@@ -494,14 +556,14 @@ namespace DiscordBot.Services
             }
         }
 
-        public Task ReplayMusic(ITextChannel channel)
+        public Task ReplayMusic(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             playback.Replay();
             return Task.CompletedTask;
         }
 
-        public async Task QuitVoice(ITextChannel channel)
+        public async Task QuitVoice(IGuildUser user, ITextChannel channel)
         {
             var playback = channel.GetPlayback();
             await playback.QuitAsync();
@@ -525,7 +587,7 @@ namespace DiscordBot.Services
             File.Delete(sourceFilename + ".mp3");
         }
 
-        public async Task PlayMusic(ITextChannel channel, IGuildUser user, string query = null, params Track[] tracks)
+        public async Task PlayMusic(IGuildUser user, ITextChannel channel, string query = null, params Track[] tracks)
         {
             IUserMessage msg = null;
             var playback = channel.GetPlayback();
@@ -637,7 +699,7 @@ namespace DiscordBot.Services
             catch (Exception ex)
             {
                 _log.LogError(ex, "Erro ao tocar música");
-                await StopMusic(channel);
+                await StopMusic(user, channel);
                 await channel.SendEmbedText($"Erro ao tocar musica: {ex}");
             }
             finally

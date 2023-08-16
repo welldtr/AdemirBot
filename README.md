@@ -38,6 +38,9 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Visualizar contagem de membros com `/membercount`
 - :white_check_mark: Visualizar evolução de membros com `/membergraph`
 - :white_check_mark: Prever quando o server vai ter n membros com `/predict`
+- :white_check_mark: Verificar memória do servidor com `/memory`
+- :white_check_mark: Criar um hash MD5 de um texto com `/md5`
+- :white_check_mark: Criar um GUID com `/guid`
 - :white_check_mark: Denunciar uma mensagem com o menu de contexto
 
 ## Comandos de Booster
@@ -71,6 +74,10 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: `/replay`: Reinicia a música atual.
 - :white_check_mark: `/pause`: Pausa/Retoma a reprodução da música atual.
 - :white_check_mark: `/stop`: Interrompe completamente a reprodução de música.
+- :white_check_mark: `/remove member <membro>`: Remove as músicas de um membro da playlist.
+- :white_check_mark: `/remove index <posicao>`: Remove uma musica da playlist na posição fornecida.
+- :white_check_mark: `/remove range <inicio> <fim>`: Remove musicas de playlist no intervalor de inicio e fim.
+- :white_check_mark: `/remove last`: Remove a última música da playlist.
 - :white_check_mark: `/loop`: Habilita/Desabilita o modo de repetição de faixa.
 - :white_check_mark: `/loopqueue`: Habilita/Desabilita o modo de repetição de playlist.
 - :white_check_mark: `/queue`: Mostra a lista de reprodução.

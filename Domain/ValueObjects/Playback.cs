@@ -57,6 +57,7 @@ namespace DiscordBot.Domain.ValueObjects
         internal async Task ConnectAsync(IVoiceChannel userVoiceChannel)
         {
             AudioClient = await userVoiceChannel.ConnectAsync(selfDeaf: true);
+            VoiceChannel = userVoiceChannel;
         }
 
         internal void ToggleLoopTrack()

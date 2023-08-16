@@ -43,6 +43,52 @@ namespace DiscordBot.Utils
             return await channel.SendMessageAsync(embed: embed.Build());
         }
 
+        public async static Task EnsureUserCanUseThePlayer(this IGuildUser user, ITextChannel channel, Func<Task> funcao)
+        {
+            if (CanUserCommandBot(user, channel))
+            {
+                await funcao();
+            }
+            else
+            {
+                await channel.SendEmbedText("Você não pode controlar o player de áudio nesse momento. Aguarde até que os outros membros terminem de usar.");
+                return;
+            }
+        }
+
+        public async static Task EnsureUserCanUseThePlayer(this IInteractionContext ctx, Func<IGuildUser, ITextChannel, Task> funcao)
+        {
+            await ctx.Interaction.DeferAsync();
+            var user = (IGuildUser)ctx.User;
+            var channel = (ITextChannel)ctx.Channel;
+            if (CanUserCommandBot(user, channel))
+            {
+                await funcao(user, channel);
+            }
+            else
+            {
+                await channel.SendEmbedText("Você não pode controlar o player de áudio nesse momento. Aguarde até que os outros membros terminem de usar.");
+            }
+
+            if (ctx is Discord.Interactions.ShardedInteractionContext cmd)
+            {
+                await cmd.Interaction.DeleteOriginalResponseAsync();
+            }
+        }
+
+        private static bool CanUserCommandBot(IGuildUser user, ITextChannel channel)
+        {
+            var playback = channel.GetPlayback();
+            if (playback.VoiceChannel == null || playback.VoiceChannel.Id == channel.Guild.AFKChannelId)
+                return true;
+
+            var usersConnectedWithBot = ((SocketVoiceChannel)playback.VoiceChannel).ConnectedUsers.Where(a => !a.IsBot);
+            if (usersConnectedWithBot.Count() == 0)
+                return true;
+
+            return usersConnectedWithBot.Any(a => a.Id == user.Id);
+        }
+
         public static ITextChannel GetTextChannel(this SocketMessage msg)
         {
             var channel = (ITextChannel)msg.Channel;

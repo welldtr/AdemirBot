@@ -47,7 +47,7 @@ namespace DiscordBot.Utils
                         _interactionService.SlashCommandExecuted += SlashCommandExecuted;
                         shard.InteractionCreated += async (x) =>
                         {
-                            var ctx = new ShardedInteractionContext(shard, x);
+                            var ctx = new ShardedInteractionContext(shard, x);                            
                             var _ = await Task.Run(async () => await _interactionService.ExecuteCommandAsync(ctx, provider));
                         };
 
