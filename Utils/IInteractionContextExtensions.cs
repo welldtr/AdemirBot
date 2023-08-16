@@ -119,10 +119,17 @@ namespace DiscordBot.Utils
         {
             var channel = (ITextChannel)msg.Channel;
             if (msg.Channel.Id != msg.Reference.ChannelId)
-                channel = (ITextChannel) await channel.Guild.GetChannelAsync(msg.Reference.ChannelId);
+                channel = (ITextChannel)await channel.Guild.GetChannelAsync(msg.Reference.ChannelId);
 
             var msgRefer = await channel.GetMessageAsync(msg.Reference.MessageId.Value!);
             return msgRefer;
+        }
+
+        public static async Task<string> GetMessageContentWithAttachments(this IMessage msg)
+        {
+            var attachmentContent = (msg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(msg.Attachments.First(a => a.ContentType.StartsWith("text/plain")).Url);
+            var content = (msg.Content + attachmentContent);
+            return content;
         }
 
         public static async Task GetRepliedMessages(this DiscordShardedClient _client, ITextChannel channel, IMessage message, List<ChatMessage> msgs)
@@ -136,8 +143,16 @@ namespace DiscordBot.Utils
                 message = await message.GetReferenceAsync();
                 var autor = await message.GetGPTAuthorRoleAsync();
                 var nome = await message.GetGPTAuthorNameAsync();
+
+                var content = await message.GetMessageContentWithAttachments();
+
                 if (message.Type == MessageType.Default)
-                    msgs.Insert(0, new ChatMessage(autor, message.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
+                {
+                    if (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(content) < 4000)
+                        msgs.Insert(0, new ChatMessage(autor, content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
+                    else
+                        msgs.Insert(0, new ChatMessage("system", "O usuário mandou uma mensagem maior que 4000 tokens."));
+                }
             }
         }
 
@@ -150,8 +165,16 @@ namespace DiscordBot.Utils
             {
                 var autor = await m.GetGPTAuthorRoleAsync();
                 var nome = await m.GetGPTAuthorNameAsync();
-                if (m.Type == MessageType.Default)
-                    msgs.Insert(0, new ChatMessage(autor, m.Content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
+
+                var content = await m.GetMessageContentWithAttachments();
+
+                if (message.Type == MessageType.Default)
+                {
+                    if (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(content) < 4000)
+                        msgs.Insert(0, new ChatMessage(autor, content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
+                    else
+                        msgs.Insert(0, new ChatMessage("system", "O usuário mandou uma mensagem maior que 4000 tokens."));
+                }
             }
 
             var firstMsg = msgsThread.LastOrDefault();
@@ -177,7 +200,7 @@ namespace DiscordBot.Utils
         public static string[] SplitInChunksOf(this string text, int maxChars)
         {
             var linesFinal = new List<string>();
-            var sb = new StringBuilder();   
+            var sb = new StringBuilder();
             foreach (var line in text.Split(new char[] { '\r', '\n' }))
             {
                 if (sb.Length + line.Length > 1024)
@@ -191,7 +214,7 @@ namespace DiscordBot.Utils
             return linesFinal.ToArray();
         }
 
-            public static async Task<IUserMessage> Responder(this IMessageChannel channel, string resposta, MessageReference msgRefer)
+        public static async Task<IUserMessage> Responder(this IMessageChannel channel, string resposta, MessageReference msgRefer)
         {
             var trechos = resposta.Split("\n\n");
             IUserMessage mm = null;
