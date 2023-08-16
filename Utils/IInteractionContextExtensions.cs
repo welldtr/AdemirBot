@@ -70,7 +70,7 @@ namespace DiscordBot.Utils
                 await channel.SendEmbedText("Você não pode controlar o player de áudio nesse momento. Aguarde até que os outros membros terminem de usar.");
             }
 
-            if (ctx is Discord.Interactions.ShardedInteractionContext cmd)
+            if (ctx is Discord.Interactions.ShardedInteractionContext cmd && cmd.Interaction is ISlashCommandInteraction)
             {
                 await cmd.Interaction.DeleteOriginalResponseAsync();
             }
