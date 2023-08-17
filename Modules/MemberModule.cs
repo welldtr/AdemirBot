@@ -153,7 +153,7 @@ namespace DiscordBot.Modules
             {
                 await ModifyOriginalResponseAsync(a =>
                 {
-                    a.Content = $"A cor que você selecionou não pe válida. Tente um numero hexadecimal, media ou cargo.";
+                    a.Content = $"A imagem que você selecionou não é válida.";
                 });
                 return;
             }

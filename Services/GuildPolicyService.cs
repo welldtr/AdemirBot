@@ -4,6 +4,7 @@ using DiscordBot.Domain.Entities;
 using DiscordBot.Utils;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
+using SkiaSharp;
 using System.Diagnostics;
 
 namespace DiscordBot.Services
@@ -240,6 +241,36 @@ namespace DiscordBot.Services
             }
         }
 
+        private string ProcessWelcomeMsg(IGuildUser user, AdemirConfig cfg)
+        {
+            int width = 1770;
+            int height = 223;
+
+            using (var surface = SKSurface.Create(new SKImageInfo(width, height)))
+            {
+                var canvas = surface.Canvas;
+                var typeface = SKTypeface.FromFile("./shared/fonts/gg sans Bold.ttf");
+
+                var bg = SKBitmap.Decode(cfg.WelcomeBanner);
+                canvas.DrawBitmap(bg, new SKPoint(0, 0));
+                canvas.DrawText(user.DisplayName ?? user.Username, 50, 170, new SKFont(typeface, 80), new SKPaint
+                {
+                    IsAntialias = true,
+                    Color = SKColor.Parse("#30D5C8")
+                });
+
+                var filename = Path.GetTempFileName();
+                // Salvar a imagem em um arquivo
+                using (var image = surface.Snapshot())
+                using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+                using (var stream = File.OpenWrite(filename))
+                {
+                    data.SaveTo(stream);
+                }
+
+                return filename;
+            }
+        }
         private async Task ProcessMemberProgression(SocketGuild guild)
         {
             try
@@ -314,9 +345,9 @@ namespace DiscordBot.Services
             }
 
             await IncluirMembroNovo(user);
+            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
             var _ = Task.Run(async () =>
             {
-                var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
@@ -324,6 +355,11 @@ namespace DiscordBot.Services
             });
 
             await ProcessMemberProgression(guild);
+            if (config.WelcomeBanner != null && config.WelcomeBanner.Length > 0)
+            {
+                var img = ProcessWelcomeMsg(user, config);
+                await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
+            }
         }
 
         private async Task GiveAutoRole(AdemirConfig config, SocketGuildUser user)

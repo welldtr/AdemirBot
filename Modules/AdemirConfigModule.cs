@@ -1,6 +1,8 @@
 using Discord;
 using Discord.Interactions;
 using DiscordBot.Domain.Entities;
+using DiscordBot.Utils;
+using MongoDB.Driver;
 
 namespace DiscordBot.Modules
 {
@@ -12,7 +14,7 @@ namespace DiscordBot.Modules
         {
             db = context;
         }
-        
+
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("config-cargo-ademir", "Configurar cargo que pode falar com o Ademir.")]
         public async Task ConfigCargoAdemir(
@@ -35,6 +37,52 @@ namespace DiscordBot.Modules
             }
 
             await RespondAsync("Cargo permitido para o Ademir configurado.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("welcomebanner", "Define a imagem do banner de boas vindas")]
+        public async Task BackgroundSet([Summary(description: "Imagem (1600x400)")] IAttachment imagem = null)
+        {
+            await DeferAsync();
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+
+            if (cfg == null)
+            {
+                return;
+            }
+
+            if (imagem.ContentType.Matches("image/.*"))
+            {
+                using var client = new HttpClient();
+                using var ms = new MemoryStream();
+                var info = await client.GetStreamAsync(imagem.Url);
+                info.CopyTo(ms);
+                ms.Position = 0;
+                cfg.WelcomeBanner = ms.ToArray();
+            }
+            else if (imagem == null)
+            {
+                cfg.WelcomeBanner = null;
+            }
+            else
+            {
+                await ModifyOriginalResponseAsync(a =>
+                {
+                    a.Content = $"A cor que você selecionou não pe válida. Tente um numero hexadecimal, media ou cargo.";
+                });
+                return;
+            }
+
+            await db.ademirCfg.UpsertAsync(cfg, a => a.GuildId == Context.Guild.Id);
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = " ";
+                a.Embed = new EmbedBuilder()
+                    .WithColor(Color.Default)
+                    .WithCurrentTimestamp()
+                    .WithDescription($"Imagem de boas vindas {(imagem == null ? "removida" : "definida")} com sucesso.")
+                    .Build();
+            });
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
