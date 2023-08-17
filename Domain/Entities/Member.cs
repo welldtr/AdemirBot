@@ -28,6 +28,8 @@ namespace DiscordBot.Domain.Entities
         public long LurkrXP { get; set; }
         public int EventsPresent { get; set; }
         public string ReasonBanned { get; set; }
+        public byte[] CardBackground { get; set; }
+        public string AccentColor { get; set; }
 
         internal static Member FromGuildUser(IGuildUser user)
         {

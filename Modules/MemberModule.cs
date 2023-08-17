@@ -77,6 +77,100 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("colour", "Define a cor pricipal do card de evolução")]
+        public async Task Colour([Summary(description: "Cor")] string cor)
+        {
+            await DeferAsync();
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+            var user = await Context.Guild.GetUserAsync(Context.User.Id);
+            var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == Context.User.Id).FirstOrDefaultAsync();
+            if (cfg == null)
+            {
+                return;
+            }
+
+            if (cor == "cargo")
+            {
+                cor = cfg.RoleRewards
+                    .Where(a => a.Level <= member.Level)
+                    .OrderByDescending(a => a.Level)
+                    .FirstOrDefault()?.Roles.Select(a => a.Color).FirstOrDefault() ?? "Transparent";
+            }
+            else if (cor == "media")
+            {
+                var avgColor = await GetAverageColor(Context.User.GetAvatarUrl());
+                cor = avgColor.ToString();
+            }
+
+            if (SKColor.TryParse(cor, out var color))
+            {
+                member.AccentColor = color.ToString();
+            }
+            else
+            {
+                await ModifyOriginalResponseAsync(a =>
+                {
+                    a.Content = $"A cor que você selecionou não é válida. Tente um numero hexadecimal, media ou cargo.";
+                });
+                return;
+            }
+
+            await db.members.UpsertAsync(member, a => a.GuildId == Context.Guild.Id && a.MemberId == Context.User.Id);
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = " ";
+                a.Embed = new EmbedBuilder()
+                    .WithColor(Color.Default)
+                    .WithCurrentTimestamp()
+                    .WithDescription("Cor principal do card de evolução atualizada.")
+                    .Build();
+            });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("background", "Define o background do card de evolução")]
+        public async Task BackgroundSet([Summary(description: "Imagem (1600x400)")] IAttachment imagem)
+        {
+            await DeferAsync();
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+            var user = await Context.Guild.GetUserAsync(Context.User.Id);
+            var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == Context.User.Id).FirstOrDefaultAsync();
+            if (cfg == null)
+            {
+                return;
+            }
+
+            if (imagem.ContentType.Matches("image/.*"))
+            {
+                using var client = new HttpClient();
+                using var ms = new MemoryStream();
+                var info = await client.GetStreamAsync(imagem.Url);
+                info.CopyTo(ms);
+                ms.Position = 0;
+                member.CardBackground = ms.ToArray();
+            }
+            else
+            {
+                await ModifyOriginalResponseAsync(a =>
+                {
+                    a.Content = $"A cor que você selecionou não pe válida. Tente um numero hexadecimal, media ou cargo.";
+                });
+                return;
+            }
+
+            await db.members.UpsertAsync(member, a => a.GuildId == Context.Guild.Id && a.MemberId == Context.User.Id);
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = " ";
+                a.Embed = new EmbedBuilder()
+                    .WithColor(Color.Default)
+                    .WithCurrentTimestamp()
+                    .WithDescription("Imagem de fundo do card de evolução atualizada.")
+                    .Build();
+            });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("predict", "Prever a data que o servidor terá a determinada quantidade de membros")]
         public async Task Banner([Summary(description: "Qtd. Membros")] int qtd)
         {
@@ -187,6 +281,40 @@ namespace DiscordBot.Modules
             message.CurrentPage = currentPage;
             await paginator.SendPaginatedMessageAsync(Context.Channel, message);
             await DeleteOriginalResponseAsync();
+        }
+
+        private async Task<SKColor> GetAverageColor(string avatarUrl)
+        {
+            using var client = new HttpClient();
+            using var ms = new MemoryStream();
+            var info = await client.GetStreamAsync(avatarUrl);
+            info.CopyTo(ms);
+            ms.Position = 0;
+            using var bitmap = SKBitmap.Decode(ms);
+
+            var colorCounts = new Dictionary<SKColor, int>();
+
+            for (int x = 0; x < bitmap.Width; x++)
+            {
+                for (int y = 0; y < bitmap.Height; y++)
+                {
+                    var c = bitmap.GetPixel(x, y);
+                    var q = 32;
+                    var pixelColor = new SKColor((byte)((c.Red / q) * q), (byte)((c.Green / q) * q), (byte)((c.Blue / q) * q));
+                    if (colorCounts.ContainsKey(pixelColor))
+                    {
+                        colorCounts[pixelColor]++;
+                    }
+                    else
+                    {
+                        colorCounts.Add(pixelColor, 1);
+                    }
+                }
+            }
+
+            var dominantColor = colorCounts.OrderByDescending(x => x.Value).FirstOrDefault().Key;
+
+            return dominantColor;
         }
 
         private async Task<string> ProcessMemberGraph(IGuild guild, int dias)
@@ -392,6 +520,12 @@ namespace DiscordBot.Modules
                 var canvas = surface.Canvas;
                 canvas.Clear(backgroundColor);
 
+                if (member.CardBackground != null && member.CardBackground.Length > 0)
+                {
+                    using var bitmap = SKBitmap.Decode(member.CardBackground);
+                    canvas.DrawBitmap(bitmap, new SKRect(0, 0, width, height));
+                }
+
                 // Adicionar retângulo de fundo
                 SKColor backgroundRectColor = SKColor.Parse("#23272A");
                 int backgroundRectSize = 300;
@@ -418,7 +552,7 @@ namespace DiscordBot.Modules
                 var levelProgress = levelXp / totalLevelXp;
 
                 // Adicionar preenchimento da barra de progresso
-                SKColor additionalRect2Color = SKColor.Parse("#B0FFFFFF");
+                SKColor additionalRect2Color = SKColor.Parse(member.AccentColor ?? "#B0FFFFFF");
                 int additionalRect2Width = Convert.ToInt32(1200 * levelProgress);
                 int additionalRect2Height = 60;
                 int additionalRect2X = 375;
