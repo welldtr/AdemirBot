@@ -33,6 +33,8 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Denunciar um usuário através do comando `/denunciar`
 - :white_check_mark: Visualizar avatar com o comando `/avatar`
 - :white_check_mark: Visualizar banner com o comando `/banner`
+- :white_check_mark: Definir a cor principal do card de xp com `/colour`
+- :white_check_mark: Definir o fundo do card de xp com `/background`
 - :white_check_mark: Sincronizar recompensas de nível com `/syncrolerewards`
 - :white_check_mark: Visualizar ranking com `/leaderboard`
 - :white_check_mark: Visualizar contagem de membros com `/membercount`
