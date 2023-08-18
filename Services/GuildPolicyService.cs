@@ -243,7 +243,7 @@ namespace DiscordBot.Services
 
         private async Task<string> ProcessWelcomeMsg(IGuildUser user, AdemirConfig cfg)
         {
-            int width = 1770;
+            int width = 1661;
             int height = 223;
 
             using (var surface = SKSurface.Create(new SKImageInfo(width, height)))
