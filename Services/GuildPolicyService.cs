@@ -241,7 +241,7 @@ namespace DiscordBot.Services
             }
         }
 
-        private string ProcessWelcomeMsg(IGuildUser user, AdemirConfig cfg)
+        private async Task<string> ProcessWelcomeMsg(IGuildUser user, AdemirConfig cfg)
         {
             int width = 1770;
             int height = 223;
@@ -253,11 +253,39 @@ namespace DiscordBot.Services
 
                 var bg = SKBitmap.Decode(cfg.WelcomeBanner);
                 canvas.DrawBitmap(bg, new SKPoint(0, 0));
-                canvas.DrawText(user.DisplayName ?? user.Username, 50, 170, new SKFont(typeface, 80), new SKPaint
+                canvas.DrawText(user.DisplayName ?? user.Username, 294, 170, new SKFont(typeface, 80), new SKPaint
                 {
                     IsAntialias = true,
                     Color = SKColor.Parse("#30D5C8")
                 });
+
+                var avatarUrl = user.GetGuildAvatarUrl(size: 512) ?? user.GetDisplayAvatarUrl(size: 512);
+                canvas.DrawCircle(new SKPoint(140, 110), 100, new SKPaint
+                {
+                    IsAntialias = true,
+                    Color = SKColors.White,
+                    StrokeWidth = 12f,
+                    IsStroke = true,
+                });
+
+
+                if (!string.IsNullOrEmpty(avatarUrl))
+                {
+                    using var client = new HttpClient();
+                    var ms = new MemoryStream();
+                    var info = await client.GetStreamAsync(avatarUrl);
+                    info.CopyTo(ms);
+                    ms.Position = 0;
+                    using var avatar = SKBitmap.Decode(ms);
+                    var avatarRect = new SKRect(40, 10, 240, 210);
+                    var path = new SKPath();
+                    path.AddCircle(140, 110, 100);
+                    canvas.ClipPath(path, antialias: true);
+                    canvas.DrawBitmap(avatar, avatarRect, new SKPaint
+                    {
+                        IsAntialias = true
+                    });
+                }
 
                 var filename = Path.GetTempFileName();
                 // Salvar a imagem em um arquivo
@@ -357,7 +385,7 @@ namespace DiscordBot.Services
             await ProcessMemberProgression(guild);
             if (config.WelcomeBanner != null && config.WelcomeBanner.Length > 0)
             {
-                var img = ProcessWelcomeMsg(user, config);
+                var img = await ProcessWelcomeMsg(user, config);
                 var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
                 member.WelcomeMessageId = welcome.Id;
                 await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
