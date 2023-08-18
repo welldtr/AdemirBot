@@ -245,10 +245,12 @@ namespace DiscordBot.Services
         {
             int width = 1661;
             int height = 223;
+            SKColor backgroundColor = SKColor.Parse("#313338");
 
             using (var surface = SKSurface.Create(new SKImageInfo(width, height)))
             {
                 var canvas = surface.Canvas;
+                canvas.Clear(backgroundColor);
                 var typeface = SKTypeface.FromFile("./shared/fonts/gg sans Bold.ttf");
 
                 var bg = SKBitmap.Decode(cfg.WelcomeBanner);
