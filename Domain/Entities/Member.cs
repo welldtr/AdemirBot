@@ -30,6 +30,7 @@ namespace DiscordBot.Domain.Entities
         public string ReasonBanned { get; set; }
         public byte[] CardBackground { get; set; }
         public string AccentColor { get; set; }
+        public ulong WelcomeMessageId { get; set; }
 
         internal static Member FromGuildUser(IGuildUser user)
         {

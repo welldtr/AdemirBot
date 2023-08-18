@@ -3,6 +3,7 @@ using DiscordBot.Domain.ValueObjects;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Options;
+using SkiaSharp;
 
 namespace DiscordBot.Domain.Entities
 {
@@ -28,5 +29,6 @@ namespace DiscordBot.Domain.Entities
         public RoleReward[] RoleRewards { get; set; }
         [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfArrays)]
         public Dictionary<ulong, double> ChannelXpMultipliers { get; set; }
+        public byte[] WelcomeBanner { get; internal set; }
     }
 }
