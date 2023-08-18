@@ -196,6 +196,7 @@ namespace DiscordBot.Modules
             catch (Exception ex)
             {
 
+                await Context.Interaction.ModifyOriginalResponseAsync(a => a.Content = ex.ToString());
             }
         }
     }
