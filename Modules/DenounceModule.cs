@@ -65,7 +65,6 @@ namespace DiscordBot.Modules
 
             var denunciado = usuario;
 
-
             var msg = await canal.SendMessageAsync("", false, new EmbedBuilder()
             {
                 Fields = new List<EmbedFieldBuilder>

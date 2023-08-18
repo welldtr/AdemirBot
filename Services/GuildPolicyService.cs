@@ -269,10 +269,11 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task _client_MessageReceived(SocketMessage arg)
+        private Task _client_MessageReceived(SocketMessage arg)
         {
             var _ = Task.Run(async() => await ProtectFromFloodAndBlacklisted(arg));
             var __ = Task.Run(async() => await LogMessage(arg));
+            return Task.CompletedTask;
         }
 
         private async Task ProtectFromFloodAndBlacklisted(SocketMessage arg)

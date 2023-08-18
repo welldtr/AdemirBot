@@ -22,6 +22,7 @@ namespace DiscordBot.Domain.Entities
         public ulong AutoRoleId { get; set; }
         public ulong MinorRoleId { get; set; }
         public int AdemirConversationRPM { get; set; }
+        public ulong EventVoiceChannelId { get; set; }
         public bool Premium { get; set; }
         public bool EnableRoleRewards { get; set; }
         public RoleReward[] RoleRewards { get; set; }

@@ -2,11 +2,25 @@
 using Discord.Interactions;
 using DiscordBot.Utils;
 using DiscordBot.Modules.Modals;
+using DiscordBot.Domain.Entities;
+using AngleSharp.Text;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using DiscordBot.Services;
+using MongoDB.Driver;
 
 namespace DiscordBot.Modules
 {
     public class AdminModule : InteractionModuleBase
     {
+        private readonly Context db;
+
+        public AdminModule(Context context)
+        {
+            db = context;
+        }
+
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("massban", "Banir membros em massa.")]
         public async Task MassBan()
@@ -54,6 +68,135 @@ namespace DiscordBot.Modules
             channel = channel ?? Context.Channel;
             IEnumerable<IMessage> messages = await channel.GetMessagesAsync(qtd).FlattenAsync();
             await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("set-event-channel", "Define canal de voz dos eventos e realoca os eventos agendados")]
+        public async Task SetEventChannel(
+            [Summary(description: "Canal de voz")] IVoiceChannel channel)
+        {
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+            if (cfg == null)
+            {
+                await RespondAsync("Configuração de eventos invalida.", ephemeral: true);
+                return;
+            }
+            else
+            {
+                cfg.EventVoiceChannelId = channel.Id;
+                await db.ademirCfg.UpsertAsync(cfg, a => a.GuildId == Context.Guild.Id);
+                await RespondAsync("Canal de eventos eventos salvo.", ephemeral: true);
+
+                var events = await Context.Guild.GetEventsAsync();
+
+                foreach(var @event in events)
+                {
+                    if (@event.Status == GuildScheduledEventStatus.Scheduled)
+                        await @event.ModifyAsync(a => a.ChannelId = channel.Id);
+                }
+            }
+        }
+
+        [RequireBotPermission(GuildPermission.Administrator)]
+        [MessageCommand("Criar Evento")]
+        public async Task CriarEvento(IMessage msg)
+        {
+            var content = msg.Content;
+            var data = DateTime.Today.AddHours(DateTime.Now.Hour + 1);
+            try
+            {
+                if (content.Matches(@"(?'dia'\d{1,2})\/(?'mes'\d{1,2})(?:\/(?'ano'\d{1,4}))?"))
+                {
+                    var match = content.Match(@"(?'dia'\d{1,2})\/(?'mes'\d{1,2})(?:\/(?'ano'\d{1,4}))?").Groups;
+                    var dia = match["dia"];
+                    var mes = match["mes"];
+                    var ano = match["ano"];
+
+                    if (ano.Success)
+                    {
+                        data = DateTime.ParseExact($"{dia}/{mes}/{ano}", "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        data = DateTime.ParseExact($"{dia}/{mes}", "dd/MM", CultureInfo.InvariantCulture);
+                    }
+                }
+
+                if (content.Matches(@"(\d\d)(?:\:|h|H)(\d\d)"))
+                {
+                    var match = content.Match(@"(\d\d)(?:\:|h|H)(\d\d)").Groups;
+                    var hora = TimeSpan.ParseExact($"{match[1].Value}:{match[2].Value}", @"hh\:mm", CultureInfo.InvariantCulture);
+                    data = data.Date + hora;
+                }
+                else if (content.Matches(@"(\d\d)\s?(?:hrs|Hrs|hr|horas|Horas|H|h)\s"))
+                {
+                    var match = content.Match(@"(\d\d)\s?(?:hrs|Hrs|hr|horas|Horas|H|h)\s").Groups;
+                    var hora = TimeSpan.ParseExact(match[1].Value, "HH", CultureInfo.InvariantCulture);
+                    data = data.Date + hora;
+                }
+            }
+            catch
+            {
+                ;
+            }
+            var nome = content.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).First();
+            await Context.Interaction.RespondWithModalAsync($"criar_evento_msg:{msg.Id}", new EventModal
+            {
+                Title = $"Criar Evento",
+                Nome = nome,
+                DataHora = data.ToString("dd/MM/yyyy HH:mm"),
+                Descricao = content,
+            });
+        }
+
+
+        [ModalInteraction(@"criar_evento_msg:*", TreatAsRegex = true)]
+        public async Task CriarEventoModal(EventModal modal)
+        {
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+            if (cfg == null)
+            {
+                await RespondAsync("Configuração de eventos invalida.", ephemeral: true);
+                return;
+            }
+
+            string id = ((IModalInteraction)Context.Interaction).Data.CustomId;
+            var msgid = ulong.Parse(Regex.Match(id, @"criar_evento_msg:(\d+)").Groups[1].Value);
+            await DeferAsync(ephemeral: true);
+            var msg = await Context.Channel.GetMessageAsync(msgid);
+
+            Image? imagem = null;
+
+            using var ms = new MemoryStream();
+            if (msg.Attachments.Count > 0 && msg.Attachments.First().Url != null)
+            {
+
+                using var client = new HttpClient();
+                var info = await client.GetStreamAsync(msg.Attachments.First().Url);
+                info.CopyTo(ms);
+                ms.Position = 0;
+                imagem = new Image(ms);
+            }
+            try
+            {
+                var channels = await Context.Guild.GetChannelsAsync();
+                var data = DateTime.ParseExact(modal.DataHora, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+                modal.Nome = modal.Nome.Trim();
+                await Context.Guild.CreateEventAsync(
+                    modal.Nome,
+                    data,
+                    GuildScheduledEventType.Voice,
+                    GuildScheduledEventPrivacyLevel.Private,
+                    modal.Descricao,
+                    coverImage: imagem,
+                    channelId: cfg.EventVoiceChannelId);
+
+                await Context.Interaction.ModifyOriginalResponseAsync(a => a.Content = $"Evento criado.");
+            }
+            catch (Exception ex)
+            {
+
+            }
         }
     }
 }
