@@ -558,7 +558,13 @@ namespace DiscordBot.Modules
                 int additionalRect2X = 375;
                 int additionalRect2Y = 290;
                 int additionalRect2CornerRadius = 30;
+
+                canvas.Save();
+                var path = new SKPath();
+                path.AddRoundRect(new SKRect(additionalRectX, additionalRectY, additionalRectX + additionalRectWidth, additionalRectY + additionalRectHeight), additionalRectCornerRadius, additionalRectCornerRadius);
+                canvas.ClipPath(path, antialias: true);
                 canvas.DrawRoundRect(new SKRect(additionalRect2X, additionalRect2Y, additionalRect2X + additionalRect2Width, additionalRect2Y + additionalRect2Height), additionalRect2CornerRadius, additionalRect2CornerRadius, new SKPaint { IsAntialias = true, Color = additionalRect2Color });
+                canvas.Restore();
 
                 (string text, string color, int size, int x, int y) userName = (user.Username, "#FFFFFF", 66, 380, 273);
                 (string text, string color, int size, int x, int y) rank = ($"RANK#{rankPosition}", "#99AAB5", 55, 1570, 150);
