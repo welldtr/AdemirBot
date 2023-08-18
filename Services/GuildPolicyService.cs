@@ -344,7 +344,7 @@ namespace DiscordBot.Services
                 await _db.members.AddAsync(member);
             }
 
-            await IncluirMembroNovo(user);
+            await IncluirNovaChegada(user);
             var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
             var _ = Task.Run(async () =>
             {
@@ -358,7 +358,9 @@ namespace DiscordBot.Services
             if (config.WelcomeBanner != null && config.WelcomeBanner.Length > 0)
             {
                 var img = ProcessWelcomeMsg(user, config);
-                await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
+                var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
+                member.WelcomeMessageId = welcome.Id;
+                await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
             }
         }
 
@@ -421,10 +423,11 @@ namespace DiscordBot.Services
         {
             var userId = user.Id;
             var guildId = guild.Id;
-            var member = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
+            var membership = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
+
 
             var dateleft = DateTime.UtcNow;
-            if (member == null)
+            if (membership == null)
             {
                 await _db.memberships.AddAsync(new Membership
                 {
@@ -437,17 +440,23 @@ namespace DiscordBot.Services
             }
             else
             {
-                if (member.DateJoined != null)
+                if (membership.DateJoined != null)
                 {
-                    var tempoNoServidor = dateleft - member.DateJoined.Value;
+                    var tempoNoServidor = dateleft - membership.DateJoined.Value;
                     if (tempoNoServidor < TimeSpan.FromMinutes(30))
                     {
-                        await ProcurarEApagarMensagemDeBoasVindas(guild, member, member.DateJoined.Value);
+                        var member = (await _db.members.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
+                        if (member != null)
+                        {
+                            if (member.WelcomeMessageId > 0)
+                                await guild.SystemChannel.DeleteMessageAsync(member.WelcomeMessageId);
+                        }
+                        await ProcurarEApagarMensagemDeBoasVindas(guild, membership, membership.DateJoined.Value);
                     }
                 }
-                member.MemberUserName = user.Username;
-                member.DateLeft = dateleft;
-                await _db.memberships.UpsertAsync(member);
+                membership.MemberUserName = user.Username;
+                membership.DateLeft = dateleft;
+                await _db.memberships.UpsertAsync(membership);
             }
 
             await ProcessMemberProgression(guild);
@@ -475,7 +484,7 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task IncluirMembroNovo(SocketGuildUser arg)
+        private async Task IncluirNovaChegada(SocketGuildUser arg)
         {
             var userId = arg.Id;
 
