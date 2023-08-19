@@ -278,9 +278,9 @@ namespace DiscordBot.Services
                                 introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
                                 podePostar = true;
                             }
-                            else if (tempoParaInicio > TimeSpan.FromMinutes(30) && msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
+                            else if (tempoParaInicio > TimeSpan.FromMinutes(30) && msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(60))
                             {
-                                introducao = $"Atenção, <@&956383044770598942>!\nLogo mais às {evento.ScheduledTime:HH'h'mm}, no **{guild.Name}**, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                                introducao = $"Atenção, <@&956383044770598942>!\nLogo mais às {evento.ScheduledTime.ToLocalTime():HH'h'mm}, no **{guild.Name}**, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
                                 podePostar = ProcessWPM(guild.SystemChannelId ?? 0) > 25;
                             }
                             if (podePostar)
