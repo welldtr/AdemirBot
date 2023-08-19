@@ -286,7 +286,7 @@ namespace DiscordBot.Services
                             if (podePostar)
                             {
                                 evento.LastAnnounceTime = DateTime.UtcNow;
-                                await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao);
+                                await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao, allowedMentions: AllowedMentions.All);
                                 await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
                             }
                         }
