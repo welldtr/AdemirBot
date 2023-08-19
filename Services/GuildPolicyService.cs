@@ -93,6 +93,7 @@ namespace DiscordBot.Services
                     var tasks = _client.Guilds.Select(guild => Task.Run(async () =>
                     {
                         await ProcessarXPDeAudio(guild);
+                        await AnunciarEventosComecando(guild);
                         await BuscarPadroesBlacklistados(guild);
                     })).ToArray();
                     Task.WaitAll(tasks);
@@ -111,13 +112,72 @@ namespace DiscordBot.Services
         public async Task BuscarPadroesBlacklistados(IGuild guild)
         {
             var blacklist = await _db.backlistPatterns.Find(a => a.GuildId == guild.Id).ToListAsync();
-            if(backlistPatterns.ContainsKey(guild.Id))
+            if (backlistPatterns.ContainsKey(guild.Id))
             {
                 backlistPatterns[guild.Id] = blacklist.Select(a => a.Pattern).ToList();
             }
             else
             {
                 backlistPatterns.Add(guild.Id, blacklist.Select(a => a.Pattern).ToList());
+            }
+        }
+
+        public async Task AnunciarEventosComecando(IGuild guild)
+        {
+            var events = await guild.GetEventsAsync();
+            foreach (var ev in events)
+            {
+                var evento = await _db.events.Find(a => a.GuildId == guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
+                if (evento == null)
+                {
+                    evento = new GuildEvent
+                    {
+                        GuildEventId = Guid.NewGuid(),
+                        ChannelId = ev.ChannelId ?? 0,
+                        Cover = ev.GetCoverImageUrl(),
+                        ScheduledTime = ev.StartTime.UtcDateTime,
+                        GuildId = guild.Id,
+                        LastAnnounceTime = DateTime.UtcNow,
+                        Name = ev.Name,
+                        Description = ev.Description,
+                        Location = ev.Location,
+                        Type = ev.Type
+                    };
+                }
+
+                var tempoParaInicio = DateTime.UtcNow - evento.ScheduledTime;
+                var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.ScheduledTime;
+                var jaPodeAnunciar = tempoParaInicio < TimeSpan.FromHours(2);
+                if (jaPodeAnunciar)
+                {
+                    string link = $"https://discord.com/events/{guild.Id}/{evento.EventId}";
+                    var introducao = $"Atenção, <@&956383044770598942>!\nLogo mais, no canal <#{evento.ChannelId}>, teremos **{evento.Name}**. Se preparem.\n{link}";
+                    bool podePostar = false;
+                    if (ev.Status == GuildScheduledEventStatus.Scheduled)
+                    {
+                        if (tempoParaInicio.AroundMinutes(3) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(7))
+                        {
+                            introducao = $"Atenção, <@&956383044770598942>!\nTa na hora! **{evento.Name}** no <#{evento.ChannelId}>! Corre que ja vai começar!\n{link}";
+                            podePostar = true;
+                        }
+                        else if (tempoParaInicio.AroundMinutes(10) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
+                        {
+                            introducao = $"Atenção, <@&956383044770598942>!\nJá vai começar, **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                            podePostar = true;
+                        }
+                        else if (tempoParaInicio.AroundMinutes(60) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
+                        {
+                            introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                            podePostar = true;
+                        }
+                        if (podePostar)
+                        {
+                            evento.LastAnnounceTime = DateTime.UtcNow;
+                            await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
+                        }
+                    }
+                }
+
             }
         }
 
@@ -332,8 +392,8 @@ namespace DiscordBot.Services
 
         private Task _client_MessageReceived(SocketMessage arg)
         {
-            var _ = Task.Run(async() => await ProtectFromFloodAndBlacklisted(arg));
-            var __ = Task.Run(async() => await LogMessage(arg));
+            var _ = Task.Run(async () => await ProtectFromFloodAndBlacklisted(arg));
+            var __ = Task.Run(async () => await LogMessage(arg));
             return Task.CompletedTask;
         }
 
@@ -349,7 +409,7 @@ namespace DiscordBot.Services
                 {
                     var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
                     var delecoes = mensagensUltimos10Segundos
-                        .Select(async(msg) => await arg.Channel.DeleteMessageAsync(msg.Id))
+                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id))
                         .ToArray();
 
                     Task.WaitAll(delecoes);

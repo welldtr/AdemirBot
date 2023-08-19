@@ -35,6 +35,10 @@ namespace DiscordBot.Utils
             return r.Replace(entrada, replacement);
         }
 
+        public static bool AroundMinutes(this TimeSpan span, int minutes, double spaceInMinutes = 2)
+        {
+            return (span - TimeSpan.FromMinutes(minutes)).Duration() < TimeSpan.FromMinutes(spaceInMinutes);
+        }
         public static string FormatRushTime(this TimeSpan span)
         {
             if (span.Days != 0)
