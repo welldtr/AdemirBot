@@ -808,6 +808,10 @@ namespace DiscordBot.Services
                 Console.WriteLine($"{arg.Author?.Username} cooldown...");
                 return;
             }
+            else if(mentionRewardMultiplier > 1)
+            {
+                Console.WriteLine($"Recompensa de menção @{activeTakkerRole?.Name}: {mentionRewardMultiplier}...");
+            }
 
             member.MessageCount++;
             member.LastMessageTime = arg.Timestamp.UtcDateTime;
