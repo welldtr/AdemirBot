@@ -859,7 +859,7 @@ namespace DiscordBot.Services
             
             if (mentionRewardMultiplier > 1)
             {
-                Console.WriteLine($"Recompensa de menção @{activeTakkerRole?.Name}: {mentionRewardMultiplier}...");
+                Console.WriteLine($"{arg.Author?.Username}: multiplicador de menção @{activeTakkerRole?.Name}: {mentionRewardMultiplier}x");
             }
 
             member.MessageCount++;
