@@ -90,7 +90,7 @@ namespace DiscordBot.Modules
         }
 
 
-        [MessageCommand("denunciar")]
+        [MessageCommand("Denunciar")]
         public async Task Denunciar(IMessage msg)
         {
             var config = await db.denunciaCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id);
