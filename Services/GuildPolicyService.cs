@@ -132,7 +132,7 @@ namespace DiscordBot.Services
                     msgSinceAdemirCount.Add(guild.Id, 0);
 
                 var msgs = await _db.messagelog.Find(a => a.GuildId == guild.Id && a.MessageDate >= DateTime.UtcNow.AddMinutes(-5)).ToListAsync();
-                
+
                 var ademirTalked50 = await _db.messagelog
                     .Find(a => a.GuildId == guild.Id && a.MessageDate >= DateTime.UtcNow.AddMinutes(-5))
                     .SortByDescending(a => a.MessageDate)
@@ -140,7 +140,7 @@ namespace DiscordBot.Services
                     .ToListAsync();
 
                 var ademirMsg = ademirTalked50.FirstOrDefault(a => a.UserId == _client.CurrentUser.Id);
-                if(ademirMsg == null)
+                if (ademirMsg == null)
                     msgSinceAdemirCount[guild.Id] = 50;
                 else
                     msgSinceAdemirCount[guild.Id] = ademirTalked50.IndexOf(ademirMsg);
@@ -149,14 +149,14 @@ namespace DiscordBot.Services
                 {
                     var autor = guild.GetUser(msg.UserId);
                     var channel = guild.GetTextChannel(msg.ChannelId);
-                    if(autor != null && channel != null)
-                    mensagensUltimos5Minutos.Add(new VirtualMessage
-                    {
-                        Channel = channel,
-                        Author = autor,
-                        Timestamp = new DateTimeOffset(msg.MessageDate),
-                        Content = msg.Content
-                    });
+                    if (autor != null && channel != null)
+                        mensagensUltimos5Minutos.Add(new VirtualMessage
+                        {
+                            Channel = channel,
+                            Author = autor,
+                            Timestamp = new DateTimeOffset(msg.MessageDate),
+                            Content = msg.Content
+                        });
                 }
 
                 _log.LogInformation("Estado de velocidade de mensagens carregado.");
@@ -860,7 +860,7 @@ namespace DiscordBot.Services
                 Console.WriteLine($"{arg.Author?.Username} cooldown...");
                 return;
             }
-            
+
             if (mentionRewardMultiplier > 1)
             {
                 Console.WriteLine($"{arg.Author?.Username}: multiplicador de menção @{activeTakkerRole?.Name}: {mentionRewardMultiplier}x");
@@ -889,7 +889,8 @@ namespace DiscordBot.Services
 
             await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
 
-            Console.WriteLine($"{arg.Author?.Username} +{earnedXp} member xp -> {member.XP}");
+            if (earnedXp > 0)
+                Console.WriteLine($"{arg.Author?.Username} +{earnedXp} member xp -> {member.XP}");
         }
 
         public async Task ProcessRoleRewards(AdemirConfig config, Member member)
