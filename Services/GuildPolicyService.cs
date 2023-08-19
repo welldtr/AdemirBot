@@ -792,8 +792,12 @@ namespace DiscordBot.Services
 
             var isCoolledDown = lastTime.AddSeconds(60) >= arg.Timestamp.UtcDateTime;
 
-            if (activeTalkerMentions.Length > 0 && !isMentionCoolledDown)
+            if (activeTalkerMentions.Length > 0)
             {
+                if (isMentionCoolledDown)
+                {
+                    Console.WriteLine($"{arg.Author?.Username} mention cooldown...");
+                }
                 var mentionedUsers = arg.MentionedUsers.Any(a => guild.GetUser(a.Id).Roles.Contains(activeTakkerRole));
                 var mostQuietUser = await _db.members
                     .Find(a => activeTalkerMentions.Any(b => b.Id == a.MemberId) && a.GuildId == arg.GetGuildId())
