@@ -15,6 +15,7 @@ namespace DiscordBot.Services
         private DiscordShardedClient _client;
         private ILogger<GuildPolicyService> _log;
         private Dictionary<ulong, List<string>> backlistPatterns = new Dictionary<ulong, List<string>>();
+        private Dictionary<ulong, long> msgSinceAdemirCount = new Dictionary<ulong, long>();
         List<IMessage> mensagensUltimos5Minutos = new List<IMessage>();
 
         public GuildPolicyService(Context context, DiscordShardedClient client, ILogger<GuildPolicyService> logger)
@@ -192,6 +193,11 @@ namespace DiscordBot.Services
                             podePostar = true;
                         }
                         else if (tempoParaInicio.AroundMinutes(60) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
+                        {
+                            introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                            podePostar = true;
+                        }
+                        else if (msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
                         {
                             introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
                             podePostar = true;
@@ -427,7 +433,7 @@ namespace DiscordBot.Services
         {
             if (!arg.Author?.IsBot ?? false)
                 mensagensUltimos5Minutos.Add(arg);
-
+            
             if (arg.Author != null)
             {
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
@@ -620,6 +626,14 @@ namespace DiscordBot.Services
         {
             var channel = ((SocketTextChannel)arg.Channel);
 
+            if (channel.Id == channel.Guild.SystemChannel.Id)
+            {
+                msgSinceAdemirCount[arg.GetGuildId()]++;
+
+                if (arg.Author?.Id == _client.CurrentUser.Id)
+                    msgSinceAdemirCount[arg.GetGuildId()] = 0;
+            }
+
             if (!arg.Author?.IsBot ?? false)
                 await _db.messagelog.UpsertAsync(new Message
                 {
@@ -634,6 +648,7 @@ namespace DiscordBot.Services
                 });
 
             if (arg is IThreadChannel && ((IThreadChannel)arg).OwnerId == _client.CurrentUser.Id)
+            {
                 await _db.threads.UpsertAsync(new ThreadChannel
                 {
                     ThreadId = channel.Id,
@@ -641,6 +656,7 @@ namespace DiscordBot.Services
                     MemberId = arg.Author?.Id ?? 0,
                     LastMessageTime = arg.Timestamp.UtcDateTime,
                 });
+            }
 
             var ppm = ProcessWPM();
             Console.WriteLine($"PPM: {ppm}");
