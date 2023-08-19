@@ -715,26 +715,97 @@ namespace DiscordBot.Services
         {
             if (arg.Channel is IThreadChannel)
                 return;
-
             if (!(arg is SocketUserMessage userMessage) || userMessage.Author == null)
                 return;
 
             var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
-
-            var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
             if (member == null)
             {
                 member = Member.FromGuildUser(arg.Author as IGuildUser);
                 member.MessageCount = 0;
             }
-
+            var lastTime = member?.LastMessageTime ?? DateTime.MinValue;
+            var lastActivityMentionTime = member?.LastActivityMentionTime ?? DateTime.MinValue;
             var initialLevel = member.Level;
+
+            var guild = _client.GetGuild(arg.GetGuildId());
+            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+            var activeTakkerRole = guild.GetRole(config.ActiveTalkerRole);
+
+            var isMentionCoolledDown = false;
+            var activeTalkerMentions = new SocketUser[0];
+            var mentionRewardMultiplier = 1M;
+
+            if (activeTakkerRole != null)
+            {
+                isMentionCoolledDown = lastActivityMentionTime.AddMinutes(30) >= arg.Timestamp.UtcDateTime;
+                activeTalkerMentions = arg.MentionedUsers.Where(a => a.Id != arg.Author.Id && guild.GetUser(a.Id).Roles.Contains(activeTakkerRole)).ToArray();
+            }
 
             var isCoolledDown = lastTime.AddSeconds(60) >= arg.Timestamp.UtcDateTime;
 
-            if (isCoolledDown)
+            if (activeTalkerMentions.Length > 0 && !isMentionCoolledDown)
             {
-                Console.WriteLine($"{arg.Author?.Username} chill...");
+                var mentionedUsers = arg.MentionedUsers.Any(a => guild.GetUser(a.Id).Roles.Contains(activeTakkerRole));
+                var mostQuietUser = await _db.members
+                    .Find(a => activeTalkerMentions.Any(b => b.Id == a.MemberId) && a.GuildId == arg.GetGuildId())
+                    .SortBy(a => a.LastMessageTime)
+                    .FirstOrDefaultAsync();
+
+                var timeSinceLastMessage = DateTime.UtcNow - mostQuietUser.LastMessageTime;
+
+                var lastMentionOfThisUserByAuthor = await _db.userMentions
+                    .Find(a => a.MentionId == mostQuietUser.MemberId && a.AuthorId == arg.Author.Id)
+                    .SortByDescending(a => a.DateMentioned)
+                    .FirstOrDefaultAsync();
+
+                if (DateTime.Now - lastActivityMentionTime < TimeSpan.FromDays(1))
+                {
+                    Console.WriteLine($"Mention {arg.Author?.Username} > {mostQuietUser.MemberUserName} cooldown...");
+                    return;
+                }
+                else
+                {
+                    await _db.userMentions.AddAsync(new UserMention
+                    {
+                        UserMentionId = Guid.NewGuid(),
+                        AuthorId = arg.Author.Id,
+                        DateMentioned = DateTime.UtcNow,
+                        GuildId = guild.Id,
+                        MentionId = mostQuietUser.MemberId
+                    });
+                }
+
+                switch (timeSinceLastMessage)
+                {
+                    case TimeSpan t when t <= TimeSpan.FromHours(2):
+                        mentionRewardMultiplier = 1.12M;
+                        break;
+
+                    case TimeSpan t when t <= TimeSpan.FromHours(8):
+                        mentionRewardMultiplier = 1.25M;
+                        break;
+
+                    case TimeSpan t when t <= TimeSpan.FromHours(12):
+                        mentionRewardMultiplier = 1.50M;
+                        break;
+
+                    case TimeSpan t when t <= TimeSpan.FromHours(24):
+                        mentionRewardMultiplier = 1.75M;
+                        break;
+
+                    case TimeSpan t when t <= TimeSpan.FromDays(2):
+                        mentionRewardMultiplier = 2M;
+                        break;
+
+                    default:
+                        mentionRewardMultiplier = 2M;
+                        break;
+                }
+            }
+            else if (isCoolledDown)
+            {
+                Console.WriteLine($"{arg.Author?.Username} cooldown...");
                 return;
             }
 
@@ -746,9 +817,7 @@ namespace DiscordBot.Services
             var ppmMax = ppm > raidPpm ? raidPpm : ppm;
             var gainReward = ((raidPpm - ppmMax) / raidPpm) * 25M;
             var earnedXp = (int)gainReward + 15;
-            var guild = _client.GetGuild(arg.GetGuildId());
-
-            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+            earnedXp = (int)(earnedXp * mentionRewardMultiplier);
             config.ChannelXpMultipliers = config.ChannelXpMultipliers ?? new Dictionary<ulong, double>();
 
             if (config.ChannelXpMultipliers.ContainsKey(arg.Channel.Id))
