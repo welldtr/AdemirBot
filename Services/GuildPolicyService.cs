@@ -232,7 +232,7 @@ namespace DiscordBot.Services
                             }
                             else if (tempoParaInicio > TimeSpan.FromMinutes(30) && msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
                             {
-                                introducao = $"Atenção, <@&956383044770598942>!\nMais tarde no **{guild.Name}** às, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                                introducao = $"Atenção, <@&956383044770598942>!\nMais tarde no **{guild.Name}** às {evento.ScheduledTime:HH'h'mm}, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
                                 podePostar = ProcessWPM() > 25;
                             }
                             if (podePostar)
