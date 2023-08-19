@@ -233,7 +233,7 @@ namespace DiscordBot.Services
                             else if (tempoParaInicio > TimeSpan.FromMinutes(30) && msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
                             {
                                 introducao = $"Atenção, <@&956383044770598942>!\nMais tarde no **{guild.Name}** às {evento.ScheduledTime:HH'h'mm}, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
-                                podePostar = ProcessWPM() > 25;
+                                podePostar = ProcessWPM(guild.SystemChannelId ?? 0) > 25;
                             }
                             if (podePostar)
                             {
@@ -706,7 +706,7 @@ namespace DiscordBot.Services
                 });
             }
 
-            var ppm = ProcessWPM();
+            var ppm = ProcessWPM(channel.Id);
             Console.WriteLine($"PPM: {ppm}");
             await ProcessXPPerMessage(ppm, arg);
         }
@@ -808,7 +808,7 @@ namespace DiscordBot.Services
                 Console.WriteLine($"{arg.Author?.Username} cooldown...");
                 return;
             }
-            else if(mentionRewardMultiplier > 1)
+            else if (mentionRewardMultiplier > 1)
             {
                 Console.WriteLine($"Recompensa de menção @{activeTakkerRole?.Name}: {mentionRewardMultiplier}...");
             }
@@ -876,10 +876,14 @@ namespace DiscordBot.Services
             await user.RemoveRolesAsync(levelRolesToRemove);
         }
 
-        private int ProcessWPM()
+        private int ProcessWPM(ulong channelId = 0)
         {
             mensagensUltimos5Minutos = mensagensUltimos5Minutos.Where(a => a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddMinutes(-5)).ToList();
-            return mensagensUltimos5Minutos.Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length) / 5;
+            if (channelId == 0)
+                return mensagensUltimos5Minutos.Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length) / 5;
+            else
+                return mensagensUltimos5Minutos.Where(a => a.Channel.Id == channelId)
+                    .Sum(a => a.Content.Split(new char[] { ' ', ',', ';', '.', '-', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length) / 5;
         }
     }
 }
