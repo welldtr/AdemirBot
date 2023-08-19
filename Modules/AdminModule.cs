@@ -105,12 +105,12 @@ namespace DiscordBot.Modules
             var data = DateTime.Today.AddHours(DateTime.Now.Hour + 1);
             try
             {
-                if (content.Matches(@"(?'dia'\d{1,2})\/(?'mes'\d{1,2})(?:\/(?'ano'\d{1,4}))?"))
+                if (content.Matches(@"([0-9]{1,2})\/([0-9]{1,2})(?:\/([0-9]{2,4}))?"))
                 {
-                    var match = content.Match(@"(?'dia'\d{1,2})\/(?'mes'\d{1,2})(?:\/(?'ano'\d{1,4}))?").Groups;
-                    var dia = match["dia"];
-                    var mes = match["mes"];
-                    var ano = match["ano"];
+                    var match = content.Match(@"([0-9]{1,2})\/([0-9]{1,2})(?:\/([0-9]{1,4}))?").Groups;
+                    var dia = match[1];
+                    var mes = match[2];
+                    var ano = match[3];
 
                     if (ano.Success)
                     {
@@ -148,7 +148,6 @@ namespace DiscordBot.Modules
                 Descricao = content,
             });
         }
-
 
         [ModalInteraction(@"criar_evento_msg:*", TreatAsRegex = true)]
         public async Task CriarEventoModal(EventModal modal)
