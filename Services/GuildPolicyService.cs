@@ -665,6 +665,9 @@ namespace DiscordBot.Services
 
             if (channel.Id == channel.Guild.SystemChannel.Id)
             {
+                if (!msgSinceAdemirCount.ContainsKey(arg.GetGuildId()))
+                    msgSinceAdemirCount.Add(arg.GetGuildId(), 0);
+                    
                 msgSinceAdemirCount[arg.GetGuildId()]++;
 
                 if (arg.Author?.Id == _client.CurrentUser.Id)
