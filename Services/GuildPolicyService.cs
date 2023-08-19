@@ -179,67 +179,74 @@ namespace DiscordBot.Services
 
         public async Task AnunciarEventosComecando(IGuild guild)
         {
-            var events = await guild.GetEventsAsync();
-            foreach (var ev in events)
+            try
             {
-                var evento = await _db.events.Find(a => a.GuildId == guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
-                if (evento == null)
+                var events = await guild.GetEventsAsync();
+                foreach (var ev in events)
                 {
-                    evento = new GuildEvent
+                    var evento = await _db.events.Find(a => a.GuildId == guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
+                    if (evento == null)
                     {
-                        GuildEventId = Guid.NewGuid(),
-                        EventId = ev.Id,
-                        ChannelId = ev.ChannelId ?? 0,
-                        Cover = ev.GetCoverImageUrl(),
-                        ScheduledTime = ev.StartTime.UtcDateTime,
-                        GuildId = guild.Id,
-                        LastAnnounceTime = DateTime.UtcNow,
-                        Name = ev.Name,
-                        Description = ev.Description,
-                        Location = ev.Location,
-                        Type = ev.Type
-                    };
-                    await _db.events.AddAsync(evento);
-                }
+                        evento = new GuildEvent
+                        {
+                            GuildEventId = Guid.NewGuid(),
+                            EventId = ev.Id,
+                            ChannelId = ev.ChannelId ?? 0,
+                            Cover = ev.GetCoverImageUrl(),
+                            ScheduledTime = ev.StartTime.UtcDateTime,
+                            GuildId = guild.Id,
+                            LastAnnounceTime = DateTime.UtcNow,
+                            Name = ev.Name,
+                            Description = ev.Description,
+                            Location = ev.Location,
+                            Type = ev.Type
+                        };
+                        await _db.events.AddAsync(evento);
+                    }
 
-                var tempoParaInicio = DateTime.UtcNow - evento.ScheduledTime;
-                var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
-                var jaPodeAnunciar = tempoParaInicio < TimeSpan.FromHours(2);
-                if (jaPodeAnunciar)
-                {
-                    string link = $"https://discord.com/events/{guild.Id}/{evento.EventId}";
-                    var introducao = $"Atenção, <@&956383044770598942>!\nLogo mais, no canal <#{evento.ChannelId}>, teremos **{evento.Name}**. Se preparem.\n{link}";
-                    bool podePostar = false;
-                    if (ev.Status == GuildScheduledEventStatus.Scheduled)
+                    var tempoParaInicio = DateTime.UtcNow - evento.ScheduledTime;
+                    var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
+                    var jaPodeAnunciar = tempoParaInicio < TimeSpan.FromHours(2);
+                    if (jaPodeAnunciar)
                     {
-                        if (tempoParaInicio.AroundMinutes(3) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(7))
+                        string link = $"https://discord.com/events/{guild.Id}/{evento.EventId}";
+                        var introducao = $"Atenção, <@&956383044770598942>!\nLogo mais, no canal <#{evento.ChannelId}>, teremos **{evento.Name}**. Se preparem.\n{link}";
+                        bool podePostar = false;
+                        if (ev.Status == GuildScheduledEventStatus.Scheduled)
                         {
-                            introducao = $"Atenção, <@&956383044770598942>!\nTa na hora! **{evento.Name}** no <#{evento.ChannelId}>! Corre que ja vai começar!\n{link}";
-                            podePostar = true;
-                        }
-                        else if (tempoParaInicio.AroundMinutes(10) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
-                        {
-                            introducao = $"Atenção, <@&956383044770598942>!\nJá vai começar, **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
-                            podePostar = true;
-                        }
-                        else if (tempoParaInicio.AroundMinutes(60) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
-                        {
-                            introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
-                            podePostar = true;
-                        }
-                        else if (msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
-                        {
-                            introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
-                            podePostar = true;
-                        }
-                        if (podePostar)
-                        {
-                            evento.LastAnnounceTime = DateTime.UtcNow;
-                            await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao);
-                            await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
+                            if (tempoParaInicio.AroundMinutes(3) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(7))
+                            {
+                                introducao = $"Atenção, <@&956383044770598942>!\nTa na hora! **{evento.Name}** no <#{evento.ChannelId}>! Corre que ja vai começar!\n{link}";
+                                podePostar = true;
+                            }
+                            else if (tempoParaInicio.AroundMinutes(10) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
+                            {
+                                introducao = $"Atenção, <@&956383044770598942>!\nJá vai começar, **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                                podePostar = true;
+                            }
+                            else if (tempoParaInicio.AroundMinutes(60) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
+                            {
+                                introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                                podePostar = true;
+                            }
+                            else if (msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
+                            {
+                                introducao = $"Atenção, <@&956383044770598942>!\nEm menos de uma hora, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                                podePostar = true;
+                            }
+                            if (podePostar)
+                            {
+                                evento.LastAnnounceTime = DateTime.UtcNow;
+                                await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao);
+                                await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Erro ao processar eventos começando.");
             }
         }
 
@@ -463,7 +470,7 @@ namespace DiscordBot.Services
         {
             if (!arg.Author?.IsBot ?? false)
                 mensagensUltimos5Minutos.Add(arg);
-            
+
             if (arg.Author != null)
             {
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
@@ -667,7 +674,7 @@ namespace DiscordBot.Services
             {
                 if (!msgSinceAdemirCount.ContainsKey(arg.GetGuildId()))
                     msgSinceAdemirCount.Add(arg.GetGuildId(), 0);
-                    
+
                 msgSinceAdemirCount[arg.GetGuildId()]++;
 
                 if (arg.Author?.Id == _client.CurrentUser.Id)
