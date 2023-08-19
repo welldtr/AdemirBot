@@ -143,10 +143,11 @@ namespace DiscordBot.Services
                         Location = ev.Location,
                         Type = ev.Type
                     };
+                    _db.events.AddAsync(evento);
                 }
 
                 var tempoParaInicio = DateTime.UtcNow - evento.ScheduledTime;
-                var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.ScheduledTime;
+                var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
                 var jaPodeAnunciar = tempoParaInicio < TimeSpan.FromHours(2);
                 if (jaPodeAnunciar)
                 {
