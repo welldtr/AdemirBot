@@ -97,7 +97,7 @@ namespace DiscordBot.Modules
             }
         }
 
-        [RequireBotPermission(GuildPermission.Administrator)]
+        [RequireUserPermission(GuildPermission.Administrator)]
         [MessageCommand("Criar Evento")]
         public async Task CriarEvento(IMessage msg)
         {
