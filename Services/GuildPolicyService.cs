@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
+using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Utils;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
@@ -84,8 +85,13 @@ namespace DiscordBot.Services
             }
         }
 
-        private Task _client_ShardReady(DiscordSocketClient arg)
+        private async Task _client_ShardReady(DiscordSocketClient arg)
         {
+            foreach (var guild in _client.Guilds)
+            {
+                await LoadGuildMessagesFromDb(guild);
+            }
+
             var _ = Task.Run(async () =>
             {
                 while (true)
@@ -116,7 +122,49 @@ namespace DiscordBot.Services
                     await Task.Delay(TimeSpan.FromSeconds(120) - sw.Elapsed);
                 }
             });
-            return Task.CompletedTask;
+        }
+
+        private async Task LoadGuildMessagesFromDb(SocketGuild guild)
+        {
+            try
+            {
+                if (!msgSinceAdemirCount.ContainsKey(guild.Id))
+                    msgSinceAdemirCount.Add(guild.Id, 0);
+
+                var msgs = await _db.messagelog.Find(a => a.GuildId == guild.Id && a.MessageDate >= DateTime.UtcNow.AddMinutes(-5)).ToListAsync();
+                
+                var ademirTalked50 = await _db.messagelog
+                    .Find(a => a.GuildId == guild.Id && a.MessageDate >= DateTime.UtcNow.AddMinutes(-5))
+                    .SortByDescending(a => a.MessageDate)
+                    .Limit(50)
+                    .ToListAsync();
+
+                var ademirMsg = ademirTalked50.FirstOrDefault(a => a.UserId == _client.CurrentUser.Id);
+                if(ademirMsg == null)
+                    msgSinceAdemirCount[guild.Id] = 50;
+                else
+                    msgSinceAdemirCount[guild.Id] = ademirTalked50.IndexOf(ademirMsg);
+
+                foreach (var msg in msgs)
+                {
+                    var autor = guild.GetUser(msg.UserId);
+                    var channel = guild.GetTextChannel(msg.ChannelId);
+                    if(autor != null && channel != null)
+                    mensagensUltimos5Minutos.Add(new VirtualMessage
+                    {
+                        Channel = channel,
+                        Author = autor,
+                        Timestamp = new DateTimeOffset(msg.MessageDate),
+                        Content = msg.Content
+                    });
+                }
+
+                _log.LogInformation("Estado de velocidade de mensagens carregado.");
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Erro ao buscar mensagens do banco");
+            }
         }
 
         private async Task SairDeServidoresNaoAutorizados(SocketGuild guild)
@@ -205,7 +253,7 @@ namespace DiscordBot.Services
                     }
 
                     var tempoParaInicio = evento.ScheduledTime - DateTime.UtcNow;
-                    var eventoHoje = DateTime.UtcNow.Date == evento.ScheduledTime.Date;
+                    var eventoHoje = evento.ScheduledTime - DateTime.UtcNow < TimeSpan.FromDays(1);
                     var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
                     var jaPodeAnunciar = eventoHoje && tempoParaInicio < TimeSpan.FromHours(8);
                     if (jaPodeAnunciar)
@@ -232,7 +280,7 @@ namespace DiscordBot.Services
                             }
                             else if (tempoParaInicio > TimeSpan.FromMinutes(30) && msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
                             {
-                                introducao = $"Atenção, <@&956383044770598942>!\nMais tarde no **{guild.Name}** às {evento.ScheduledTime:HH'h'mm}, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                                introducao = $"Atenção, <@&956383044770598942>!\nLogo mais às {evento.ScheduledTime:HH'h'mm}, no **{guild.Name}**, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
                                 podePostar = ProcessWPM(guild.SystemChannelId ?? 0) > 25;
                             }
                             if (podePostar)
