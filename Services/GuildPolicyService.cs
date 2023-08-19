@@ -133,6 +133,7 @@ namespace DiscordBot.Services
                     evento = new GuildEvent
                     {
                         GuildEventId = Guid.NewGuid(),
+                        EventId = ev.Id,
                         ChannelId = ev.ChannelId ?? 0,
                         Cover = ev.GetCoverImageUrl(),
                         ScheduledTime = ev.StartTime.UtcDateTime,
