@@ -32,5 +32,6 @@ namespace DiscordBot.Domain.Entities
         [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfArrays)]
         public Dictionary<ulong, double> ChannelXpMultipliers { get; set; }
         public byte[] WelcomeBanner { get; set; }
+        public ulong EventStageChannelId { get; internal set; }
     }
 }
