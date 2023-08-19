@@ -14,9 +14,9 @@ namespace DiscordBot.Domain.Entities
         public string Description { get; set; }
         public string Cover { get; set; }
         public DateTime ScheduledTime { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public DateTime LastAnnounceTime { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public DateTime? LastAnnounceTime { get; set; }
         public string Location { get; set; }
         public GuildScheduledEventType Type { get; set; }
     }

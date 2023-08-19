@@ -228,8 +228,22 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("growthchange", "Mostra a mudança de crescimento de membros")]
+        public async Task GrowthChange([Summary(description: "Dias")] int dias = 7)
+        {
+            await DeferAsync();
+
+            var chartFileName = await ProcessMemberGrowth(Context.Guild, dias);
+            await ModifyOriginalResponseAsync(a =>
+            {
+                a.Content = " ";
+                a.Attachments = new[] { new FileAttachment(chartFileName, "graph.png") };
+            });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("membergraph", "Mostra a evolução de membros")]
-        public async Task Membergraph([Summary(description: "Dias")] int dias = 7)
+        public async Task MemberGraph([Summary(description: "Dias")] int dias = 7)
         {
             await DeferAsync();
 
@@ -320,26 +334,46 @@ namespace DiscordBot.Modules
         private async Task<string> ProcessMemberGraph(IGuild guild, int dias)
         {
             var progression = await db.progression.Find(a => a.GuildId == guild.Id && a.Date > DateTime.UtcNow.Date.AddDays(-dias)).SortBy(a => a.Date).ToListAsync();
+            long[] data = progression.Select(a => a.MemberCount).ToArray(); // Dados do gráfico
+            DateTime[] dates = progression.Select(a => a.Date).ToArray(); // Dados do gráfico
+            return ProcessGraph($"Evolução de Membros: {guild.Name}", data, dates);
+        }
+
+        private async Task<string> ProcessMemberGrowth(IGuild guild, int dias)
+        {
+            var progression = await db.progression.Find(a => a.GuildId == guild.Id && a.Date > DateTime.UtcNow.Date.AddDays(-dias)).SortBy(a => a.Date).ToListAsync();
+            long[] data = progression.Select(a => a.GrowthToday).ToArray(); // Dados do gráfico
+            DateTime[] dates = progression.Select(a => a.Date).ToArray(); // Dados do gráfico
+            return ProcessGraph($"Membros dia a dia: {guild.Name}", data, dates);
+        }
+
+        private string ProcessGraph(string title, long[] data, DateTime[] dates)
+        {
             // Configurações do gráfico
             int width = 840;
             int height = 640;
-            long[] data = progression.Select(a => a.MemberCount).ToArray(); // Dados do gráfico
-            DateTime[] dates = progression.Select(a => a.Date).ToArray(); // Dados do gráfico
             var mudaOAno = dates.Select(a => a.Year).Distinct().Count() > 1;
             long min = (long)(Math.Floor(data.Min() / 20M)) * 20;
             long max = (long)(Math.Ceiling(data.Max() / 20M)) * 20;
             var offsetx = 100;
-            var offsety = 20;
+            var offsety = 60;
             var range = max - min;
-            var zeroY = height - 120;
+            var zeroY = height - 180;
             var yratio = ((float)zeroY) / (float)range;
             float xratio = (width - offsetx) / data.Length;
 
+            using var titlePaint = new SKPaint();
+            titlePaint.Color = SKColor.Parse("#c0c0c0");
+            titlePaint.TextSize = 32;
+            titlePaint.TextAlign = SKTextAlign.Center;
+            titlePaint.IsAntialias = true;
+            titlePaint.FakeBoldText = true;
             using (var bitmap = new SKBitmap(width, height))
             {
                 using (var canvas = new SKCanvas(bitmap))
                 {
                     canvas.Clear(SKColors.Transparent);
+                    canvas.DrawText(title, width/2, 40, titlePaint);
                     int yscale = 10;
                     using (var paintGrid = new SKPaint())
                     {
@@ -365,7 +399,7 @@ namespace DiscordBot.Modules
                                 path.MoveTo(x - 50, zeroY + offsety + 90);
                                 path.LineTo(x + 10, zeroY + offsety + 15);
 
-                                canvas.DrawTextOnPath(mudaOAno ? $"{dates[i]:dd/MM/yy}" : $"{dates[i]:dd/MM}", path, 0, 0, textDatePaint);
+                                canvas.DrawTextOnPath(mudaOAno ? $"{dates[i]:dd/MM/yy}" : $"{dates[i]:dd/MM/yy}", path, 0, 0, textDatePaint);
 
                                 lastX = (int)x;
                             }

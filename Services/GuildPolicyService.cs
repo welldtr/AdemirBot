@@ -42,9 +42,10 @@ namespace DiscordBot.Services
             _client.UserBanned += _client_UserBanned;
             _client.UserUnbanned += _client_UserUnbanned;
             _client.GuildScheduledEventCompleted += _client_GuildScheduledEventCompleted;
+            _client.GuildScheduledEventStarted += _client_GuildScheduledEventStarted;
         }
 
-        private async Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
+        private Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
         {
             var _ = Task.Run(async () =>
             {
@@ -52,6 +53,7 @@ namespace DiscordBot.Services
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == user.Guild.Id);
                 await CheckIfMinorsAndBanEm(config, member);
             });
+            return Task.CompletedTask;
         }
 
         private async Task _client_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, Cacheable<IMessageChannel, ulong> arg2, SocketReaction arg3)
@@ -69,7 +71,7 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task _client_ShardReady(DiscordSocketClient arg)
+        private Task _client_ShardReady(DiscordSocketClient arg)
         {
             var _ = Task.Run(async () =>
             {
@@ -101,6 +103,7 @@ namespace DiscordBot.Services
                     await Task.Delay(TimeSpan.FromSeconds(120) - sw.Elapsed);
                 }
             });
+            return Task.CompletedTask;
         }
 
         private async Task SairDeServidoresNaoAutorizados(SocketGuild guild)
@@ -123,6 +126,15 @@ namespace DiscordBot.Services
             }
         }
 
+        private async Task _client_GuildScheduledEventStarted(SocketGuildEvent ev)
+        {
+            var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
+            if (evento != null)
+            {
+                evento.EndTime = DateTime.UtcNow;
+                await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
+            }
+        }
 
         private async Task _client_GuildScheduledEventCompleted(SocketGuildEvent ev)
         {
@@ -133,6 +145,7 @@ namespace DiscordBot.Services
                 await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
             }
         }
+
         public async Task AnunciarEventosComecando(IGuild guild)
         {
             var events = await guild.GetEventsAsync();
@@ -186,6 +199,7 @@ namespace DiscordBot.Services
                         if (podePostar)
                         {
                             evento.LastAnnounceTime = DateTime.UtcNow;
+                            await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao);
                             await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
                         }
                     }
