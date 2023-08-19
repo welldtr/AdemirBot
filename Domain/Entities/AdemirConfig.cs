@@ -19,6 +19,8 @@ namespace DiscordBot.Domain.Entities
         [BsonRepresentation(BsonType.Double, AllowTruncation = true)]
         public float? Position { get; set; }
         public int? CurrentTrack { get; set; }
+        public ulong ActiveTalkerRole { get; set; }
+        public ulong EventInviteRole { get; set; }
         public ulong AdemirRoleId { get; set; }
         public ulong AutoRoleId { get; set; }
         public ulong MinorRoleId { get; set; }
@@ -29,6 +31,6 @@ namespace DiscordBot.Domain.Entities
         public RoleReward[] RoleRewards { get; set; }
         [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfArrays)]
         public Dictionary<ulong, double> ChannelXpMultipliers { get; set; }
-        public byte[] WelcomeBanner { get; internal set; }
+        public byte[] WelcomeBanner { get; set; }
     }
 }

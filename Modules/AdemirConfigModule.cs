@@ -43,6 +43,30 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("set-activetalker-role", "Configurar cargo de participação ativa.")]
+        public async Task SetActiveTalkerRole(
+            [Summary(description: "Cargo de participação ativa")] IRole cargo)
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    ActiveTalkerRole = cargo.Id
+                });
+            }
+            else
+            {
+                config.ActiveTalkerRole = cargo.Id;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("Cargo de participação ativa configurado.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("lock-server", "Bloquear a entrada de novos membros")]
         public async Task Lock()
         {
