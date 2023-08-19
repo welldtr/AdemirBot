@@ -1,6 +1,7 @@
 using Discord;
 using Discord.Interactions;
 using DiscordBot.Domain.Entities;
+using DiscordBot.Services;
 using DiscordBot.Utils;
 using MongoDB.Driver;
 
@@ -9,10 +10,12 @@ namespace DiscordBot.Modules
     public class AdemirConfigModule : InteractionModuleBase
     {
         private readonly Context db;
+        private readonly GuildPolicyService policySvc;
 
-        public AdemirConfigModule(Context context)
+        public AdemirConfigModule(Context context, GuildPolicyService policySvc)
         {
             db = context;
+            this.policySvc = policySvc;
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -37,6 +40,22 @@ namespace DiscordBot.Modules
             }
 
             await RespondAsync("Cargo permitido para o Ademir configurado.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("lock-server", "Bloquear a entrada de novos membros")]
+        public async Task Lock()
+        {
+            policySvc.LockServer(Context.Guild.Id);
+            await RespondAsync("Entrada de novos membros bloqueada.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("unlock-server", "Desbloquear a entrada de novos membros")]
+        public async Task UnLock()
+        {
+            policySvc.UnlockServer(Context.Guild.Id);
+            await RespondAsync("Entrada de novos membros desbloqueada.", ephemeral: true);
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]

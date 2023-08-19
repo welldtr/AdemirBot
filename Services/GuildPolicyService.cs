@@ -16,6 +16,7 @@ namespace DiscordBot.Services
         private ILogger<GuildPolicyService> _log;
         private Dictionary<ulong, List<string>> backlistPatterns = new Dictionary<ulong, List<string>>();
         private Dictionary<ulong, long> msgSinceAdemirCount = new Dictionary<ulong, long>();
+        private Dictionary<ulong, bool> lockServer = new Dictionary<ulong, bool>();
         List<IMessage> mensagensUltimos5Minutos = new List<IMessage>();
 
         public GuildPolicyService(Context context, DiscordShardedClient client, ILogger<GuildPolicyService> logger)
@@ -45,6 +46,16 @@ namespace DiscordBot.Services
             _client.GuildScheduledEventCompleted += _client_GuildScheduledEventCompleted;
             _client.GuildScheduledEventStarted += _client_GuildScheduledEventStarted;
             _client.GuildScheduledEventUpdated += _client_GuildScheduledEventUpdated;
+        }
+
+        internal void UnlockServer(ulong id)
+        {
+            lockServer[id] = false;
+        }
+
+        internal void LockServer(ulong id)
+        {
+            lockServer[id] = true;
         }
 
         private Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
@@ -488,6 +499,13 @@ namespace DiscordBot.Services
 
             await IncluirNovaChegada(user);
             var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+
+            if (lockServer.ContainsKey(guild.Id) && lockServer[guild.Id] == true)
+            {
+                await user.KickAsync("O servidor está bloqueado contra raid.");
+                return;
+            }
+
             var _ = Task.Run(async () =>
             {
                 await GiveAutoRole(config, user);
