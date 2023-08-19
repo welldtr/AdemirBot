@@ -73,7 +73,7 @@ namespace DiscordBot.Modules
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("set-event-channel", "Define canal de voz dos eventos e realoca os eventos agendados")]
         public async Task SetEventChannel(
-            [Summary(description: "Canal de voz")] IVoiceChannel channel)
+            [Summary(description: "Canal de voz")] IAudioChannel channel)
         {
             var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
             if (cfg == null)
