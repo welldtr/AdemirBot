@@ -205,8 +205,9 @@ namespace DiscordBot.Services
                     }
 
                     var tempoParaInicio = DateTime.UtcNow - evento.ScheduledTime;
+                    var eventoHoje = DateTime.UtcNow.Date == evento.ScheduledTime.Date;
                     var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
-                    var jaPodeAnunciar = tempoParaInicio < TimeSpan.FromHours(2);
+                    var jaPodeAnunciar = eventoHoje && tempoParaInicio < TimeSpan.FromHours(8);
                     if (jaPodeAnunciar)
                     {
                         string link = $"https://discord.com/events/{guild.Id}/{evento.EventId}";
@@ -231,7 +232,7 @@ namespace DiscordBot.Services
                             }
                             else if (msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(30))
                             {
-                                introducao = $"Atenção, <@&956383044770598942>!\nMais tarde no **{guild.Name}**, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
+                                introducao = $"Atenção, <@&956383044770598942>!\nMais tarde no **{guild.Name}** às, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
                                 podePostar = true;
                             }
                             if (podePostar)
