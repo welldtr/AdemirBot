@@ -204,7 +204,7 @@ namespace DiscordBot.Services
                         await _db.events.AddAsync(evento);
                     }
 
-                    var tempoParaInicio = DateTime.UtcNow - evento.ScheduledTime;
+                    var tempoParaInicio = evento.ScheduledTime - DateTime.UtcNow;
                     var eventoHoje = DateTime.UtcNow.Date == evento.ScheduledTime.Date;
                     var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
                     var jaPodeAnunciar = eventoHoje && tempoParaInicio < TimeSpan.FromHours(8);
