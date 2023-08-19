@@ -41,6 +41,7 @@ namespace DiscordBot.Services
             _client.GuildMemberUpdated += _client_GuildMemberUpdated;
             _client.UserBanned += _client_UserBanned;
             _client.UserUnbanned += _client_UserUnbanned;
+            _client.GuildScheduledEventCompleted += _client_GuildScheduledEventCompleted;
         }
 
         private async Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
@@ -122,6 +123,16 @@ namespace DiscordBot.Services
             }
         }
 
+
+        private async Task _client_GuildScheduledEventCompleted(SocketGuildEvent ev)
+        {
+            var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
+            if (evento != null)
+            {
+                evento.EndTime = DateTime.UtcNow;
+                await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
+            }
+        }
         public async Task AnunciarEventosComecando(IGuild guild)
         {
             var events = await guild.GetEventsAsync();
@@ -179,7 +190,6 @@ namespace DiscordBot.Services
                         }
                     }
                 }
-
             }
         }
 
