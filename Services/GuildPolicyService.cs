@@ -44,6 +44,7 @@ namespace DiscordBot.Services
             _client.UserUnbanned += _client_UserUnbanned;
             _client.GuildScheduledEventCompleted += _client_GuildScheduledEventCompleted;
             _client.GuildScheduledEventStarted += _client_GuildScheduledEventStarted;
+            _client.GuildScheduledEventUpdated += _client_GuildScheduledEventUpdated;
         }
 
         private Task _client_GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> olduser, SocketGuildUser user)
@@ -144,6 +145,24 @@ namespace DiscordBot.Services
             {
                 evento.EndTime = DateTime.UtcNow;
                 await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
+            }
+        }
+
+        private async Task _client_GuildScheduledEventUpdated(Cacheable<SocketGuildEvent, ulong> old, SocketGuildEvent ev)
+        {
+            var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && old.Value.Id == ev.Id).FirstOrDefaultAsync();
+            if (evento != null)
+            {
+                evento.ChannelId = ev.Channel.Id;
+                evento.ChannelId = ev.Id;
+                evento.Cover = ev.GetCoverImageUrl();
+                evento.ScheduledTime = ev.StartTime.UtcDateTime;
+                evento.LastAnnounceTime = DateTime.UtcNow;
+                evento.Name = ev.Name;
+                evento.Description = ev.Description;
+                evento.Location = ev.Location;
+                evento.Type = ev.Type;
+                await _db.events.UpsertAsync(evento, a => a.GuildEventId == evento.GuildEventId);
             }
         }
 
