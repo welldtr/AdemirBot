@@ -143,7 +143,7 @@ namespace DiscordBot.Services
                         Location = ev.Location,
                         Type = ev.Type
                     };
-                    _db.events.AddAsync(evento);
+                    await _db.events.AddAsync(evento);
                 }
 
                 var tempoParaInicio = DateTime.UtcNow - evento.ScheduledTime;
