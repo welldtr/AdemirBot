@@ -378,7 +378,8 @@ namespace DiscordBot.Services
 
                         var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
                         var outrasPessoas = voice.Users.Count - qtdPessoasEntraramNaMesmaEpoca;
-                        if (qtdPessoasEntraramNaMesmaEpoca > outrasPessoas*2)
+                        
+                        if (qtdPessoasEntraramNaMesmaEpoca > outrasPessoas * 2)
                         {
                             earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
 
@@ -386,6 +387,7 @@ namespace DiscordBot.Services
                                 earnedXp = 1;
                             Console.WriteLine($"dividido por {qtdPessoasEntraramNaMesmaEpoca}: {member.MemberUserName}");
                         }
+
                         member.XP += earnedXp;
 
                         Console.WriteLine($"{member.MemberUserName} +{earnedXp} member xp -> {member.XP}");
@@ -818,7 +820,7 @@ namespace DiscordBot.Services
                     Console.WriteLine($"Mention {arg.Author?.Username} > {mostQuietUser.MemberUserName} cooldown...");
                     return;
                 }
-                else
+                foreach(var mentioned in arg.MentionedUsers)
                 {
                     await _db.userMentions.AddAsync(new UserMention
                     {
@@ -826,7 +828,7 @@ namespace DiscordBot.Services
                         AuthorId = arg.Author.Id,
                         DateMentioned = DateTime.UtcNow,
                         GuildId = guild.Id,
-                        MentionId = mostQuietUser.MemberId
+                        MentionId = mentioned.Id
                     });
                 }
 
