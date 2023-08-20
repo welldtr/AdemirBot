@@ -850,8 +850,12 @@ namespace DiscordBot.Services
                         mentionRewardMultiplier = 2M;
                         break;
 
+                    case TimeSpan t when t <= TimeSpan.FromDays(30):
+                        mentionRewardMultiplier = 3M;
+                        break;
+
                     default:
-                        mentionRewardMultiplier = 2M;
+                        mentionRewardMultiplier = 3M;
                         break;
                 }
             }
