@@ -38,6 +38,7 @@ namespace DiscordBot.Modules
             await RespondAsync($"{memberIds.Length} Usuários Banidos.");
         }
 
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("ban", "Bane um membro")]
         public async Task Ban(string motivo = null)
         {
@@ -45,6 +46,7 @@ namespace DiscordBot.Modules
             await RespondAsync($"**{Context.User.Username}** Usuários Banidos.", ephemeral: true);
         }
 
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("kick", "Expulsa um membro")]
         public async Task Kick(string motivo = null)
         {
