@@ -2,16 +2,19 @@
 using Discord.Interactions;
 using DiscordBot.Domain.Enum;
 using DiscordBot.Services;
+using MongoDB.Driver;
 
 namespace DiscordBot.Modules
 {
     public class HelpModule : InteractionModuleBase
     {
         private readonly AudioService audioSvc;
+        private readonly Context db;
 
-        public HelpModule(AudioService audioSvc)
+        public HelpModule(AudioService audioSvc, Context ctx)
         {
             this.audioSvc = audioSvc;
+            this.db = ctx;
         }
 
 
@@ -19,6 +22,8 @@ namespace DiscordBot.Modules
         [SlashCommand("help", "Lista os comandos do módulo")]
         public async Task Help([Summary(description: "Módulo")] HelpModuleType help)
         {
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+
             var channel = (ITextChannel)Context.Channel;
             switch (help)
             {
@@ -70,7 +75,7 @@ namespace DiscordBot.Modules
                     break;
 
                 case HelpModuleType.Membros:
-                    await WriteHelp(channel, @"
+                    await WriteHelp(channel, $@"
 ### Comandos de membros do servidor
 - `/help`: Listar os comandos por módulo
 - `/rank`: Exibir card de XP
@@ -85,6 +90,10 @@ namespace DiscordBot.Modules
 ### Dinâmica dos ganhos de level:
 - As mensagens tem ganho de XP dinâmicas seguindo a velocidade do chat.
 - Os chats podem ter fatores de ganho de XP diferentes.
+- Ao bumpar o servidor, você ganha XP
+- Reviver o chat multiplica muito a seu ganho de XP.
+- Conversar com alguém que assinou o cargo <@&{cfg?.ActiveTalkerRole ?? 0}> multiplica seus pontos de XP.
+- Conversar com membros que não aparecem há um tempo aumenta seu ganho de XP.
 - A XP por call só começa a contabilizar a partir do segundo membro não bot entrar na call.
 - A XP por call tem maior ganho durante um evento do servidor, stream e camera abertas.
 - A XP por call tem menor ganho em caso de microfone mutado ou ensurdecido
