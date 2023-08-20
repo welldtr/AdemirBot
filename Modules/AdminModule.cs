@@ -2,12 +2,8 @@
 using Discord.Interactions;
 using DiscordBot.Utils;
 using DiscordBot.Modules.Modals;
-using DiscordBot.Domain.Entities;
-using AngleSharp.Text;
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using DiscordBot.Services;
 using MongoDB.Driver;
 
 namespace DiscordBot.Modules
@@ -35,26 +31,38 @@ namespace DiscordBot.Modules
         public async Task BanResponse(MassBanModal modal)
         {
             var memberIds = StringUtils.SplitAndParseMemberIds(modal.Membros);
-            await DeferAsync();
             foreach (var id in memberIds)
             {
                 await (await Context.Client.GetGuildAsync(Context.Guild.Id)).AddBanAsync(id);
             }
-            await Context.Channel.SendMessageAsync($"{memberIds.Length} Usuários Banidos.");
+            await RespondAsync($"{memberIds.Length} Usuários Banidos.");
+        }
+
+        [SlashCommand("ban", "Bane um membro")]
+        public async Task Ban(string motivo = null)
+        {
+            await (await Context.Client.GetGuildAsync(Context.Guild.Id)).AddBanAsync(Context.User.Id, reason: motivo);
+            await RespondAsync($"**{Context.User.Username}** Usuários Banidos.", ephemeral: true);
+        }
+
+        [SlashCommand("kick", "Expulsa um membro")]
+        public async Task Kick(string motivo = null)
+        {
+            await (await Context.Guild.GetUserAsync(Context.User.Id)).KickAsync(motivo);
+            await RespondAsync($"**{Context.User.Username}** Usuários Banidos.", ephemeral: true);
         }
 
         [ModalInteraction("mass_kick")]
         public async Task KickResponse(MassKickModal modal)
         {
             var memberIds = StringUtils.SplitAndParseMemberIds(modal.Membros);
-            await DeferAsync();
             foreach (var id in memberIds)
             {
                 var user = await (await Context.Client.GetGuildAsync(Context.Guild.Id)).GetUserAsync(id);
                 if (user != null)
                     await user.KickAsync();
             }
-            await Context.Channel.SendMessageAsync($"{memberIds.Length} Usuários Expulsos.");
+            await RespondAsync($"{memberIds.Length} Usuários Expulsos.", ephemeral: true);
         }
 
         [RequireUserPermission(ChannelPermission.ManageMessages)]
@@ -64,10 +72,11 @@ namespace DiscordBot.Modules
             [Summary(description: "Quantidade de mensgens a excluir")] int qtd,
             [Summary("canal", "Canal a ser limpo")] IMessageChannel channel = default)
         {
-            await RespondAsync();
+            await DeferAsync();
             channel = channel ?? Context.Channel;
             IEnumerable<IMessage> messages = await channel.GetMessagesAsync(qtd).FlattenAsync();
             await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages);
+            await DeleteOriginalResponseAsync();
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]

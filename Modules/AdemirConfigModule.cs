@@ -67,6 +67,30 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("set-eventinvite-role", "Configurar cargo a convidar para os eventos.")]
+        public async Task SetEventInviteRole(
+            [Summary(description: "Cargo de convite para eventos ativa")] IRole cargo)
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    EventInviteRole = cargo.Id
+                });
+            }
+            else
+            {
+                config.EventInviteRole = cargo.Id;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("Cargo de convite para eventos configurado.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("lock-server", "Bloquear a entrada de novos membros")]
         public async Task Lock()
         {

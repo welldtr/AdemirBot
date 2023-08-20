@@ -39,6 +39,7 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Visualizar ranking com `/leaderboard`
 - :white_check_mark: Visualizar contagem de membros com `/membercount`
 - :white_check_mark: Visualizar evolução de membros com `/membergraph`
+- :white_check_mark: Visualizar o delta diário de membros com `/growthchange`
 - :white_check_mark: Prever quando o server vai ter n membros com `/predict`
 - :white_check_mark: Verificar memória do servidor com `/memory`
 - :white_check_mark: Criar um hash MD5 de um texto com `/md5`
@@ -57,8 +58,12 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Listar macros: comando `/listar-macros`
 - :white_check_mark: Editar macros: comando `/editar-macro`
 - :white_check_mark: Excluir macro: comando `/excluir-macro`
+- :white_check_mark: Banir: comando `/ban`
+- :white_check_mark: Expulsar: comando `/kick`
 - :white_check_mark: Banir em massa: comando `/massban`
 - :white_check_mark: Expulsar em massa: comando `/masskick`
+- :white_check_mark: Bloquear a chegada de novos membros: comando `/lock-server`
+- :white_check_mark: Desloquear a chegada de novos membros: comando `/unlock-server`
 - :white_check_mark: Habilitar módulo de cargos: comando `/togglerolerewards`
 - :white_check_mark: Importar levels de outro bot (Lurkr): comando `/importlevelinfo`
 - :white_check_mark: Definir XP de um membro: comando `/xp set`
@@ -66,8 +71,18 @@ O projeto "Ademir" é um bot criado para melhorar a experiência de comunidades 
 - :white_check_mark: Remover XP de um membro: comando `/xp remove`
 - :white_check_mark: Remover uma certa quantidade de mensagens de um canal: comando `/purge`
 - :white_check_mark: Importar histórico de mensagens: comando `/importar-historico-mensagens`
+- :white_check_mark: Configurar cargo de participação ativa: comando `/set-activetalker-role`
+- :white_check_mark: Configurar cargo de convite para eventos: comando `/set-eventinvite-role`
+- :white_check_mark: Define o canal de eventos de voz padrão: comando `/set-voice-event-channel`
+- :white_check_mark: Define o canal de eventos de palco padrão: comando `/set-stage-event-channel`
 - :white_check_mark: Extrair lista de usuarios por atividade no servidor `/usuarios-inativos`
 - :white_check_mark: Configurar cargo extra para falar com o bot: comando `/config-cargo-ademir`
+
+### Comandos de Mensagem: 
+- Criar Evento de Voz: Cria um evento de voz no servidor a partir da mensagem (reconhece data/hora)
+- Criar Evento Palco: Cria um evento de palco no servidor a partir da mensagem (reconhece data/hora)
+- Denunciar: Denuncia uma mensagem para a staff
+- Blacklist: Coloca o padrão da mensagem na lista negra (para apagar)
 
 ## Comandos de Música
 - :white_check_mark: `/play <link/track/playlist/album/artista>`: Reproduz uma música, playlist, artista ou álbum.
