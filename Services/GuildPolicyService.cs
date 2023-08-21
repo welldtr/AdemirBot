@@ -897,7 +897,7 @@ namespace DiscordBot.Services
 
             if (initialLevel < member.Level)
             {
-                if (member.Level == config.MinRecommendationLevel)
+                if (config.MinRecommendationLevel != 0 && member.Level == config.MinRecommendationLevel)
                 {
                     var txtRecomm = $"Oi, {arg.Author.Mention}! Tudo bem? Estamos muito felizes que causamos uma boa impressão e você decidiu ficar no server.\nVocê tem direito a recomendar 2 membros do servidor que te incentivaram a ficar.\n\nUtilize o comando /recomendar no servidor.";
                     try
