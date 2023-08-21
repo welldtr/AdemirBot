@@ -161,7 +161,7 @@ namespace DiscordBot.Modules
                 var lines = activeMembers.Where(a => (int)Math.Ceiling((activeMembers.IndexOf(a) + 1) / 15M) - 1 == i).Select(a => {
                     var inactivityTime = DateTime.UtcNow - a.LastMessageTime;
                     var reward = guildPolicy.GetRewardMultiplierByInactivity(inactivityTime);
-                    return $"**{activeMembers.IndexOf(a) + 1}.** <@{a.MemberId}>: ({reward:n0}xp)";
+                    return $"**{activeMembers.IndexOf(a) + 1}.** <@{a.MemberId}>: ({reward*100:n0}%/xp)";
                 });
                 page.Description = string.Join("\n", lines);
                 page.Fields = new EmbedFieldBuilder[0];
