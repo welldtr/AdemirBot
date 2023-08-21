@@ -78,7 +78,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("recomendar", "Recomenda um membro para ganhar XP por você ter ficado no grupo.")]
+        [SlashCommand("recomendar", "Recomenda um membro que te incentivou a ter ficado conosco.")]
         public async Task Recomendar([Summary(description: "Usuario")] IUser usuario)
         {
             await DeferAsync(ephemeral: true);
