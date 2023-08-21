@@ -45,7 +45,7 @@ namespace DiscordBot.Services
                 .WithButton(null, $"stop-paging:~{msgid}", ButtonStyle.Primary, PlayerEmote.Stop)
                 .Build();
             await message.ModifyAsync(a => a.Components = components);
-            
+
             _messages.Add(message.Id, paginated);
             Log.LogDebug($"Listening to message with id {msgid}");
 
@@ -62,6 +62,40 @@ namespace DiscordBot.Services
                 });
             }
             return message;
+        }
+
+        public async Task<IDiscordInteraction> RespondPaginatedMessageAsync(IDiscordInteraction interaction, PaginatedMessage paginated)
+        {
+            Log.LogInformation($"Responding to interaction on channel {interaction.ChannelId}");
+
+            await interaction.ModifyOriginalResponseAsync(a => a.Embed = paginated.GetEmbed());
+
+            var msgid = interaction.Id;
+            var components = new ComponentBuilder()
+                .WithButton(null, $"first-page:~{msgid}", ButtonStyle.Primary, PlayerEmote.Back)
+                .WithButton(null, $"back-page:~{msgid}", ButtonStyle.Primary, PlayerEmote.Rewind)
+                .WithButton(null, $"next-page:~{msgid}", ButtonStyle.Primary, PlayerEmote.Forward)
+                .WithButton(null, $"last-page:~{msgid}", ButtonStyle.Primary, PlayerEmote.Skip)
+                .WithButton(null, $"stop-paging:~{msgid}", ButtonStyle.Primary, PlayerEmote.Stop)
+                .Build();
+            await interaction.ModifyOriginalResponseAsync(a => a.Components = components);
+
+            _messages.Add(interaction.Id, paginated);
+            Log.LogDebug($"Listening to message with id {msgid}");
+
+            if (paginated.Options.Timeout != TimeSpan.Zero)
+            {
+                var _ = Task.Delay(paginated.Options.Timeout).ContinueWith(async _t =>
+                {
+                    if (!_messages.ContainsKey(interaction.Id)) return;
+                    if (paginated.Options.TimeoutAction == StopAction.DeleteMessage)
+                        await interaction.DeleteOriginalResponseAsync();
+                    else if (paginated.Options.TimeoutAction == StopAction.ClearReactions)
+                        await interaction.ModifyOriginalResponseAsync(a => a.Components = new ComponentBuilder().Build());
+                    _messages.Remove(interaction.Id);
+                });
+            }
+            return interaction;
         }
 
         private async Task _interactionService_InteractionExecuted(ICommandInfo cmd, IInteractionContext ctx, Discord.Interactions.IResult res)
@@ -81,8 +115,9 @@ namespace DiscordBot.Services
             if (channel == null)
                 return;
 
-            var message = (IUserMessage)await channel.GetMessageAsync(messageId);
-            if (message == null)
+            var messsage = ((IComponentInteraction)ctx.Interaction).Message;
+            
+            if (messsage == null)
             {
                 Log.LogDebug($"Dumped message (not in cache) with id {commandName}");
                 return;
@@ -90,7 +125,7 @@ namespace DiscordBot.Services
 
             if (ctx.User == null)
             {
-                Log.LogDebug($"Dumped message (invalid user) with id {message.Id}");
+                Log.LogDebug($"Dumped message (invalid user) with id {messsage.Id}");
                 return;
             }
 
@@ -109,7 +144,7 @@ namespace DiscordBot.Services
                     if (page.CurrentPage != 1)
                     {
                         page.CurrentPage = 1;
-                        await message.ModifyAsync(x => x.Embed = page.GetEmbed());
+                        await messsage.ModifyAsync(x => x.Embed = page.GetEmbed());
                     }
                     await ctx.Interaction.DeferAsync();
                 }
@@ -118,7 +153,7 @@ namespace DiscordBot.Services
                     if (page.CurrentPage != 1)
                     {
                         page.CurrentPage--;
-                        await message.ModifyAsync(x => x.Embed = page.GetEmbed());
+                        await messsage.ModifyAsync(x => x.Embed = page.GetEmbed());
                     }
                     await ctx.Interaction.DeferAsync();
                 }
@@ -127,7 +162,7 @@ namespace DiscordBot.Services
                     if (page.CurrentPage != page.Count)
                     {
                         page.CurrentPage++;
-                        await message.ModifyAsync(x => x.Embed = page.GetEmbed());
+                        await messsage.ModifyAsync(x => x.Embed = page.GetEmbed());
                     }
                     await ctx.Interaction.DeferAsync();
                 }
@@ -136,17 +171,13 @@ namespace DiscordBot.Services
                     if (page.CurrentPage != page.Count)
                     {
                         page.CurrentPage = page.Count;
-                        await message.ModifyAsync(x => x.Embed = page.GetEmbed());
+                        await messsage.ModifyAsync(x => x.Embed = page.GetEmbed());
                     }
                     await ctx.Interaction.DeferAsync();
                 }
                 else if (commandName == "stop-paging")
                 {
-                    if (page.Options.EmoteStopAction == StopAction.DeleteMessage)
-                        await message.DeleteAsync();
-                    else if (page.Options.EmoteStopAction == StopAction.ClearReactions)
-                        await message.RemoveAllReactionsAsync();
-                    _messages.Remove(message.Id);
+                    await messsage.DeleteAsync();
                     await ctx.Interaction.DeferAsync();
                 }
             }

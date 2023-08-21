@@ -15,6 +15,8 @@ namespace DiscordBot.Domain.Entities
         public string MemberUserName { get; set; }
         public string MemberNickname { get; set; }
         public DateTime? LastMessageTime { get; set; }
+        public DateTime DateJoined { get; set; }
+        public DateTime DateLastJoined { get; set; }
         public DateTime? LastActivityMentionTime { get; set; }
         public DateTime? DateBanned { get; set; }
         public long XP { get; set; }
@@ -32,6 +34,7 @@ namespace DiscordBot.Domain.Entities
         public byte[] CardBackground { get; set; }
         public string AccentColor { get; set; }
         public ulong WelcomeMessageId { get; set; }
+        public ulong[] RoleIds { get; set; }
 
         internal static Member FromGuildUser(IGuildUser user)
         {

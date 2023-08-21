@@ -89,6 +89,7 @@ namespace DiscordBot.Services
         {
             foreach (var guild in _client.Guilds)
             {
+                // await LoadMembersRoles(guild);
                 await LoadGuildMessagesFromDb(guild);
             }
 
@@ -122,6 +123,39 @@ namespace DiscordBot.Services
                     await Task.Delay(TimeSpan.FromSeconds(120) - sw.Elapsed);
                 }
             });
+        }
+
+        private async Task LoadMembersRoles(SocketGuild guild)
+        {
+            try
+            {
+                var users = await guild.GetUsersAsync().FlattenAsync();
+                foreach(var user in users)
+                {
+                    try
+                    {
+                        var member = await _db.members.Find(a => a.GuildId == guild.Id && a.MemberId == user.Id).FirstOrDefaultAsync();
+                        if(member == null)
+                        {
+                            member = Member.FromGuildUser(user);
+                        }
+                        var membership = await _db.members.Find(a => a.GuildId == guild.Id && a.MemberId == user.Id).SortBy(a => a.DateJoined).FirstOrDefaultAsync();
+                        member.DateLastJoined = user.JoinedAt.Value.UtcDateTime;
+                        member.DateJoined = membership.DateJoined;
+                        member.RoleIds = user.RoleIds.ToArray();
+                        await _db.members.UpsertAsync(member, a => a.GuildId == guild.Id && a.MemberId == user.Id);
+                    }
+                    catch (Exception exx)
+                    {
+                        _log.LogError(exx, "Erro ao atualizar usuario");
+                    }
+                }
+                _log.LogInformation("Informações de join carregadas.");
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "Erro ao buscar mensagens do banco");
+            }
         }
 
         private async Task LoadGuildMessagesFromDb(SocketGuild guild)
@@ -833,36 +867,7 @@ namespace DiscordBot.Services
                     });
                 }
 
-                switch (timeSinceLastMessage)
-                {
-                    case TimeSpan t when t <= TimeSpan.FromHours(2):
-                        mentionRewardMultiplier = 1.12M;
-                        break;
-
-                    case TimeSpan t when t <= TimeSpan.FromHours(8):
-                        mentionRewardMultiplier = 1.25M;
-                        break;
-
-                    case TimeSpan t when t <= TimeSpan.FromHours(12):
-                        mentionRewardMultiplier = 1.50M;
-                        break;
-
-                    case TimeSpan t when t <= TimeSpan.FromHours(24):
-                        mentionRewardMultiplier = 1.75M;
-                        break;
-
-                    case TimeSpan t when t <= TimeSpan.FromDays(2):
-                        mentionRewardMultiplier = 2M;
-                        break;
-
-                    case TimeSpan t when t <= TimeSpan.FromDays(30):
-                        mentionRewardMultiplier = 3M;
-                        break;
-
-                    default:
-                        mentionRewardMultiplier = 3M;
-                        break;
-                }
+                mentionRewardMultiplier = GetRewardMultiplierByInactivity(timeSinceLastMessage);
             }
             else if (isCoolledDown)
             {
@@ -917,6 +922,42 @@ namespace DiscordBot.Services
 
             if (earnedXp > 0)
                 Console.WriteLine($"{arg.Author?.Username} +{earnedXp} member xp -> {member.XP}");
+        }
+
+        public decimal GetRewardMultiplierByInactivity(TimeSpan? timeSinceLastMessage)
+        {
+            decimal mentionRewardMultiplier;
+            switch (timeSinceLastMessage)
+            {
+                case TimeSpan t when t <= TimeSpan.FromHours(2):
+                    mentionRewardMultiplier = 1.12M;
+                    break;
+
+                case TimeSpan t when t <= TimeSpan.FromHours(8):
+                    mentionRewardMultiplier = 1.25M;
+                    break;
+
+                case TimeSpan t when t <= TimeSpan.FromHours(12):
+                    mentionRewardMultiplier = 1.50M;
+                    break;
+
+                case TimeSpan t when t <= TimeSpan.FromHours(24):
+                    mentionRewardMultiplier = 1.75M;
+                    break;
+
+                case TimeSpan t when t <= TimeSpan.FromDays(2):
+                    mentionRewardMultiplier = 2M;
+                    break;
+
+                case TimeSpan t when t <= TimeSpan.FromDays(30):
+                    mentionRewardMultiplier = 3M;
+                    break;
+
+                default:
+                    mentionRewardMultiplier = 3M;
+                    break;
+            }
+            return mentionRewardMultiplier;
         }
 
         public async Task ProcessRoleRewards(AdemirConfig config, Member member)

@@ -131,6 +131,57 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("recompensas-por-usuario", "Visualiza os usuários menos ativos com o cargo de usuários ativos do servidor e suas recompensas")]
+        public async Task RecompensasPorUsuario()
+        {
+            await DeferAsync();
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+
+            if (cfg == null)
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = "Comando não configurado.");
+                return;
+            }
+
+            var activeMembers = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.RoleIds.Contains(cfg.ActiveTalkerRole))
+                .SortBy(a => a.LastMessageTime)
+                .ThenBy(a => a.DateJoined)
+                .ToListAsync();
+
+            var guildUsers = await Context.Guild.GetUsersAsync();
+                        
+            activeMembers = activeMembers.Where((a) => guildUsers.Any(b => b.Id == a.MemberId)).ToList();
+            
+            var currentPage = 1;
+            var numPaginas = (int)Math.Ceiling(activeMembers.Count / 15M);
+            var paginas = new List<Page>(Enumerable.Range(0, numPaginas).Select(a => new Page()).ToList());
+            for (var i = 0; i < numPaginas; i++)
+            {
+                var page = paginas[i];
+                var lines = activeMembers.Where(a => (int)Math.Ceiling((activeMembers.IndexOf(a) + 1) / 15M) - 1 == i).Select(a => {
+                    var inactivityTime = DateTime.UtcNow - a.LastMessageTime;
+                    var reward = guildPolicy.GetRewardMultiplierByInactivity(inactivityTime);
+                    return $"**{activeMembers.IndexOf(a) + 1}.** <@{a.MemberId}>: ({reward:n0}xp)";
+                });
+                page.Description = string.Join("\n", lines);
+                page.Fields = new EmbedFieldBuilder[0];
+            }
+
+            var message = new PaginatedMessage(paginas, $"Tabela de recompensas **{Context.Guild.Name}**", Color.Default, Context.User, new AppearanceOptions { });
+            message.CurrentPage = currentPage;
+            await paginator.RespondPaginatedMessageAsync(Context.Interaction, message);
+        }
+
+        private List<EmbedFieldBuilder> GetFields(string nome, string mensagem)
+        {
+            var embedFieldBuilders = new List<EmbedFieldBuilder>();
+            embedFieldBuilders.Add(new EmbedFieldBuilder().WithIsInline(true).WithName($"Nome ({mensagem.Length} caracteres)").WithValue(nome));
+            embedFieldBuilders.AddRange(mensagem.SplitInChunksOf(1024).Select(a => new EmbedFieldBuilder().WithName($"Mensagem").WithValue(a)));
+            return embedFieldBuilders;
+        }
+
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("colour", "Define a cor pricipal do card de evolução")]
         public async Task Colour([Summary(description: "Cor")] string cor)
         {
@@ -348,8 +399,7 @@ namespace DiscordBot.Modules
 
             var message = new PaginatedMessage(paginas, $"Ranking {Context.Guild.Name}", Color.Default, Context.User, new AppearanceOptions { });
             message.CurrentPage = currentPage;
-            await paginator.SendPaginatedMessageAsync(Context.Channel, message);
-            await DeleteOriginalResponseAsync();
+            await paginator.RespondPaginatedMessageAsync(Context.Interaction, message);
         }
 
         private async Task<SKColor> GetAverageColor(string avatarUrl)
