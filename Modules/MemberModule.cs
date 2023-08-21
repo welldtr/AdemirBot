@@ -99,7 +99,7 @@ namespace DiscordBot.Modules
             }
 
             var recomendacoesDesteUsuario = await db.userRecomms
-                .Find(a => a.GuildId == Context.Guild.Id && a.AuthorId == usuario.Id)
+                .Find(a => a.GuildId == Context.Guild.Id && a.AuthorId == Context.User.Id)
                 .ToListAsync();
 
             if(recomendacoesDesteUsuario.Count >= 2)
