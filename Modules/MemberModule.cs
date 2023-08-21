@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using DiscordBot.Domain.Entities;
 using DiscordBot.Domain.Enum;
 using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Services;
@@ -77,17 +78,71 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("recomendar", "Recomenda um membro para ganhar XP por você ter ficado no grupo.")]
+        public async Task Recomendar([Summary(description: "Usuario")] IUser usuario)
+        {
+            await DeferAsync(ephemeral: true);
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync(); 
+
+            if (cfg == null || cfg.MinRecommendationLevel == 0)
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = "Comando não configurado.");
+                return;
+            }
+
+            var author = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
+
+            if (author == null || author.Level < cfg.MinRecommendationLevel)
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = $"Você só pode recomendar um membro quando alcançar o level {cfg.MinRecommendationLevel}.");
+                return;
+            }
+
+            var recomendacoesDesteUsuario = await db.userRecomms
+                .Find(a => a.GuildId == Context.Guild.Id && a.AuthorId == usuario.Id)
+                .ToListAsync();
+
+            if(recomendacoesDesteUsuario.Count >= 2)
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = "Você já recomendou 2 membros.");
+                return;
+            }
+
+            if(recomendacoesDesteUsuario.Any(a => a.UserRecommendedId == usuario.Id))
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = "Você não pode recomendar o mesmo membro de novo.");
+                return;
+            }
+
+            await db.userRecomms.AddAsync(new UserRecommendation
+            {
+                UserRecommendationId = Guid.NewGuid(),
+                GuildId = Context.Guild.Id,
+                UserRecommendedId = usuario.Id,
+                AuthorId = Context.User.Id,
+                DateRecommendation = DateTime.UtcNow
+            });
+
+            var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
+            member.XP += 1000;
+            await db.members.UpsertAsync(member, a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id);
+            await guildPolicy.ProcessRoleRewards(cfg, member);
+            await ModifyOriginalResponseAsync(a => a.Content = $"Obrigado pela recomendação! **{usuario.Username}** ganhou 1000xp.");
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("colour", "Define a cor pricipal do card de evolução")]
         public async Task Colour([Summary(description: "Cor")] string cor)
         {
             await DeferAsync();
             var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
-            var user = await Context.Guild.GetUserAsync(Context.User.Id);
-            var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == Context.User.Id).FirstOrDefaultAsync();
             if (cfg == null)
             {
+                await ModifyOriginalResponseAsync(a => a.Content = "Configuração ausente.");
                 return;
             }
+            var user = await Context.Guild.GetUserAsync(Context.User.Id);
+            var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == Context.User.Id).FirstOrDefaultAsync();
 
             if (cor == "cargo")
             {

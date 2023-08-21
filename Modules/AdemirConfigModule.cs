@@ -43,9 +43,24 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("set-recommendation-level", "Define o level mínimo necessário para recomendar um membro.")]
+        public async Task Colour([Summary(description: "Level mínimo")] long level)
+        {
+            await DeferAsync();
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+            if (cfg == null)
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = "Configuração ausente.");
+                return;
+            }
+            cfg.MinRecommendationLevel = level;
+            await db.ademirCfg.UpsertAsync(cfg);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("set-activetalker-role", "Configurar cargo de participação ativa.")]
         public async Task SetActiveTalkerRole(
-            [Summary(description: "Cargo de participação ativa")] IRole cargo)
+        [Summary(description: "Cargo de participação ativa")] IRole cargo)
         {
             var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
             if (config == null)

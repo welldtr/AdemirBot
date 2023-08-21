@@ -820,6 +820,7 @@ namespace DiscordBot.Services
                     Console.WriteLine($"Mention {arg.Author?.Username} > {mostQuietUser.MemberUserName} cooldown...");
                     return;
                 }
+
                 foreach(var mentioned in arg.MentionedUsers)
                 {
                     await _db.userMentions.AddAsync(new UserMention

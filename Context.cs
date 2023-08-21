@@ -29,6 +29,7 @@ namespace DiscordBot
         public IRepository<ServerNumberProgression> progression { get => db.GetRepository<ServerNumberProgression>("progression"); }
         public IRepository<ThreadChannel> threads { get => db.GetRepository<ThreadChannel>("threads"); }
         public IRepository<UserMention> userMentions { get => db.GetRepository<UserMention>("user_mentions"); }
+        public IRepository<UserRecommendation> userRecomms { get => db.GetRepository<UserRecommendation>("user_recommendations"); }
 
         public async Task<IClientSessionHandle> StartSessionAsync()
         {
