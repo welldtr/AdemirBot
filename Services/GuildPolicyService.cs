@@ -378,7 +378,7 @@ namespace DiscordBot.Services
 
                         var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
                         var outrasPessoas = voice.Users.Count - qtdPessoasEntraramNaMesmaEpoca;
-                        
+
                         if (qtdPessoasEntraramNaMesmaEpoca > outrasPessoas * 2)
                         {
                             earnedXp /= qtdPessoasEntraramNaMesmaEpoca;
@@ -821,7 +821,7 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                foreach(var mentioned in arg.MentionedUsers)
+                foreach (var mentioned in arg.MentionedUsers)
                 {
                     await _db.userMentions.AddAsync(new UserMention
                     {
@@ -892,7 +892,24 @@ namespace DiscordBot.Services
             }
 
             member.XP += earnedXp;
+
             member.Level = LevelUtils.GetLevel(member.XP);
+
+            if (initialLevel < member.Level)
+            {
+                if (member.Level == config.MinRecommendationLevel)
+                {
+                    var txtRecomm = $"Oi, {arg.Author.Mention}! Tudo bem? Estamos muito felizes que causamos uma boa impressão e você decidiu ficar no server.\nVocê tem direito a recomendar 2 membros do servidor que te incentivaram a ficar.\n\nUtilize o comando /recomendar no servidor.";
+                    try
+                    {
+                        await arg.Author.SendMessageAsync(txtRecomm);
+                    }
+                    catch (Exception ex)
+                    {
+                        await guild.SystemChannel.SendMessageAsync($"{txtRecomm}\n\nPS.: Só mandei nesse canal porque você não aceita mensagens de membros do server.");
+                    }
+                }
+            }
 
             await ProcessRoleRewards(config, member);
 
