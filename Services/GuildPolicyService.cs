@@ -64,6 +64,17 @@ namespace DiscordBot.Services
             var _ = Task.Run(async () =>
             {
                 var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
+
+                if (member == null)
+                {
+                    member = Member.FromGuildUser(user);
+                }
+                
+                member.RoleIds = user.Roles.Select(a => a.Id).ToArray();
+                member.MemberNickname = user.Nickname;
+                member.MemberUserName = user.Username;                
+                await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
+
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == user.Guild.Id);
                 await CheckIfMinorsAndBanEm(config, member);
             });

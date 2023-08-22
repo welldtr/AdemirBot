@@ -44,7 +44,9 @@ namespace DiscordBot.Domain.Entities
                 GuildId = user.GuildId,
                 MemberId = user.Id,
                 MemberUserName = user.Username,
-                MemberNickname = user.GlobalName
+                MemberNickname = user.GlobalName,
+                RoleIds = user.RoleIds.ToArray(),
+                DateLastJoined = user.JoinedAt.GetValueOrDefault().UtcDateTime,
             };
         }
     }
