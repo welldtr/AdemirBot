@@ -6,7 +6,7 @@ namespace DiscordBot.Domain.Entities
     public class Track : IEntity
     {
         [BsonId]
-        public ObjectId _id { get; set; }
+        public Guid _id { get; set; }
         public ulong GuildId { get; set; }
         public ulong ChannelId { get; set; }
         public ulong UserId { get; set; }
