@@ -139,9 +139,10 @@ namespace DiscordBot.Services
                         {
                             member = Member.FromGuildUser(user);
                         }
-                        var membership = await _db.members.Find(a => a.GuildId == guild.Id && a.MemberId == user.Id).SortBy(a => a.DateJoined).FirstOrDefaultAsync();
+                        var membership = await _db.members.Find(a => a.GuildId == guild.Id && a.MemberId == user.Id && a.DateJoined != DateTime.MinValue)
+                            .SortBy(a => a.DateJoined).FirstOrDefaultAsync();
                         member.DateLastJoined = user.JoinedAt.Value.UtcDateTime;
-                        member.DateJoined = membership.DateJoined;
+                        member.DateJoined = membership?.DateJoined ?? user.JoinedAt.Value.UtcDateTime;
                         member.RoleIds = user.RoleIds.ToArray();
                         await _db.members.UpsertAsync(member, a => a.GuildId == guild.Id && a.MemberId == user.Id);
                     }
@@ -348,6 +349,8 @@ namespace DiscordBot.Services
                     if (voice.ConnectedUsers.Where(a => !a.IsBot).Count() < 2)
                         continue;
 
+                    var connectedUserIds = voice.ConnectedUsers.Select(a => a.Id).ToArray();
+                    var connectedMembers = await _db.members.Find(a => a.GuildId == guild.Id && connectedUserIds.Contains(a.MemberId)).ToListAsync();
                     foreach (var user in voice.ConnectedUsers)
                     {
                         if (user.IsMuted || user.IsDeafened)
@@ -410,7 +413,7 @@ namespace DiscordBot.Services
                             earnedXp *= 4;
                         }
 
-                        var qtdPessoasEntraramNaMesmaEpoca = voice.ConnectedUsers.Where(a => ((a.JoinedAt - user.JoinedAt) ?? TimeSpan.Zero).Duration() <= TimeSpan.FromDays(21)).Count();
+                        var qtdPessoasEntraramNaMesmaEpoca = connectedMembers.Where(a => (a.DateJoined - member.DateJoined).Duration() <= TimeSpan.FromDays(21)).Count();
                         var outrasPessoas = voice.Users.Count - qtdPessoasEntraramNaMesmaEpoca;
 
                         if (qtdPessoasEntraramNaMesmaEpoca > outrasPessoas * 2)
