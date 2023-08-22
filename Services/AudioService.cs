@@ -365,6 +365,7 @@ namespace DiscordBot.Services
             {
                 position++;
                 track.QueuePosition = position;
+                track.GuildId = guild.Id;
                 track._id = Guid.NewGuid();
             }
 
