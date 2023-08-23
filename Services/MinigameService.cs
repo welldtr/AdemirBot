@@ -19,6 +19,7 @@ namespace DiscordBot.Services
         private readonly OpenAIService openAI;
 
         public Dictionary<ulong, MinigameMatch> StartedMinigame { get; }
+        public Dictionary<ulong, DateTime?> LastMessageKnown { get; }
         public Dictionary<ulong, int> MsgCounter { get; }
 
         public MinigameService(ILogger<MinigameService> log, Context context, DiscordShardedClient client, OpenAIService openAi)
@@ -28,6 +29,7 @@ namespace DiscordBot.Services
             _client = client;
             this.openAI = openAi;
             StartedMinigame = new Dictionary<ulong, MinigameMatch>();
+            LastMessageKnown = new Dictionary<ulong, DateTime?>();
             MsgCounter = new Dictionary<ulong, int>();
         }
 
@@ -93,6 +95,14 @@ namespace DiscordBot.Services
                 }
                 return;
             }
+
+            if (!LastMessageKnown.ContainsKey(guild.Id))
+            {
+                LastMessageKnown[guild.Id] = null;
+            }
+
+            LastMessageKnown[guild.Id] = DateTime.UtcNow;
+
             MsgCounter[guild.Id]++;
 
             if (StartedMinigame[guild.Id] != null)
@@ -126,11 +136,19 @@ namespace DiscordBot.Services
                     },
                     MinigameType = Domain.Enum.MinigameType.Charada
                 };
+                
+                await guild.SystemChannel.SendMessageAsync(" ", 
+                    embed: new EmbedBuilder()
+                    .WithAuthor("Minigame:")
+                    .WithDescription(charada)
+                    .Build());
+
                 await _db.minigames.AddAsync(minigame);
 
-
                 if (!StartedMinigame.ContainsKey(guild.Id))
+                {
                     StartedMinigame[guild.Id] = null;
+                }
 
                 StartedMinigame[guild.Id] = minigame;
             }
@@ -174,10 +192,18 @@ R: {resposta}")
 
         private async Task<bool> VerificarInicioMinigame(SocketGuild guild)
         {
+            if (!LastMessageKnown.ContainsKey(guild.Id))
+            {
+                LastMessageKnown[guild.Id] = null;
+            }
+
+            if(LastMessageKnown[guild.Id] == null)
+                return false;
+
             if (!MsgCounter.ContainsKey(guild.Id))
                 MsgCounter[guild.Id] = 0;
 
-            return MsgCounter[guild.Id] > 50;
+            return MsgCounter[guild.Id] > 50 && DateTime.UtcNow - LastMessageKnown[guild.Id] > TimeSpan.FromHours(1);
         }
     }
 }
