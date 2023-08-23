@@ -15,14 +15,9 @@ namespace DiscordBot.Domain.Entities
         public MinigameType MinigameType { get; set; }
 
         [BsonElement]
-        public MinigameData Data { get; set; }
+        public CharadeData Data { get; set; }
         public bool Finished { get; set; }
         public ulong Winner { get; set; }
         public DateTime StartDate { get; set; }
-
-        internal CharadeData CharadeData()
-        {
-            return (CharadeData)Data;
-        }
     }
 }

@@ -124,7 +124,7 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                if (arg.Content.ToLower().Contains(minigame.CharadeData().Aswer.ToLower()))
+                if (arg.Content.ToLower().Contains(minigame.Data.Aswer.ToLower()))
                 {
                     minigame.Finished = true;
                     minigame.Winner = arg.Author.Id;
@@ -134,7 +134,7 @@ namespace DiscordBot.Services
                         embed: new EmbedBuilder()
                         .WithColor(Color.Green)
                         .WithAuthor("Resposta certa!")
-                        .WithDescription($"Isso aí. A resposta é {minigame.CharadeData().Aswer}")
+                        .WithDescription($"Isso aí. A resposta é {minigame.Data.Aswer}")
                         .Build(), messageReference: new MessageReference(arg.Id));
                     StartedMinigame[guild.Id] = null;
                 }
@@ -161,7 +161,7 @@ namespace DiscordBot.Services
                     await guild.SystemChannel.SendMessageAsync(" ",
                         embed: new EmbedBuilder()
                         .WithAuthor("Minigame atual:")
-                        .WithDescription(StartedMinigame[guild.Id].CharadeData().Charade)
+                        .WithDescription(StartedMinigame[guild.Id].Data.Charade)
                         .Build());
 
                     return;
@@ -206,7 +206,7 @@ namespace DiscordBot.Services
                     Messages = new[]
                     {
                     new ChatMessage("system", @"
-Crie um jogo de adivinhação de tema aleatorio de uma única palavra não-composta e aleatória, que seja necessário ter um bom nivel academico para responder e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de tema aleatório de uma única palavra não-composta e aleatória, que seja necessário ter um algum nível de estudo para responder e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
 Dicas: 
 - {dica 1}
 - {dica 2}
@@ -225,6 +225,10 @@ R: {resposta}")
                 {
                     var charada = message.Match(@"([\S\s]*)R: \w+").Groups[1].Value.Trim();
                     var resposta = message.Match(@"R: (\w+)$").Groups[1].Value;
+
+                    if (string.IsNullOrEmpty(resposta) || resposta.Trim().Length == 0)
+                        continue;
+
                     Console.WriteLine($"{charada}\n\n{resposta}");
                     return (charada, resposta);
                 }
