@@ -153,7 +153,7 @@ namespace DiscordBot.Services
                 var startedGame = await _db.minigames.Find(a => a.GuildId == guild.Id && a.Finished == false).FirstOrDefaultAsync();
                 StartedMinigame[guild.Id] = startedGame;
 
-                if (StartedMinigame[guild.Id] != null && StartedMinigame[guild.Id].Finished)
+                if (StartedMinigame[guild.Id] != null && !StartedMinigame[guild.Id].Finished)
                 {
                     await guild.SystemChannel.SendMessageAsync(" ",
                         embed: new EmbedBuilder()
