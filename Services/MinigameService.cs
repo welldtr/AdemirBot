@@ -3,6 +3,8 @@ using Discord.WebSocket;
 using DiscordBot.Domain.Entities;
 using DiscordBot.Domain.ValueObjects;
 using DiscordBot.Utils;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using OpenAI.Managers;
 using OpenAI.ObjectModels.RequestModels;
@@ -31,6 +33,9 @@ namespace DiscordBot.Services
 
         public override void Activate()
         {
+            var types = new [] { typeof(CharadeData) };
+            var objectSerializer = new ObjectSerializer(type => ObjectSerializer.DefaultAllowedTypes(type) || types.Contains(type));
+            BsonSerializer.RegisterSerializer(objectSerializer);
             BindEventListeners();
         }
 

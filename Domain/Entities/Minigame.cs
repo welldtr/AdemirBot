@@ -13,7 +13,11 @@ namespace DiscordBot.Domain.Entities
         [BsonId]
         public Guid MinigameId { get; set; }
         public ulong GuildId { get; set; }
+
+        [BsonRepresentation(BsonType.String)]
         public MinigameType MinigameType { get; set; }
+
+        [BsonElement]
         public MinigameData Data { get; set; }
         public bool Finished { get; set; }
         public ulong Winner { get; set; }
