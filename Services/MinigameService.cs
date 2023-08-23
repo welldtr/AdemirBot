@@ -124,7 +124,7 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                if (arg.Content.ToLower().Contains(minigame.CharadeData().Aswer.ToLower()))
+                if (arg.Content.ToLower().Contains(minigame.Data.Aswer.ToLower()))
                 {
                     minigame.Finished = true;
                     minigame.Winner = arg.Author.Id;
@@ -134,7 +134,7 @@ namespace DiscordBot.Services
                         embed: new EmbedBuilder()
                         .WithColor(Color.Green)
                         .WithAuthor("Resposta certa!")
-                        .WithDescription($"Isso aí. A resposta é {minigame.CharadeData().Aswer}")
+                        .WithDescription($"Isso aí. A resposta é {minigame.Data.Aswer}")
                         .Build(), messageReference: new MessageReference(arg.Id));
                     StartedMinigame[guild.Id] = null;
                 }
@@ -161,7 +161,7 @@ namespace DiscordBot.Services
                     await guild.SystemChannel.SendMessageAsync(" ",
                         embed: new EmbedBuilder()
                         .WithAuthor("Minigame atual:")
-                        .WithDescription(StartedMinigame[guild.Id].CharadeData().Charade)
+                        .WithDescription(StartedMinigame[guild.Id].Data.Charade)
                         .Build());
 
                     return;
