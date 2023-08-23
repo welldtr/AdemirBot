@@ -575,7 +575,7 @@ namespace DiscordBot.Services
             if (arg.Author != null)
             {
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
-                if (mensagensUltimos5Segundos.Count() > 3)
+                if (mensagensUltimos5Segundos.Count() > 10)
                 {
                     var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
                     var delecoes = mensagensUltimos10Segundos
