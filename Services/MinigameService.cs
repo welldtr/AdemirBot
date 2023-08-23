@@ -226,7 +226,7 @@ R: {resposta}")
                     var charada = message.Match(@"([\S\s]*)R: \w+").Groups[1].Value.Trim();
                     var resposta = message.Match(@"R: (\w+)$").Groups[1].Value;
 
-                    if (string.IsNullOrEmpty(resposta))
+                    if (string.IsNullOrEmpty(resposta) || resposta.Trim().Length == 0)
                         continue;
 
                     Console.WriteLine($"{charada}\n\n{resposta}");
