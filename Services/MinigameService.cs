@@ -202,7 +202,7 @@ namespace DiscordBot.Services
                     Messages = new[]
                     {
                     new ChatMessage("system", @"
-Crie um jogo de adivinhação de tema aleatorio de uma única palavra não-composta e aleatória, que não seja necessário ter um bom nivel academico para responder e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de tema aleatorio de uma única palavra não-composta e aleatória, que seja necessário ter um bom nivel academico para responder e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
 Dicas: 
 - {dica 1}
 - {dica 2}
