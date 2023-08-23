@@ -15,13 +15,15 @@ namespace DiscordBot.Modules
     {
         private readonly Context db;
         private readonly PaginationService paginator;
+        private readonly MinigameService minigame;
         private readonly GuildPolicyService guildPolicy;
 
-        public MemberModule(Context context, GuildPolicyService guildPolicy, PaginationService paginationService)
+        public MemberModule(Context context, GuildPolicyService guildPolicy, MinigameService minigame, PaginationService paginationService)
         {
             db = context;
             this.guildPolicy = guildPolicy;
             paginator = paginationService;
+            this.minigame = minigame;
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
@@ -55,6 +57,15 @@ namespace DiscordBot.Modules
                 })
                 .Build();
             });
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("minigame", "Inicia minigame de adivinhação")]
+        public async Task Minigame()
+        {
+            await DeferAsync();
+            await minigame.IniciarMinigame((SocketGuild)Context.Guild);
+            await DeleteOriginalResponseAsync();
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]

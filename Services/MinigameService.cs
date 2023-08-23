@@ -19,6 +19,7 @@ namespace DiscordBot.Services
         private readonly OpenAIService openAI;
 
         public Dictionary<ulong, MinigameMatch> StartedMinigame { get; }
+        public Dictionary<ulong, bool> MinigameTrigger { get; }
         public Dictionary<ulong, DateTime?> LastMessageKnown { get; }
         public Dictionary<ulong, int> MsgCounter { get; }
 
@@ -45,6 +46,14 @@ namespace DiscordBot.Services
         {
             _client.MessageReceived += _client_MessageReceived;
             _client.ShardReady += _client_ShardReady;
+        }
+
+        public void Trigger(IInteractionContext ctx)
+        {
+            if (!MinigameTrigger.ContainsKey(ctx.Guild.Id))
+                MinigameTrigger[ctx.Guild.Id] = false;
+
+            MinigameTrigger[ctx.Guild.Id] = true;
         }
 
         private Task _client_ShardReady(DiscordSocketClient arg)
@@ -116,14 +125,37 @@ namespace DiscordBot.Services
                     minigame.Finished = true;
                     minigame.Winner = arg.Author.Id;
                     await _db.minigames.UpsertAsync(minigame, a => a.GuildId == guild.Id && a.MinigameId == minigame.MinigameId);
+
+                    await guild.SystemChannel.SendMessageAsync(" ",
+                        embed: new EmbedBuilder()
+                        .WithColor(Color.Green)
+                        .WithAuthor("Resposta certa!")
+                        .WithDescription($"Isso aí. A resposta é {minigame.CharadeData().Aswer}")
+                        .Build(), messageReference: new MessageReference(arg.Id));
                 }
             }
         }
 
-        private async Task IniciarMinigame(SocketGuild guild)
+        public async Task IniciarMinigame(SocketGuild guild)
         {
             try
             {
+                if (!StartedMinigame.ContainsKey(guild.Id))
+                {
+                    StartedMinigame[guild.Id] = null;
+                }
+
+                if (StartedMinigame[guild.Id] != null && StartedMinigame[guild.Id].Finished)
+                {
+                    await guild.SystemChannel.SendMessageAsync(" ",
+                        embed: new EmbedBuilder()
+                        .WithAuthor("Minigame atual:")
+                        .WithDescription(StartedMinigame[guild.Id].CharadeData().Charade)
+                        .Build());
+
+                    return;
+                }
+
                 (string charada, string resposta) = await ObterCharada();
                 var minigame = new MinigameMatch
                 {
@@ -144,11 +176,6 @@ namespace DiscordBot.Services
                     .Build());
 
                 await _db.minigames.AddAsync(minigame);
-
-                if (!StartedMinigame.ContainsKey(guild.Id))
-                {
-                    StartedMinigame[guild.Id] = null;
-                }
 
                 StartedMinigame[guild.Id] = minigame;
             }
