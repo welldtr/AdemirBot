@@ -240,7 +240,7 @@ R: {resposta}")
             if (!MsgCounter.ContainsKey(guild.Id))
                 MsgCounter[guild.Id] = 0;
 
-            return MsgCounter[guild.Id] > 50 && DateTime.UtcNow - LastMessageKnown[guild.Id] > TimeSpan.FromHours(1);
+            return MsgCounter[guild.Id] > 10 && DateTime.UtcNow - LastMessageKnown[guild.Id] > TimeSpan.FromMinutes(10);
         }
     }
 }
