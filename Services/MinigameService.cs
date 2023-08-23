@@ -8,6 +8,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using OpenAI.Managers;
 using OpenAI.ObjectModels.RequestModels;
+using System.Text.RegularExpressions;
 
 namespace DiscordBot.Services
 {
@@ -214,7 +215,9 @@ R: {resposta}")
                     Temperature = 0.5f
                 });
 
-                if (result.Successful && result.Choices.Count > 0 && result.Choices[0].Message.Content is string message && message.Matches(@"R: (\w+)"))
+                var r = new Regex(@"R: (\w+)");
+
+                if (result.Successful && result.Choices.Count > 0 && result.Choices[0].Message.Content is string message && r.Matches(message).Count == 1)
                 {
                     var charada = message.Match(@"([\S\s]*)R: \w+").Groups[1].Value.Trim();
                     var resposta = message.Match(@"R: (\w+)$").Groups[1].Value;
