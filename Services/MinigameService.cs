@@ -150,7 +150,10 @@ namespace DiscordBot.Services
                     StartedMinigame[guild.Id] = null;
                 }
 
-                var startedGame = await _db.minigames.Find(a => a.GuildId == guild.Id && a.Finished == false).FirstOrDefaultAsync();
+                var startedGame = await _db.minigames.Find(a => a.GuildId == guild.Id && a.Finished == false)
+                    .SortByDescending(a => a.StartDate)
+                    .FirstOrDefaultAsync();
+
                 StartedMinigame[guild.Id] = startedGame;
 
                 if (StartedMinigame[guild.Id] != null && !StartedMinigame[guild.Id].Finished)
@@ -174,6 +177,7 @@ namespace DiscordBot.Services
                         Charade = charada,
                         Aswer = resposta
                     },
+                    StartDate = DateTime.UtcNow,
                     MinigameType = Domain.Enum.MinigameType.Charada
                 };
                 

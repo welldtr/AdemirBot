@@ -1,10 +1,7 @@
-﻿using Discord;
-using Discord.WebSocket;
-using DiscordBot.Domain.Enum;
+﻿using DiscordBot.Domain.Enum;
 using DiscordBot.Domain.ValueObjects;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
 
 namespace DiscordBot.Domain.Entities
 {
@@ -21,6 +18,7 @@ namespace DiscordBot.Domain.Entities
         public MinigameData Data { get; set; }
         public bool Finished { get; set; }
         public ulong Winner { get; set; }
+        public DateTime StartDate { get; set; }
 
         internal CharadeData CharadeData()
         {
