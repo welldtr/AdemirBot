@@ -118,7 +118,10 @@ namespace DiscordBot.Services
             {
                 var minigame = StartedMinigame[guild.Id];
                 if (minigame.Finished)
+                {
+                    StartedMinigame[guild.Id] = null;
                     return;
+                }
 
                 if (arg.Content.ToLower().Contains(minigame.CharadeData().Aswer.ToLower()))
                 {
@@ -132,6 +135,7 @@ namespace DiscordBot.Services
                         .WithAuthor("Resposta certa!")
                         .WithDescription($"Isso aí. A resposta é {minigame.CharadeData().Aswer}")
                         .Build(), messageReference: new MessageReference(arg.Id));
+                    StartedMinigame[guild.Id] = null;
                 }
             }
         }
@@ -144,6 +148,9 @@ namespace DiscordBot.Services
                 {
                     StartedMinigame[guild.Id] = null;
                 }
+
+                var startedGame = await _db.minigames.Find(a => a.GuildId == guild.Id && a.Finished == false).FirstOrDefaultAsync();
+                StartedMinigame[guild.Id] = startedGame;
 
                 if (StartedMinigame[guild.Id] != null && StartedMinigame[guild.Id].Finished)
                 {
