@@ -204,7 +204,8 @@ namespace DiscordBot.Services
                 string[] ciencias = new string[]
                 {
                     // Ciências Naturais
-                    "Física", "Química", "Biologia", "Geologia", "Astronomia",
+                    // "Física", "Química", 
+                    "Biologia", "Geologia", "Astronomia",
 
                     // Ciências Sociais
                     "Psicologia", "Sociologia", "Antropologia", "Economia", "Política",
