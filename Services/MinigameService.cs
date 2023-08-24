@@ -208,7 +208,7 @@ namespace DiscordBot.Services
 
                     // Ciências Sociais
                     "Psicologia", "Sociologia", "Antropologia", "Economia", "Política", 
-                    "Animes", "Cultura Internacional", "Fofocas de celebridades",
+                    "Animes", "Cultura Internacional", "Fofocas de celebridades", "Cinema", "Cultura Popular da Internet",
 
                     // Ciências Formais
                     "Matemática", "Lógica", "Estatística", "Conhecimentos Gerais",  "Ciência da Computação",
