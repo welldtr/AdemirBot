@@ -7,6 +7,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using OpenAI.Managers;
+using OpenAI.ObjectModels;
 using OpenAI.ObjectModels.RequestModels;
 using System.Text.RegularExpressions;
 
