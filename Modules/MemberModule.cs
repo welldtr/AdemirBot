@@ -512,7 +512,7 @@ namespace DiscordBot.Modules
                                 canvas.DrawLine(x, offsety, x, zeroY + offsety, paintGrid);
                                 //canvas.DrawText($"{dates[i]:dd/MM/yyyy}", x, zeroY + offsety + 30, textDatePaint);
                                 SKPath path = new SKPath();
-                                path.MoveTo(x - 50, zeroY + offsety + 90);
+                                path.MoveTo(x - 55, zeroY + offsety + 110);
                                 path.LineTo(x + 10, zeroY + offsety + 15);
 
                                 canvas.DrawTextOnPath(mudaOAno ? $"{dates[i]:dd/MM/yy}" : $"{dates[i]:dd/MM/yy}", path, 0, 0, textDatePaint);
