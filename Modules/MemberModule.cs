@@ -551,9 +551,9 @@ namespace DiscordBot.Modules
                             float y2 = ((max - data[i + 1]) * (yratio));
 
                             if (i == 0)
-                                canvas.DrawCircle(new SKPoint(offsetx + x1, offsety + y1), 3, paint);
+                                canvas.DrawCircle(new SKPoint(offsetx + x1, offsety + y1), 1.5f, paint);
 
-                            canvas.DrawCircle(new SKPoint(offsetx + x2, offsety + y2), 3, paint);
+                            canvas.DrawCircle(new SKPoint(offsetx + x2, offsety + y2), 1.5f, paint);
                             canvas.DrawLine(offsetx + x1, offsety + y1, offsetx + x2, offsety + y2, paint);
                         }
                     }
