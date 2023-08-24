@@ -204,20 +204,21 @@ namespace DiscordBot.Services
                 string[] ciencias = new string[]
                 {
                     // Ciências Naturais
-                    // "Física", "Química", 
-                    "Biologia", "Geologia", "Geografia", "História", "Astronomia",
+                    "Física", "Química", "Biologia", "Geologia", "Geografia", "História", "Astronomia",
 
                     // Ciências Sociais
-                    "Psicologia", "Sociologia", "Antropologia", "Economia", "Política",
+                    "Psicologia", "Sociologia", "Antropologia", "Economia", "Política", 
+                    "Animes", "Cultura Internacional", "Fofocas de celebridades",
 
                     // Ciências Formais
                     "Matemática", "Lógica", "Estatística", "Conhecimentos Gerais",  "Ciência da Computação",
 
                     // Ciências Aplicadas
-                    "Engenharia", "Medicina", "Arquitetura",
+                    "Engenharia", "Medicina", "Arquitetura", "Genética", "Citologia",
 
                     // Ciências Humanas
-                    "Filosofia", "História", "Literatura", "Arte", "Música"
+                    "Filosofia", "História", "Literatura", "Arte", "Música", "Dança", "Anatomia", "Educação física", "Esportes",
+                    "Jogos retrô", "Jogos contemporâneos",
                 };
 
                 var r = new Random().Next(0, ciencias.Length -1);
@@ -226,7 +227,7 @@ namespace DiscordBot.Services
                     Messages = new[]
                     {
                     new ChatMessage("system", $@"
-Crie um jogo de adivinhação de uma única palavra não-composta e aleatória, que seja necessário ter um algum nível de conhecimento na área acadêmica de {ciencias[r]} e que seja verdade, sempre dê três dicas e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de uma única palavra não-composta e aleatória, que seja necessário ter um algum nível de conhecimento em {ciencias[r]} e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
@@ -239,9 +240,9 @@ R: {{resposta}}")
                     Temperature = 0.5f
                 });
 
-                var r = new Regex(@"R: (\w+)");
+                var regex = new Regex(@"R: (\w+)");
 
-                if (result.Successful && result.Choices.Count > 0 && result.Choices[0].Message.Content is string message && r.Matches(message).Count == 1)
+                if (result.Successful && result.Choices.Count > 0 && result.Choices[0].Message.Content is string message && regex.Matches(message).Count == 1)
                 {
                     var charada = message.Match(@"([\S\s]*)R: \w+").Groups[1].Value.Trim();
                     var resposta = message.Match(@"R: (\w+)$").Groups[1].Value;
