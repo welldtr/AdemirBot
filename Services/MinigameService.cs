@@ -201,18 +201,37 @@ namespace DiscordBot.Services
         {
             while (true)
             {
+                string[] ciencias = new string[]
+                {
+                    // Ciências Naturais
+                    "Física", "Química", "Biologia", "Geologia", "Astronomia",
+
+                    // Ciências Sociais
+                    "Psicologia", "Sociologia", "Antropologia", "Economia", "Política",
+
+                    // Ciências Formais
+                    "Matemática", "Lógica", "Estatística", "Ciência da Computação",
+
+                    // Ciências Aplicadas
+                    "Engenharia", "Medicina", "Arquitetura",
+
+                    // Ciências Humanas
+                    "Filosofia", "História", "Literatura", "Arte", "Música"
+                };
+
+                var r = new Random().Next(0, ciencias.Length -1);
                 var result = await openAI.ChatCompletion.CreateCompletion(new OpenAI.ObjectModels.RequestModels.ChatCompletionCreateRequest
                 {
                     Messages = new[]
                     {
-                    new ChatMessage("system", @"
-Crie um jogo de adivinhação de tema aleatório de uma única palavra não-composta e aleatória, que seja necessário ter um algum nível de estudo para responder e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
+                    new ChatMessage("system", $@"
+Crie um jogo de adivinhação de uma única palavra não-composta e aleatória, que seja necessário ter um algum nível de conhecimento em {ciencias[r]} e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
 Dicas: 
-- {dica 1}
-- {dica 2}
-- {dica 3}
+- {{dica 1}}
+- {{dica 2}}
+- {{dica 3}}
 
-R: {resposta}")
+R: {{resposta}}")
                 },
                     Model = "gpt-4",
                     MaxTokens = 1000,
