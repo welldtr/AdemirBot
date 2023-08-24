@@ -240,7 +240,7 @@ Dicas:
 
 R: {{resposta}}")
                 },
-                    Model = "gpt-4",
+                    Model = Models.Gpt_3_5_Turbo,
                     MaxTokens = 1000,
                     Temperature = 0.5f
                 });
