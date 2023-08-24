@@ -59,7 +59,7 @@ namespace DiscordBot.Modules
             });
         }
 
-        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("minigame", "Inicia minigame de adivinhação")]
         public async Task Minigame()
         {
