@@ -262,7 +262,7 @@ namespace DiscordBot.Services
                     new ChatCompletionCreateRequest()
                     {
                         Messages = msgs,
-                        Model = "gpt-4",
+                        Model = (guild.GetUser(arg.Author.Id).PremiumSince == null) ? Models.Gpt_3_5_Turbo : "gpt-4",
                         Temperature = 0.2F,
                         N = 1
                     });

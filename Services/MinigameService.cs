@@ -124,7 +124,7 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                if (arg.Content.ToLower().Contains(minigame.Data.Aswer.ToLower()))
+                if (arg.Content.RemoverAcentos().ToLower().Contains(minigame.Data.Aswer.RemoverAcentos().ToLower()))
                 {
                     minigame.Finished = true;
                     minigame.Winner = arg.Author.Id;
@@ -208,7 +208,12 @@ namespace DiscordBot.Services
 
                     // Ciências Sociais
                     "Psicologia", "Sociologia", "Antropologia", "Economia", "Política", 
-                    "Animes", "Cultura Internacional", "Fofocas de celebridades", "Cinema", "Cultura Popular da Internet",
+                    "Animes", "Doramas", "K-POP", "J-POP", "Metal", "Rock n' Roll", "Hark Rock", "Rock Inglês", "Pop inglês",
+                    "Cultura Internacional", "Fofocas de celebridades", "Cinema", "Cultura Popular da Internet",
+                    "Novelas brasileiras", "Novelas mexicanas", "Programas de auditório", "Memes da internet", "HQs Marvel", "HQs DC",
+                    "Atividades de Boteco", "Carteado", "Trends do Twitter, Instagram e TikTok", "Futebol brasileiro e europeu",
+                    "Fórmula 1", "Filmes de terror", "Filmes e séries de serviço de streaming", "Culinária regional",
+                    "Língua inglesa",
 
                     // Ciências Formais
                     "Matemática", "Lógica", "Estatística", "Conhecimentos Gerais",  "Ciência da Computação",
