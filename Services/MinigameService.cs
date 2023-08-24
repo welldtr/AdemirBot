@@ -7,6 +7,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using OpenAI.Managers;
+using OpenAI.ObjectModels;
 using OpenAI.ObjectModels.RequestModels;
 using System.Text.RegularExpressions;
 
@@ -232,7 +233,7 @@ namespace DiscordBot.Services
                     Messages = new[]
                     {
                     new ChatMessage("system", $@"
-Crie um jogo de adivinhação de uma única palavra não-composta e aleatória, que seja necessário ter um algum nível de conhecimento em {ciencias[r]} e que seja comprovado como verdade, sempre dê três dicas e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de uma única palavra não-composta e aleatória, que seja necessário ter um bom nível de conhecimento em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas e dê a resposta em seguida no formato:
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
@@ -240,7 +241,7 @@ Dicas:
 
 R: {{resposta}}")
                 },
-                    Model = "gpt-4",
+                    Model = Models.Gpt_3_5_Turbo,
                     MaxTokens = 1000,
                     Temperature = 0.5f
                 });
