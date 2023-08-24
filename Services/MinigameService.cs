@@ -218,7 +218,7 @@ namespace DiscordBot.Services
 
                     // Ciências Humanas
                     "Filosofia", "História", "Literatura", "Arte", "Música", "Dança", "Anatomia", "Educação física", "Esportes",
-                    "Jogos retrô", "Jogos contemporâneos",
+                    "Jogos retrô", "Jogos contemporâneos", "Cultura pop"
                 };
 
                 var r = new Random().Next(0, ciencias.Length -1);
