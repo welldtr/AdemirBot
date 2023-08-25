@@ -108,7 +108,6 @@ namespace DiscordBot.Services
                 startedGame.Finished = true;
                 startedGame.Winner = _client.CurrentUser.Id;
                 await _db.minigames.UpsertAsync(startedGame, a => a.GuildId == guild.Id && a.MinigameId == startedGame.MinigameId);
-                return;
             }
 
             StartedMinigame[guild.Id] = null;
