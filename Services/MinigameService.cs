@@ -85,6 +85,36 @@ namespace DiscordBot.Services
             return Task.CompletedTask;
         }
 
+        public async Task GiveUp(SocketGuild guild)
+        {
+            if (!StartedMinigame.ContainsKey(guild.Id))
+            {
+                StartedMinigame[guild.Id] = null;
+            }
+
+            var startedGame = await _db.minigames.Find(a => a.GuildId == guild.Id && a.Finished == false)
+                .SortByDescending(a => a.StartDate)
+                .FirstOrDefaultAsync();
+
+            StartedMinigame[guild.Id] = startedGame;
+
+            if (StartedMinigame[guild.Id] != null && !StartedMinigame[guild.Id].Finished)
+            {
+                await guild.SystemChannel.SendMessageAsync(" ",
+                    embed: new EmbedBuilder()
+                    .WithAuthor("Parece que tá difícil.")
+                    .WithDescription($"Tudo bem. A resposta da charada é: {StartedMinigame[guild.Id].Data.Aswer}")
+                    .Build());
+                startedGame.Finished = true;
+                startedGame.Winner = _client.CurrentUser.Id;
+                await _db.minigames.UpsertAsync(startedGame, a => a.GuildId == guild.Id && a.MinigameId == startedGame.MinigameId);
+                return;
+            }
+
+            StartedMinigame[guild.Id] = null;
+            await IniciarMinigame(guild);
+        }
+
         private async Task _client_MessageReceived(SocketMessage arg)
         {
             var guild = _client.GetGuild(arg.GetGuildId());

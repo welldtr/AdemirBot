@@ -68,6 +68,16 @@ namespace DiscordBot.Modules
             await DeleteOriginalResponseAsync();
         }
 
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("give-up", "Abandona a ultima adivinhação")]
+        public async Task SkipGame()
+        {
+            await DeferAsync();
+            await minigame.GiveUp((SocketGuild)Context.Guild);
+            await DeleteOriginalResponseAsync();
+        }
+
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("avatar", "Mostra o Avatar de um usuario")]
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
