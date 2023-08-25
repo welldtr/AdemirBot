@@ -300,7 +300,7 @@ namespace DiscordBot.Services
 
                     var tempoParaInicio = evento.ScheduledTime - DateTime.UtcNow;
                     var eventoHoje = evento.ScheduledTime.ToLocalTime().Date == DateTime.Today;
-                    var eventoAmanha = evento.ScheduledTime.ToLocalTime().Date.AddDays(1) == DateTime.Today;
+                    var eventoAmanha = evento.ScheduledTime.ToLocalTime().Date.AddDays(-1) == DateTime.Today;
                     var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
                     if (eventoHoje)
                     {
