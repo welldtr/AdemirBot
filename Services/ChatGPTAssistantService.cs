@@ -147,9 +147,9 @@ namespace DiscordBot.Services
                 var ademirConfig = (await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id));
                 var role = guild.Roles.FirstOrDefault(a => a.Id == (ademirConfig?.AdemirRoleId ?? 0));
 
-                var isUserEnabled = me.PremiumSince.HasValue
-                    || me.GuildPermissions.Administrator
-                    || (role != null && me.Roles.Any(a => a.Id == role?.Id));
+                var adminOuBooster = me.PremiumSince.HasValue || me.GuildPermissions.Administrator;
+                var temCargoAutorizado = (role != null && me.Roles.Any(a => a.Id == role?.Id));
+                var isUserEnabled = temCargoAutorizado || adminOuBooster;
 
                 if (!isUserEnabled)
                 {
@@ -253,7 +253,9 @@ namespace DiscordBot.Services
                 msgs.InsertRange(0, trainingArray);
 
                 List<ChatMessage> windowedTokens = new List<ChatMessage>();
-                while (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(string.Join("\n", msgs.Select(a => a.Content))) >= 4000)
+                var gptModel = adminOuBooster ? Models.Gpt_3_5_Turbo : "gpt-4";
+                var gptTokenLimit = gptModel == "gpt-4" ? 30000 : 4000;
+                while (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(string.Join("\n", msgs.Select(a => a.Content))) >= gptTokenLimit)
                 {
                     msgs.RemoveAt(trainingArray.Length);
                 }
@@ -262,7 +264,7 @@ namespace DiscordBot.Services
                     new ChatCompletionCreateRequest()
                     {
                         Messages = msgs,
-                        Model = (guild.GetUser(arg.Author.Id).PremiumSince == null) ? Models.Gpt_3_5_Turbo : "gpt-4",
+                        Model = gptModel,
                         Temperature = 0.2F,
                         N = 1
                     });

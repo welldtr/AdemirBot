@@ -625,10 +625,22 @@ namespace DiscordBot.Services
             await ProcessMemberProgression(guild);
             if (config.WelcomeBanner != null && config.WelcomeBanner.Length > 0)
             {
-                var img = await ProcessWelcomeMsg(user, config);
-                var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
-                member.WelcomeMessageId = welcome.Id;
-                await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
+                var __ = Task.Run(async () =>
+                {
+                    while (user != null && (user.IsPending ?? false))
+                    {
+                        await Task.Delay(200);
+                        user = guild.GetUser(user.Id);
+                    }
+                    
+                    if (user == null)
+                        return;
+
+                    var img = await ProcessWelcomeMsg(user, config);
+                    var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
+                    member.WelcomeMessageId = welcome.Id;
+                    await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
+                });
             }
         }
 
