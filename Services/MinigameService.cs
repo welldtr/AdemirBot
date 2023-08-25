@@ -102,7 +102,7 @@ namespace DiscordBot.Services
             {
                 await guild.SystemChannel.SendMessageAsync(" ",
                     embed: new EmbedBuilder()
-                    .WithAuthor("Parece que tá difícil.")
+                    .WithAuthor("Parece que tá difícil..")
                     .WithDescription($"Tudo bem. A resposta da charada é: {StartedMinigame[guild.Id].Data.Aswer}")
                     .Build());
                 startedGame.Finished = true;

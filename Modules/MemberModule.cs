@@ -70,7 +70,7 @@ namespace DiscordBot.Modules
 
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("give-up", "Abandona a ultima adivinhação")]
+        [SlashCommand("giveup", "Abandona a ultima adivinhação")]
         public async Task SkipGame()
         {
             await DeferAsync();
