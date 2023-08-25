@@ -299,10 +299,10 @@ namespace DiscordBot.Services
                     }
 
                     var tempoParaInicio = evento.ScheduledTime - DateTime.UtcNow;
-                    var eventoHoje = evento.ScheduledTime - DateTime.UtcNow < TimeSpan.FromDays(1);
+                    var eventoHoje = evento.ScheduledTime.ToLocalTime().Date == DateTime.Today;
+                    var eventoAmanha = evento.ScheduledTime.ToLocalTime().Date.AddDays(1) == DateTime.Today;
                     var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
-                    var jaPodeAnunciar = eventoHoje && tempoParaInicio < TimeSpan.FromHours(8);
-                    if (jaPodeAnunciar)
+                    if (eventoHoje)
                     {
                         string link = $"https://discord.com/events/{guild.Id}/{evento.EventId}";
                         var introducao = $"Atenção, <@&956383044770598942>!\nLogo mais, no canal <#{evento.ChannelId}>, teremos **{evento.Name}**. Se preparem.\n{link}";
@@ -329,6 +329,21 @@ namespace DiscordBot.Services
                                 introducao = $"Atenção, <@&956383044770598942>!\nLogo mais, às {evento.ScheduledTime.ToLocalTime():HH'h'mm}, no **{guild.Name}**, começa **{evento.Name}** no <#{evento.ChannelId}>!\n{link}";
                                 podePostar = ProcessWPM(guild.SystemChannelId ?? 0) > 25;
                             }
+                            if (podePostar)
+                            {
+                                evento.LastAnnounceTime = DateTime.UtcNow;
+                                await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao, allowedMentions: AllowedMentions.All);
+                                await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
+                            }
+                        }
+                        else if(eventoAmanha)
+                        {
+                            if (msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(60))
+                            {
+                                introducao = $"É amanhã, pessoal <@&956383044770598942>!\nAmanhã, às {evento.ScheduledTime.ToLocalTime():HH'h'mm}, no **{guild.Name}**, começa **{evento.Name}** no <#{evento.ChannelId}>!\nEspero vocês lá!\n{link}";
+                                podePostar = ProcessWPM(guild.SystemChannelId ?? 0) > 25;
+                            }
+
                             if (podePostar)
                             {
                                 evento.LastAnnounceTime = DateTime.UtcNow;
