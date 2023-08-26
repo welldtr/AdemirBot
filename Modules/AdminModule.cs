@@ -40,18 +40,28 @@ namespace DiscordBot.Modules
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("ban", "Bane um membro")]
-        public async Task Ban(string motivo = null)
+        public async Task Ban([Summary("usuario", "Usuario a ser banido")] IUser user, string motivo = null)
         {
-            await (await Context.Client.GetGuildAsync(Context.Guild.Id)).AddBanAsync(Context.User.Id, reason: motivo);
-            await RespondAsync($"**{Context.User.Username}** Usuários Banidos.", ephemeral: true);
+            if(user.Id == Context.User.Id)
+            {
+                await RespondAsync($"Desculpe {user.Username}, eu me recuso a te banir.", ephemeral: true);
+                return;
+            }
+            await (await Context.Client.GetGuildAsync(Context.Guild.Id)).AddBanAsync(user.Id, reason: motivo);
+            await RespondAsync($"**{user.Username}** foi banido do servidor.", ephemeral: true);
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("kick", "Expulsa um membro")]
-        public async Task Kick(string motivo = null)
+        public async Task Kick([Summary("usuario", "Usuario a ser expulso")]IUser user, string motivo = null)
         {
-            await (await Context.Guild.GetUserAsync(Context.User.Id)).KickAsync(motivo);
-            await RespondAsync($"**{Context.User.Username}** Usuários Banidos.", ephemeral: true);
+            if (user.Id == Context.User.Id)
+            {
+                await RespondAsync($"Desculpe {user.Username}, eu me recuso a te expulsar.", ephemeral: true);
+                return;
+            }
+            await (await Context.Guild.GetUserAsync(user.Id)).KickAsync(motivo);
+            await RespondAsync($"**{user.Username}** foi expulso do servidor.", ephemeral: true);
         }
 
         [ModalInteraction("mass_kick")]
