@@ -105,6 +105,7 @@ namespace DiscordBot.Services
                     .WithAuthor("Parece que tá difícil..")
                     .WithDescription($"Tudo bem. A resposta da charada é: {StartedMinigame[guild.Id].Data.Aswer}")
                     .Build());
+
                 startedGame.Finished = true;
                 startedGame.Winner = _client.CurrentUser.Id;
                 await _db.minigames.UpsertAsync(startedGame, a => a.GuildId == guild.Id && a.MinigameId == startedGame.MinigameId);
@@ -114,7 +115,13 @@ namespace DiscordBot.Services
             await IniciarMinigame(guild);
         }
 
-        private async Task _client_MessageReceived(SocketMessage arg)
+        private Task _client_MessageReceived(SocketMessage arg)
+        {
+            var _ = Task.Run(() => VerificarSeMinigame(arg));
+            return Task.CompletedTask;
+        }
+
+        private async Task VerificarSeMinigame(SocketMessage arg)
         {
             var guild = _client.GetGuild(arg.GetGuildId());
 
@@ -133,6 +140,18 @@ namespace DiscordBot.Services
                 {
                     MsgCounter[guild.Id] = 0;
                 }
+                return;
+            }
+
+            if (arg.Content == ">>minigame")
+            {
+                await IniciarMinigame(guild);
+                return;
+            }
+
+            if (arg.Content == ">>giveup")
+            {
+                await GiveUp(guild);
                 return;
             }
 
@@ -257,12 +276,12 @@ namespace DiscordBot.Services
                 };
 
                 var r = new Random().Next(0, ciencias.Length -1);
-                var result = await openAI.ChatCompletion.CreateCompletion(new OpenAI.ObjectModels.RequestModels.ChatCompletionCreateRequest
+                var result = await openAI.ChatCompletion.CreateCompletion(new ChatCompletionCreateRequest
                 {
                     Messages = new[]
                     {
                     new ChatMessage("system", $@"
-Crie um jogo de adivinhação de uma única palavra não-composta e aleatória, que seja necessário ter um bom nível de conhecimento em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas que sejam absolutamente verdade em relação à resposta e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de uma única palavra não-composta, que seja necessário ter um bom nível de conhecimento em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas que sejam absolutamente verdade em relação à resposta e dê a resposta em seguida no formato:
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
@@ -272,7 +291,7 @@ R: {{resposta}}")
                 },
                     Model = Models.Gpt_3_5_Turbo,
                     MaxTokens = 1000,
-                    Temperature = 0.5f
+                    Temperature = 0.3f
                 });
 
                 var regex = new Regex(@"R: (\w+)");

@@ -29,9 +29,10 @@ namespace DiscordBot.Services
             _client.MessageReceived += _client_MessageReceived;
         }
 
-        private async Task _client_MessageReceived(SocketMessage arg)
+        private Task _client_MessageReceived(SocketMessage arg)
         {
-            await VerificarSeMensagemDeBump(arg);
+            var _ = Task.Run(() => VerificarSeMensagemDeBump(arg));
+            return Task.CompletedTask;
         }
 
         private async Task VerificarSeMensagemDeBump(SocketMessage arg)

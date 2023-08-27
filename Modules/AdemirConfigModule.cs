@@ -19,7 +19,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("config-cargo-ademir", "Configurar cargo que pode falar com o Ademir.")]
+        [SlashCommand("config-cargo-ademir", "Configurar cargo que pode falar com o Ademir.", runMode: RunMode.Async)]
         public async Task ConfigCargoAdemir(
             [Summary(description: "Cargo permitido falar com o Ademir")] IRole cargo)
         {
@@ -43,7 +43,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("set-recommendation-level", "Define o level mínimo necessário para recomendar um membro.")]
+        [SlashCommand("set-recommendation-level", "Define o level mínimo necessário para recomendar um membro.", runMode: RunMode.Async)]
         public async Task Colour([Summary(description: "Level mínimo")] long level)
         {
             await DeferAsync();
@@ -58,7 +58,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("set-activetalker-role", "Configurar cargo de participação ativa.")]
+        [SlashCommand("set-activetalker-role", "Configurar cargo de participação ativa.", runMode: RunMode.Async)]
         public async Task SetActiveTalkerRole(
         [Summary(description: "Cargo de participação ativa")] IRole cargo)
         {
@@ -82,7 +82,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("set-eventinvite-role", "Configurar cargo a convidar para os eventos.")]
+        [SlashCommand("set-eventinvite-role", "Configurar cargo a convidar para os eventos.", runMode: RunMode.Async)]
         public async Task SetEventInviteRole(
             [Summary(description: "Cargo de convite para eventos ativa")] IRole cargo)
         {
@@ -106,7 +106,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("lock-server", "Bloquear a entrada de novos membros")]
+        [SlashCommand("lock-server", "Bloquear a entrada de novos membros", runMode: RunMode.Async)]
         public async Task Lock()
         {
             policySvc.LockServer(Context.Guild.Id);
@@ -122,7 +122,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("welcomebanner", "Define a imagem do banner de boas vindas")]
+        [SlashCommand("welcomebanner", "Define a imagem do banner de boas vindas", runMode: RunMode.Async)]
         public async Task BackgroundSet([Summary(description: "Imagem (1600x400)")] IAttachment imagem = null)
         {
             await DeferAsync();
@@ -168,7 +168,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("config-rewards", "Configurar recompensas de bump.")]
+        [SlashCommand("config-rewards", "Configurar recompensas de bump.", runMode: RunMode.Async)]
         public async Task ConfigRewards(
             [Summary(description: "Canal do Bump")] IChannel canal,
             [Summary(description: "Bot reminder")] IUser bot,

@@ -197,13 +197,14 @@ namespace DiscordBot.Utils
                 return null;
             }
         }
+
         public static string[] SplitInChunksOf(this string text, int maxChars)
         {
             var linesFinal = new List<string>();
             var sb = new StringBuilder();
             foreach (var line in text.Split(new char[] { '\r', '\n' }))
             {
-                if (sb.Length + line.Length > 1024)
+                if (sb.Length + line.Length > maxChars)
                 {
                     linesFinal.Add(sb.ToString());
                     sb.Clear();

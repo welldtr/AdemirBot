@@ -19,7 +19,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("config-denuncias", "Configurar o canal de denúncias.")]
+        [SlashCommand("config-denuncias", "Configurar o canal de denúncias.", runMode: RunMode.Async)]
         public async Task ConfigDenuncias(
             [Summary(description: "Canal de denúncias")] IChannel canal)
         {
@@ -42,7 +42,7 @@ namespace DiscordBot.Modules
             await RespondAsync("Canal de denúncias configurado.", ephemeral: true);
         }
 
-        [SlashCommand("denunciar", "Denunciar algo que fere as regras do servidor.")]
+        [SlashCommand("denunciar", "Denunciar algo que fere as regras do servidor.", runMode: RunMode.Async)]
         public async Task Denunciar(
             [Summary(description: "Usuário a denunciar")] IUser usuario,
             [Summary(description: "Relato da denuncia")] string relato,

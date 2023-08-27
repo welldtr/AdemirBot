@@ -47,7 +47,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("excluir-macro", "Excluir a macro especificada")]
+        [SlashCommand("excluir-macro", "Excluir a macro especificada", runMode: RunMode.Async)]
         public async Task ExcluirMacro([Summary(description: "Nome da macro")] string nome)
         {
             await DeferAsync(ephemeral: true);
@@ -60,7 +60,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("list-macros", "Listar as macros cadastradas")]
+        [SlashCommand("list-macros", "Listar as macros cadastradas", runMode: RunMode.Async)]
         public async Task ListMacros()
         {
             await DeferAsync();
@@ -84,7 +84,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("editar-macro", "Editar a macro")]
+        [SlashCommand("editar-macro", "Editar a macro", runMode: RunMode.Async)]
         public async Task EditMacro([Summary(description: "Nome da macro")] string nome)
         {
             var macro = await db.macros.FindOneAsync(a => a.GuildId == Context.Guild.Id && a.Nome == nome);
