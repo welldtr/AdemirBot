@@ -71,6 +71,16 @@ namespace DiscordBot.Services
             if (arg.Content == ">>help")
             {
                 _ = Task.Run(async () => await Help(channel));
+                return Task.CompletedTask;
+            }
+
+            if (arg.Content == ">>minigame")
+            {
+                return Task.CompletedTask;
+            }
+            if (arg.Content == ">>giveup")
+            {
+                return Task.CompletedTask;
             }
 
             switch (arg.Content)
