@@ -27,7 +27,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("membercount", "Informa a quantidade de membros do server.")]
+        [SlashCommand("membercount", "Informa a quantidade de membros do server.", runMode: RunMode.Async)]
         public async Task MemberCount()
         {
             await DeferAsync();
@@ -60,7 +60,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("minigame", "Inicia minigame de adivinhação")]
+        [SlashCommand("minigame", "Inicia minigame de adivinhação", runMode: RunMode.Async)]
         public async Task Minigame()
         {
             await DeferAsync();
@@ -68,8 +68,18 @@ namespace DiscordBot.Modules
             await DeleteOriginalResponseAsync();
         }
 
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("giveup", "Abandona a ultima adivinhação", runMode: RunMode.Async)]
+        public async Task SkipGame()
+        {
+            await DeferAsync();
+            await minigame.GiveUp((SocketGuild)Context.Guild);
+            await DeleteOriginalResponseAsync();
+        }
+
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("avatar", "Mostra o Avatar de um usuario")]
+        [SlashCommand("avatar", "Mostra o Avatar de um usuario", runMode: RunMode.Async)]
         public async Task Avatar([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
@@ -89,7 +99,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("recomendar", "Recomenda um membro que te incentivou a ter ficado conosco.")]
+        [SlashCommand("recomendar", "Recomenda um membro que te incentivou a ter ficado conosco.", runMode: RunMode.Async)]
         public async Task Recomendar([Summary(description: "Usuario")] IUser usuario)
         {
             await DeferAsync(ephemeral: true);
@@ -142,7 +152,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("recompensas-por-usuario", "Visualiza os usuários menos ativos com o cargo de usuários ativos do servidor e suas recompensas")]
+        [SlashCommand("recompensas-por-usuario", "Visualiza os usuários menos ativos com o cargo de usuários ativos do servidor e suas recompensas", runMode: RunMode.Async)]
         public async Task RecompensasPorUsuario()
         {
             await DeferAsync();
@@ -193,7 +203,7 @@ namespace DiscordBot.Modules
 
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("colour", "Define a cor pricipal do card de evolução")]
+        [SlashCommand("colour", "Define a cor pricipal do card de evolução", runMode: RunMode.Async)]
         public async Task Colour([Summary(description: "Cor")] string cor)
         {
             await DeferAsync();
@@ -245,7 +255,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("background", "Define o background do card de evolução")]
+        [SlashCommand("background", "Define o background do card de evolução", runMode: RunMode.Async)]
         public async Task BackgroundSet([Summary(description: "Imagem (1600x400)")] IAttachment imagem)
         {
             await DeferAsync();
@@ -288,7 +298,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("predict", "Prever a data que o servidor terá a determinada quantidade de membros")]
+        [SlashCommand("predict", "Prever a data que o servidor terá a determinada quantidade de membros", runMode: RunMode.Async)]
         public async Task Banner([Summary(description: "Qtd. Membros")] int qtd)
         {
             await DeferAsync();
@@ -325,7 +335,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("banner", "Mostra o Banner de um usuario")]
+        [SlashCommand("banner", "Mostra o Banner de um usuario", runMode: RunMode.Async)]
         public async Task Banner([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
@@ -345,7 +355,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("growthchange", "Mostra a mudança de crescimento de membros")]
+        [SlashCommand("growthchange", "Mostra a mudança de crescimento de membros", runMode: RunMode.Async)]
         public async Task GrowthChange([Summary(description: "Dias")] int dias = 7)
         {
             await DeferAsync();
@@ -359,7 +369,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("membergraph", "Mostra a evolução de membros")]
+        [SlashCommand("membergraph", "Mostra a evolução de membros", runMode: RunMode.Async)]
         public async Task MemberGraph([Summary(description: "Dias")] int dias = 7)
         {
             await DeferAsync();
@@ -373,7 +383,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("rank", "Mostra o Card de Ranking no Server")]
+        [SlashCommand("rank", "Mostra o Card de Ranking no Server", runMode: RunMode.Async)]
         public async Task Rank([Summary(description: "Usuario")] IUser usuario = null)
         {
             await DeferAsync();
@@ -386,7 +396,7 @@ namespace DiscordBot.Modules
             });
         }
 
-        [SlashCommand("leaderboard", "Mostra o ranking atual dos membros")]
+        [SlashCommand("leaderboard", "Mostra o ranking atual dos membros", runMode: RunMode.Async)]
         public async Task Leaderboard()
         {
             await DeferAsync();

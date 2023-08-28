@@ -15,7 +15,7 @@ namespace DiscordBot.Modules
             db = context;
         }
 
-        [SlashCommand("add", "Adicionar XP a um usuário")]
+        [SlashCommand("add", "Adicionar XP a um usuário", runMode: RunMode.Async)]
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task AddXP([Summary(description: "Usuario")] IUser usuario, [Summary(description: "XP a adicionar")] int xp)
         {
@@ -37,7 +37,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("remove", "Remover XP de um usuário")]
+        [SlashCommand("remove", "Remover XP de um usuário", runMode: RunMode.Async)]
         public async Task RemoveXP([Summary(description: "Usuario")] IUser usuario, [Summary(description: "XP a remover")] int xp)
         {
             await DeferAsync();
@@ -58,7 +58,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("set", "Definir o XP de um usuário")]
+        [SlashCommand("set", "Definir o XP de um usuário", runMode: RunMode.Async)]
         public async Task SetXP([Summary(description: "Usuario")] IUser usuario, [Summary(description: "Novo XP")] int xp)
         {
             await DeferAsync();

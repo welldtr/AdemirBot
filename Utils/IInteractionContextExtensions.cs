@@ -127,7 +127,7 @@ namespace DiscordBot.Utils
 
         public static async Task<string> GetMessageContentWithAttachments(this IMessage msg)
         {
-            var attachmentContent = (msg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(msg.Attachments.First(a => a.ContentType.StartsWith("text/plain")).Url);
+            var attachmentContent = (msg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(msg.Attachments.First(a => a.Size < 4096).Url);
             var content = (msg.Content + attachmentContent);
             return content;
         }
@@ -197,13 +197,14 @@ namespace DiscordBot.Utils
                 return null;
             }
         }
+
         public static string[] SplitInChunksOf(this string text, int maxChars)
         {
             var linesFinal = new List<string>();
             var sb = new StringBuilder();
             foreach (var line in text.Split(new char[] { '\r', '\n' }))
             {
-                if (sb.Length + line.Length > 1024)
+                if (sb.Length + line.Length > maxChars)
                 {
                     linesFinal.Add(sb.ToString());
                     sb.Clear();
@@ -251,7 +252,31 @@ namespace DiscordBot.Utils
                     }
                     if (start < resposta.Length - 1)
                     {
-                        mm = await channel.SendMessageAsync(resposta.Substring(start), messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                        var textoRestante = resposta.Substring(start);
+                        if (textoRestante.Length > 2000)
+                        {
+                            var sb = new StringBuilder();
+                            foreach (var line in textoRestante.Split(new char[] { '\r', '\n' }))
+                            {
+                                if (sb.Length + line.Length < 2000)
+                                {
+                                    sb.AppendLine(line);
+                                }
+                                else
+                                {
+                                    await channel.SendMessageAsync(sb.ToString(), messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                                    sb.Clear();
+                                }
+                            }
+                            if (sb.Length > 0)
+                            {
+                                await channel.SendMessageAsync(sb.ToString(), messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                            }
+                        }
+                        else
+                        {
+                            mm = await channel.SendMessageAsync(textoRestante, messageReference: msgRefer, allowedMentions: AllowedMentions.None);
+                        }
                     }
                 }
                 else

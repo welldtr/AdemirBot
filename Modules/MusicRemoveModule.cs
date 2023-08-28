@@ -16,7 +16,7 @@ namespace DiscordBot.Modules
             this.svc = svc;
         }
 
-        [SlashCommand("index", "Remover uma musica na seguinte posição")]
+        [SlashCommand("index", "Remover uma musica na seguinte posição", runMode: RunMode.Async)]
         public async Task RemoveIndex([Summary("Posicao", description: "Posição da música a remover")] int index)
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -25,7 +25,7 @@ namespace DiscordBot.Modules
             });
         }
 
-        [SlashCommand("last", "Remover a ultima música da lista")]
+        [SlashCommand("last", "Remover a ultima música da lista", runMode: RunMode.Async)]
         public async Task RemoveLast()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -34,7 +34,7 @@ namespace DiscordBot.Modules
             });
         }
 
-        [SlashCommand("member", "Remover uma musica na seguinte posição")]
+        [SlashCommand("member", "Remover uma musica na seguinte posição", runMode: RunMode.Async)]
         public async Task RemoveMemberTracks([Summary("Membro", description: "Membro ao remover músicas da playlist")] IUser member)
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -43,7 +43,7 @@ namespace DiscordBot.Modules
             });
         }
 
-        [SlashCommand("range", "Remover uma musica na seguinte posição")]
+        [SlashCommand("range", "Remover uma musica na seguinte posição", runMode: RunMode.Async)]
         public async Task RemoveRange(
             [Summary("Inicial", description: "Posição inicial do intervalo a remover")] int n,
             [Summary("Final", description: "Posição final do intervalo a remover")] int m)

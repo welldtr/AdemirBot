@@ -18,12 +18,12 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("massban", "Banir membros em massa.")]
+        [SlashCommand("massban", "Banir membros em massa.", runMode: RunMode.Async)]
         public async Task MassBan()
             => await Context.Interaction.RespondWithModalAsync<MassBanModal>("mass_ban");
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("masskick", "Expulsar membros em massa.")]
+        [SlashCommand("masskick", "Expulsar membros em massa.", runMode: RunMode.Async)]
         public async Task MassKick()
             => await Context.Interaction.RespondWithModalAsync<MassKickModal>("mass_kick");
 
@@ -40,18 +40,28 @@ namespace DiscordBot.Modules
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("ban", "Bane um membro")]
-        public async Task Ban(string motivo = null)
+        public async Task Ban([Summary("usuario", "Usuario a ser banido")] IUser user, string motivo = null)
         {
-            await (await Context.Client.GetGuildAsync(Context.Guild.Id)).AddBanAsync(Context.User.Id, reason: motivo);
-            await RespondAsync($"**{Context.User.Username}** Usuários Banidos.", ephemeral: true);
+            if(user.Id == Context.User.Id)
+            {
+                await RespondAsync($"Desculpe {user.Username}, eu me recuso a te banir.", ephemeral: true);
+                return;
+            }
+            await (await Context.Client.GetGuildAsync(Context.Guild.Id)).AddBanAsync(user.Id, reason: motivo);
+            await RespondAsync($"**{user.Username}** foi banido do servidor.", ephemeral: true);
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("kick", "Expulsa um membro")]
-        public async Task Kick(string motivo = null)
+        public async Task Kick([Summary("usuario", "Usuario a ser expulso")] IUser user, string motivo = null)
         {
-            await (await Context.Guild.GetUserAsync(Context.User.Id)).KickAsync(motivo);
-            await RespondAsync($"**{Context.User.Username}** Usuários Banidos.", ephemeral: true);
+            if (user.Id == Context.User.Id)
+            {
+                await RespondAsync($"Desculpe {user.Username}, eu me recuso a te expulsar.", ephemeral: true);
+                return;
+            }
+            await (await Context.Guild.GetUserAsync(user.Id)).KickAsync(motivo);
+            await RespondAsync($"**{user.Username}** foi expulso do servidor.", ephemeral: true);
         }
 
         [ModalInteraction("mass_kick")]
@@ -69,7 +79,7 @@ namespace DiscordBot.Modules
 
         [RequireUserPermission(ChannelPermission.ManageMessages)]
         [RequireBotPermission(ChannelPermission.ManageMessages)]
-        [SlashCommand("purge", "Remover uma certa quantidade de mensagens de um canal")]
+        [SlashCommand("purge", "Remover uma certa quantidade de mensagens de um canal", runMode: RunMode.Async)]
         public async Task PurgeMessages(
             [Summary(description: "Quantidade de mensgens a excluir")] int qtd,
             [Summary("canal", "Canal a ser limpo")] IMessageChannel channel = default)
@@ -82,7 +92,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("set-voice-event-channel", "Define canal de voz dos eventos e realoca os eventos agendados")]
+        [SlashCommand("set-voice-event-channel", "Define canal de voz dos eventos e realoca os eventos agendados", runMode: RunMode.Async)]
         public async Task SetEventChannel(
             [Summary(description: "Canal de voz")] IVoiceChannel channel)
         {
@@ -110,7 +120,7 @@ namespace DiscordBot.Modules
 
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("set-stage-event-channel", "Define canal de palco dos eventos e realoca os eventos agendados")]
+        [SlashCommand("set-stage-event-channel", "Define canal de palco dos eventos e realoca os eventos agendados", runMode: RunMode.Async)]
         public async Task SetStageEventChannel(
             [Summary(description: "Canal Palco")] IStageChannel channel)
         {

@@ -17,7 +17,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [ComponentInteraction("stop-music")]
+        [ComponentInteraction("stop-music", runMode: RunMode.Async)]
         public async Task StopMusic()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -32,7 +32,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [ComponentInteraction("skip-music")]
+        [ComponentInteraction("skip-music", runMode: RunMode.Async)]
         public async Task SkipMusic()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -47,7 +47,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [ComponentInteraction("pause-music")]
+        [ComponentInteraction("pause-music", runMode: RunMode.Async)]
         public async Task PauseMusic()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -70,7 +70,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [ComponentInteraction("show-queue")]
+        [ComponentInteraction("show-queue", runMode: RunMode.Async)]
         public async Task ShowQueue()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -88,7 +88,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("play", "Reproduz uma música, playlist ou álbum")]
+        [SlashCommand("play", "Reproduz uma música, playlist ou álbum", runMode: RunMode.Async)]
         public async Task Play([Summary(description: "nome/link/track/playlist/album")] string busca)
         {
             _ = Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -99,7 +99,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("pause", "Pausa/Retoma a reprodução da música atual.")]
+        [SlashCommand("pause", "Pausa/Retoma a reprodução da música atual.", runMode: RunMode.Async)]
         public async Task Pause()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -110,7 +110,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("volume", "Definir volume")]
+        [SlashCommand("volume", "Definir volume", runMode: RunMode.Async)]
         public async Task Volume(
             [Summary(description: "Volume (%)")] int volume)
         {
@@ -128,7 +128,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("stop", "Interrompe a lista de reprodução.")]
+        [SlashCommand("stop", "Interrompe a lista de reprodução.", runMode: RunMode.Async)]
         public async Task Stop()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -142,7 +142,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("back", "Pula para a música anterior da fila.")]
+        [SlashCommand("back", "Pula para a música anterior da fila.", runMode: RunMode.Async)]
         public async Task Back([Summary(description: "Quantidade de faixas")] int qtd = 1)
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -153,7 +153,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("skip", "Pula para a próxima música da fila.")]
+        [SlashCommand("skip", "Pula para a próxima música da fila.", runMode: RunMode.Async)]
         public async Task Skip([Summary(description: "Quantidade de faixas")] int qtd = 1)
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -164,7 +164,7 @@ namespace DiscordBot.Modules
         }
 
 
-        [SlashCommand("download", "Baixa a música em execução")]
+        [SlashCommand("download", "Baixa a música em execução", runMode: RunMode.Async)]
         public async Task Download()
         {
             await svc.DownloadAtachment((SocketMessageComponent)Context.Interaction);
@@ -172,7 +172,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("replay", "Reinicia a música atual")]
+        [SlashCommand("replay", "Reinicia a música atual", runMode: RunMode.Async)]
         public async Task Replay()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -184,7 +184,7 @@ namespace DiscordBot.Modules
 
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("loop", "Habilita/Desabilita a repetição de faixa")]
+        [SlashCommand("loop", "Habilita/Desabilita a repetição de faixa", runMode: RunMode.Async)]
         public async Task Loop()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -194,7 +194,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("loopqueue", "Habilita/Desabilita a repetição de playlist")]
+        [SlashCommand("loopqueue", "Habilita/Desabilita a repetição de playlist", runMode: RunMode.Async)]
         public async Task LoopQueue()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -204,7 +204,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("queue", "Lista as próximas 20 músicas da fila.")]
+        [SlashCommand("queue", "Lista as próximas 20 músicas da fila.", runMode: RunMode.Async)]
         public async Task Queue()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -214,7 +214,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("join", "Puxa o bot para o seu canal de voz")]
+        [SlashCommand("join", "Puxa o bot para o seu canal de voz", runMode: RunMode.Async)]
         public async Task Join()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
@@ -224,7 +224,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserCanControlMusicPlayer]
-        [SlashCommand("quit", "Remove o bot da chamada")]
+        [SlashCommand("quit", "Remove o bot da chamada", runMode: RunMode.Async)]
         public async Task Quit()
         {
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>

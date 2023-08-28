@@ -25,10 +25,15 @@ namespace DiscordBot.Services
             _client.MessageReceived += _client_MessageReceived;
         }
 
-        private async Task _client_MessageReceived(SocketMessage arg)
+        private Task _client_MessageReceived(SocketMessage arg)
         {
-            await VerificarSeMacro(arg);
+            var _ = Task.Run(async () =>
+            {
+                await VerificarSeMacro(arg);
+            });
+            return Task.CompletedTask;
         }
+
         private async Task VerificarSeMacro(SocketMessage arg)
         {
             var channel = arg.GetTextChannel();

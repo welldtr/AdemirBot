@@ -69,10 +69,10 @@ namespace DiscordBot.Services
                 {
                     member = Member.FromGuildUser(user);
                 }
-                
+
                 member.RoleIds = user.Roles.Select(a => a.Id).ToArray();
                 member.MemberNickname = user.Nickname;
-                member.MemberUserName = user.Username;                
+                member.MemberUserName = user.Username;
                 await _db.members.UpsertAsync(member, a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
 
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == user.Guild.Id);
@@ -81,19 +81,23 @@ namespace DiscordBot.Services
             return Task.CompletedTask;
         }
 
-        private async Task _client_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, Cacheable<IMessageChannel, ulong> arg2, SocketReaction arg3)
+        private Task _client_ReactionAdded(Cacheable<IUserMessage, ulong> arg1, Cacheable<IMessageChannel, ulong> arg2, SocketReaction arg3)
         {
-            var message = await _db.messagelog.FindOneAsync(a => a.MessageId == arg1.Id && a.ChannelId == arg2.Id);
-            if (message != null)
+            var _ = Task.Run(async () =>
             {
-                var reactionkey = arg3.Emote.ToString()!;
-                message.Reactions = message.Reactions ?? new Dictionary<string, int>();
-                if (message.Reactions.ContainsKey(reactionkey))
-                    message.Reactions[reactionkey]++;
-                else
-                    message.Reactions.Add(reactionkey, 1);
-                await _db.messagelog.UpsertAsync(message);
-            }
+                var message = await _db.messagelog.FindOneAsync(a => a.MessageId == arg1.Id && a.ChannelId == arg2.Id);
+                if (message != null)
+                {
+                    var reactionkey = arg3.Emote.ToString()!;
+                    message.Reactions = message.Reactions ?? new Dictionary<string, int>();
+                    if (message.Reactions.ContainsKey(reactionkey))
+                        message.Reactions[reactionkey]++;
+                    else
+                        message.Reactions.Add(reactionkey, 1);
+                    await _db.messagelog.UpsertAsync(message);
+                }
+            });
+            return Task.CompletedTask;
         }
 
         private async Task _client_ShardReady(DiscordSocketClient arg)
@@ -141,12 +145,12 @@ namespace DiscordBot.Services
             try
             {
                 var users = await guild.GetUsersAsync().FlattenAsync();
-                foreach(var user in users)
+                foreach (var user in users)
                 {
                     try
                     {
                         var member = await _db.members.Find(a => a.GuildId == guild.Id && a.MemberId == user.Id).FirstOrDefaultAsync();
-                        if(member == null)
+                        if (member == null)
                         {
                             member = Member.FromGuildUser(user);
                         }
@@ -233,42 +237,55 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task _client_GuildScheduledEventStarted(SocketGuildEvent ev)
+        private Task _client_GuildScheduledEventStarted(SocketGuildEvent ev)
         {
-            var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
-            if (evento != null)
+            var _ = Task.Run(async () =>
             {
-                evento.EndTime = DateTime.UtcNow;
-                await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
-            }
+                var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
+                if (evento != null)
+                {
+                    evento.EndTime = DateTime.UtcNow;
+                    await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
+                }
+            });
+            return Task.CompletedTask;
         }
 
-        private async Task _client_GuildScheduledEventCompleted(SocketGuildEvent ev)
+        private Task _client_GuildScheduledEventCompleted(SocketGuildEvent ev)
         {
-            var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
-            if (evento != null)
+            var _ = Task.Run(async () =>
             {
-                evento.EndTime = DateTime.UtcNow;
-                await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
-            }
+                var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id).FirstOrDefaultAsync();
+                if (evento != null)
+                {
+                    evento.EndTime = DateTime.UtcNow;
+                    await _db.events.UpsertAsync(evento, a => a.GuildId == ev.Guild.Id && a.EventId == ev.Id);
+                }
+            });
+            return Task.CompletedTask;
         }
 
-        private async Task _client_GuildScheduledEventUpdated(Cacheable<SocketGuildEvent, ulong> old, SocketGuildEvent ev)
+        private Task _client_GuildScheduledEventUpdated(Cacheable<SocketGuildEvent, ulong> old, SocketGuildEvent ev)
         {
-            var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && old.Value.Id == ev.Id).FirstOrDefaultAsync();
-            if (evento != null)
+            var _ = Task.Run(async () =>
             {
-                evento.ChannelId = ev.Channel.Id;
-                evento.ChannelId = ev.Id;
-                evento.Cover = ev.GetCoverImageUrl();
-                evento.ScheduledTime = ev.StartTime.UtcDateTime;
-                evento.LastAnnounceTime = DateTime.UtcNow;
-                evento.Name = ev.Name;
-                evento.Description = ev.Description;
-                evento.Location = ev.Location;
-                evento.Type = ev.Type;
-                await _db.events.UpsertAsync(evento, a => a.GuildEventId == evento.GuildEventId);
-            }
+                var evento = await _db.events.Find(a => a.GuildId == ev.Guild.Id && old.Value.Id == ev.Id).FirstOrDefaultAsync();
+                if (evento != null)
+                {
+                    evento.ChannelId = ev.Channel.Id;
+                    evento.ChannelId = ev.Id;
+                    evento.Cover = ev.GetCoverImageUrl();
+                    evento.ScheduledTime = ev.StartTime.UtcDateTime;
+                    evento.LastAnnounceTime = DateTime.UtcNow;
+                    evento.Name = ev.Name;
+                    evento.Description = ev.Description;
+                    evento.Location = ev.Location;
+                    evento.Type = ev.Type;
+                    await _db.events.UpsertAsync(evento, a => a.GuildEventId == evento.GuildEventId);
+                }
+
+            });
+            return Task.CompletedTask;
         }
 
         public async Task AnunciarEventosComecando(IGuild guild)
@@ -299,14 +316,17 @@ namespace DiscordBot.Services
                     }
 
                     var tempoParaInicio = evento.ScheduledTime - DateTime.UtcNow;
-                    var eventoHoje = evento.ScheduledTime - DateTime.UtcNow < TimeSpan.FromDays(1);
+                    var eventoHoje = evento.ScheduledTime.ToLocalTime().Date == DateTime.Today;
+                    var eventoAmanha = evento.ScheduledTime.ToLocalTime().Date.AddDays(-1) == DateTime.Today;
+                    bool podePostar = false;
+                    string introducao = string.Empty;
+                    string link = $"https://discord.com/events/{guild.Id}/{evento.EventId}";
+
                     var tempoDesdeUltimoAnuncio = DateTime.UtcNow - evento.LastAnnounceTime;
-                    var jaPodeAnunciar = eventoHoje && tempoParaInicio < TimeSpan.FromHours(8);
-                    if (jaPodeAnunciar)
+                    if (eventoHoje)
                     {
-                        string link = $"https://discord.com/events/{guild.Id}/{evento.EventId}";
-                        var introducao = $"Atenção, <@&956383044770598942>!\nLogo mais, no canal <#{evento.ChannelId}>, teremos **{evento.Name}**. Se preparem.\n{link}";
-                        bool podePostar = false;
+                        introducao = $"Atenção, <@&956383044770598942>!\nLogo mais, no canal <#{evento.ChannelId}>, teremos **{evento.Name}**. Se preparem.\n{link}";
+
                         if (ev.Status == GuildScheduledEventStatus.Scheduled)
                         {
                             if (tempoParaInicio.AroundMinutes(3) && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(7))
@@ -335,6 +355,21 @@ namespace DiscordBot.Services
                                 await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao, allowedMentions: AllowedMentions.All);
                                 await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
                             }
+                        }
+                    }
+                    else if (eventoAmanha)
+                    {
+                        if (msgSinceAdemirCount[guild.Id] > 50 && tempoDesdeUltimoAnuncio > TimeSpan.FromMinutes(60))
+                        {
+                            introducao = $"É amanhã, pessoal <@&956383044770598942>!\nAmanhã, às {evento.ScheduledTime.ToLocalTime():HH'h'mm}, no **{guild.Name}**, começa **{evento.Name}** no <#{evento.ChannelId}>!\nEspero vocês lá!\n{link}";
+                            podePostar = ProcessWPM(guild.SystemChannelId ?? 0) > 25;
+                        }
+
+                        if (podePostar)
+                        {
+                            evento.LastAnnounceTime = DateTime.UtcNow;
+                            await (await guild.GetSystemChannelAsync()).SendMessageAsync(introducao, allowedMentions: AllowedMentions.All);
+                            await _db.events.UpsertAsync(evento, a => a.GuildId == guild.Id && a.EventId == ev.Id);
                         }
                     }
                 }
@@ -562,8 +597,8 @@ namespace DiscordBot.Services
 
         private Task _client_MessageReceived(SocketMessage arg)
         {
-            var _ = Task.Run(async () => await ProtectFromFloodAndBlacklisted(arg));
-            var __ = Task.Run(async () => await LogMessage(arg));
+            var _ = Task.Run(() => ProtectFromFloodAndBlacklisted(arg));
+            var __ = Task.Run(() => LogMessage(arg));
             return Task.CompletedTask;
         }
 
@@ -579,69 +614,71 @@ namespace DiscordBot.Services
                 {
                     var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
                     var delecoes = mensagensUltimos10Segundos
-                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id))
+                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
                         .ToArray();
 
                     Task.WaitAll(delecoes);
                 }
                 else if (arg.Content.Matches(@"\S{80}") && arg.Content.Distinct().Count() < 9)
                 {
-                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
+                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg, new RequestOptions { AuditLogReason = "Flood" });
                 }
                 else if (backlistPatterns[arg.GetGuildId()].Any(a => arg.Content.Matches(a)))
                 {
-                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
+                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg, new RequestOptions { AuditLogReason = "Mensagem em backlist" });
                 }
             }
         }
 
-        private async Task _client_UserJoined(SocketGuildUser user)
+        private Task _client_UserJoined(SocketGuildUser user)
         {
-            var guild = _client.GetGuild(user.Guild.Id);
-            var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
-            if (member == null)
-            {
-                member = Member.FromGuildUser(user);
-                await _db.members.AddAsync(member);
-            }
-
-            await IncluirNovaChegada(user);
-            var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
-
-            if (lockServer.ContainsKey(guild.Id) && lockServer[guild.Id] == true)
-            {
-                await user.KickAsync("O servidor está bloqueado contra raid.");
-                return;
-            }
-
             var _ = Task.Run(async () =>
             {
+                var guild = _client.GetGuild(user.Guild.Id);
+                var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
+                if (member == null)
+                {
+                    member = Member.FromGuildUser(user);
+                    await _db.members.AddAsync(member);
+                }
+
+                await IncluirNovaChegada(user);
+                var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+
+                if (lockServer.ContainsKey(guild.Id) && lockServer[guild.Id] == true)
+                {
+                    await user.KickAsync("O servidor está bloqueado contra raid.");
+                    return;
+                }
+
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
                 await CheckIfMinorsAndBanEm(config, member);
-            });
 
-            await ProcessMemberProgression(guild);
-            if (config.WelcomeBanner != null && config.WelcomeBanner.Length > 0)
-            {
-                var __ = Task.Run(async () =>
+
+                await ProcessMemberProgression(guild);
+                if (config.WelcomeBanner != null && config.WelcomeBanner.Length > 0)
                 {
-                    while (user != null && (user.IsPending ?? false))
+                    var __ = Task.Run(async () =>
                     {
-                        await Task.Delay(200);
-                        user = guild.GetUser(user.Id);
-                    }
-                    
-                    if (user == null)
-                        return;
+                        while (user != null && (user.IsPending ?? false))
+                        {
+                            await Task.Delay(200);
+                            user = guild.GetUser(user.Id);
+                        }
 
-                    var img = await ProcessWelcomeMsg(user, config);
-                    var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
-                    member.WelcomeMessageId = welcome.Id;
-                    await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
-                });
-            }
+                        if (user == null)
+                            return;
+
+                        var img = await ProcessWelcomeMsg(user, config);
+                        var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
+                        member.WelcomeMessageId = welcome.Id;
+                        await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
+                    });
+                }
+            });
+            return Task.CompletedTask;
         }
 
         private async Task GiveAutoRole(AdemirConfig config, SocketGuildUser user)
@@ -651,7 +688,7 @@ namespace DiscordBot.Services
                 var role = user.Guild.GetRole(config.AutoRoleId);
                 if (role != null)
                 {
-                    await user.AddRoleAsync(role);
+                    await user.AddRoleAsync(role, new RequestOptions { AuditLogReason = "Autorole"});
                 }
             }
             catch (Exception ex)
@@ -660,86 +697,102 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task _client_UserBanned(SocketUser user, SocketGuild guild)
+        private Task _client_UserBanned(SocketUser user, SocketGuild guild)
         {
-            var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
-            var ban = await guild.GetBanAsync(user);
-            member.DateBanned = DateTime.UtcNow;
-            member.ReasonBanned = ban.Reason;
-            await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
-        }
-
-        private async Task _client_UserUnbanned(SocketUser user, SocketGuild guild)
-        {
-            var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
-            member.DateBanned = null;
-            member.ReasonBanned = null;
-            await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
-        }
-
-        private async Task CheckIfMinorsAndBanEm(AdemirConfig config, Member member)
-        {
-            try
+            var _ = Task.Run(async () =>
             {
-                var guild = _client.GetGuild(config.GuildId);
-                var role = guild.GetRole(config.MinorRoleId);
-                var user = guild.GetUser(member.MemberId);
-                if (role != null)
+                var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
+                var ban = await guild.GetBanAsync(user);
+                member.DateBanned = DateTime.UtcNow;
+                member.ReasonBanned = ban.Reason;
+                await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
+            });
+            return Task.CompletedTask;
+        }
+
+        private Task _client_UserUnbanned(SocketUser user, SocketGuild guild)
+        {
+            var _ = Task.Run(async () =>
+            {
+                var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == guild.Id);
+                member.DateBanned = null;
+                member.ReasonBanned = null;
+                await _db.members.UpsertAsync(member, a => a.MemberId == member.MemberId && a.GuildId == member.GuildId);
+            });
+            return Task.CompletedTask;
+        }
+
+        private Task CheckIfMinorsAndBanEm(AdemirConfig config, Member member)
+        {
+            var _ = Task.Run(async () =>
+            {
+                try
                 {
-                    if (user.Roles.Any(a => a.Id == role.Id))
+                    var guild = _client.GetGuild(config.GuildId);
+                    var role = guild.GetRole(config.MinorRoleId);
+                    var user = guild.GetUser(member.MemberId);
+                    if (role != null)
                     {
-                        await user.SendMessageAsync("Oi. Tudo bem? Infelizmente não podemos aceitar menores de idade no nosso grupo. Desculpe.");
-                        await user.BanAsync(0, "Menor de Idade");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, $"Erro ao expulsar o menor de idade: {member.MemberUserName}.");
-            }
-        }
-
-        private async Task _client_UserLeft(SocketGuild guild, SocketUser user)
-        {
-            var userId = user.Id;
-            var guildId = guild.Id;
-            var membership = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
-
-
-            var dateleft = DateTime.UtcNow;
-            if (membership == null)
-            {
-                await _db.memberships.AddAsync(new Membership
-                {
-                    MembershipId = Guid.NewGuid(),
-                    GuildId = guildId,
-                    MemberId = userId,
-                    MemberUserName = user.Username,
-                    DateLeft = dateleft
-                });
-            }
-            else
-            {
-                if (membership.DateJoined != null)
-                {
-                    var tempoNoServidor = dateleft - membership.DateJoined.Value;
-                    if (tempoNoServidor < TimeSpan.FromMinutes(30))
-                    {
-                        var member = (await _db.members.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
-                        if (member != null)
+                        if (user.Roles.Any(a => a.Id == role.Id))
                         {
-                            if (member.WelcomeMessageId > 0)
-                                await guild.SystemChannel.DeleteMessageAsync(member.WelcomeMessageId);
+                            await user.SendMessageAsync("Oi. Tudo bem? Infelizmente não podemos aceitar menores de idade no nosso grupo. Desculpe.");
+                            await user.BanAsync(0, "Menor de Idade");
                         }
-                        await ProcurarEApagarMensagemDeBoasVindas(guild, membership, membership.DateJoined.Value);
                     }
                 }
-                membership.MemberUserName = user.Username;
-                membership.DateLeft = dateleft;
-                await _db.memberships.UpsertAsync(membership);
-            }
+                catch (Exception ex)
+                {
+                    _log.LogError(ex, $"Erro ao expulsar o menor de idade: {member.MemberUserName}.");
+                }
+            });
+            return Task.CompletedTask;
+        }
 
-            await ProcessMemberProgression(guild);
+        private Task _client_UserLeft(SocketGuild guild, SocketUser user)
+        {
+            var _ = Task.Run(async () =>
+            {
+                var userId = user.Id;
+                var guildId = guild.Id;
+                var membership = (await _db.memberships.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
+
+
+                var dateleft = DateTime.UtcNow;
+                if (membership == null)
+                {
+                    await _db.memberships.AddAsync(new Membership
+                    {
+                        MembershipId = Guid.NewGuid(),
+                        GuildId = guildId,
+                        MemberId = userId,
+                        MemberUserName = user.Username,
+                        DateLeft = dateleft
+                    });
+                }
+                else
+                {
+                    if (membership.DateJoined != null)
+                    {
+                        var tempoNoServidor = dateleft - membership.DateJoined.Value;
+                        if (tempoNoServidor < TimeSpan.FromMinutes(30))
+                        {
+                            var member = (await _db.members.FindOneAsync(a => a.MemberId == userId && a.GuildId == guildId));
+                            if (member != null)
+                            {
+                                if (member.WelcomeMessageId > 0)
+                                    await guild.SystemChannel.DeleteMessageAsync(member.WelcomeMessageId, new RequestOptions { AuditLogReason = "O novato foi embora" });
+                            }
+                            await ProcurarEApagarMensagemDeBoasVindas(guild, membership, membership.DateJoined.Value);
+                        }
+                    }
+                    membership.MemberUserName = user.Username;
+                    membership.DateLeft = dateleft;
+                    await _db.memberships.UpsertAsync(membership);
+                }
+
+                await ProcessMemberProgression(guild);
+            });
+            return Task.CompletedTask;
         }
 
         private async Task ProcurarEApagarMensagemDeBoasVindas(SocketGuild guild, Membership member, DateTime untilDate)
@@ -754,7 +807,7 @@ namespace DiscordBot.Services
             {
                 try
                 {
-                    await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id);
+                    await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id, new RequestOptions { AuditLogReason = "O novato foi embora" });
                     Console.WriteLine($"Mensagem de boas vindas do usuario [{member.MemberUserName}] apagada.");
                 }
                 catch (Exception ex)
@@ -1019,8 +1072,8 @@ namespace DiscordBot.Services
             if (levelRolesToAdd.Count() == 0)
                 return;
 
-            await user.AddRolesAsync(levelRolesToAdd);
-            await user.RemoveRolesAsync(levelRolesToRemove);
+            await user.AddRolesAsync(levelRolesToAdd, new RequestOptions { AuditLogReason = "Novo cargo de Level" });
+            await user.RemoveRolesAsync(levelRolesToRemove, new RequestOptions { AuditLogReason = "Antigo cargo de Level" });
         }
 
         private int ProcessWPM(ulong channelId = 0)

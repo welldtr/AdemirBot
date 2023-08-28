@@ -25,7 +25,7 @@ namespace DiscordBot.Modules
             this.db = ctx;
         }
 
-        [SlashCommand("dall-e", "Pedir ao Dall-e uma imagem com a descrição.")]
+        [SlashCommand("dall-e", "Pedir ao Dall-e uma imagem com a descrição.", runMode: RunMode.Async)]
         public async Task DallE([Summary(description: "Comando do DALL-E")] string comando)
         {
             var guild = ((SocketTextChannel)Context.Channel).Guild;
@@ -65,7 +65,7 @@ namespace DiscordBot.Modules
             }
         }
 
-        [SlashCommand("completar", "Pedir ao GPT uma completude de texto.")]
+        [SlashCommand("completar", "Pedir ao GPT uma completude de texto.", runMode: RunMode.Async)]
         public async Task GPTText([Summary(description: "Comando")] string comando)
         {
             var guild = ((SocketTextChannel)Context.Channel).Guild;
@@ -94,8 +94,7 @@ namespace DiscordBot.Modules
                 foreach (var choice in imageResult.Choices)
                 {
                     await ModifyOriginalResponseAsync(a => a.Content = $"Comando: \"{comando}\"");
-                    using var ms = new MemoryStream(Encoding.UTF8.GetBytes(choice.Text));
-                    await Context.Channel.SendFileAsync(new FileAttachment(ms, "Resposta.txt"), messageReference: new MessageReference(msg.Id));
+                    await Context.Channel.Responder(choice.Text, new MessageReference(msg.Id));
                 }
             }
             else
@@ -104,7 +103,7 @@ namespace DiscordBot.Modules
             }
         }
 
-        [SlashCommand("thread", "Criar uma tread privada com o Ademir.")]
+        [SlashCommand("thread", "Criar uma tread privada com o Ademir.", runMode: RunMode.Async)]
         public async Task NewThread([Summary(description: "Nome da nova Thread")] string nome)
         {
             var guild = ((SocketTextChannel)Context.Channel).Guild;

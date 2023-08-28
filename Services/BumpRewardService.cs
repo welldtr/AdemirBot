@@ -29,9 +29,10 @@ namespace DiscordBot.Services
             _client.MessageReceived += _client_MessageReceived;
         }
 
-        private async Task _client_MessageReceived(SocketMessage arg)
+        private Task _client_MessageReceived(SocketMessage arg)
         {
-            await VerificarSeMensagemDeBump(arg);
+            var _ = Task.Run(() => VerificarSeMensagemDeBump(arg));
+            return Task.CompletedTask;
         }
 
         private async Task VerificarSeMensagemDeBump(SocketMessage arg)
@@ -48,30 +49,28 @@ namespace DiscordBot.Services
             var canal = (IMessageChannel)guild.Channels.First(a => a.Id == config.BumpChannelId);
 
             if (arg.Channel.Id == config.BumpChannelId &&
-                arg.Content.Contains(config.BumpMessageContent!) &&
-                arg.Author.Id == config.BumpBotId)
+               (arg.Interaction?.Type == InteractionType.ApplicationCommand && arg.Interaction.Name == "bump"))
             {
-                foreach (var mentionedUser in arg.MentionedUsers)
+                var bumper = arg.Interaction.User;
+
+                await canal.SendMessageAsync($"Obrigado {bumper.Mention}. Você ganhou +{config.XPPerBump}xp por bumpar o servidor {guild.Name}. Para manter seu novo XP, recepcione os novatos.");
+                _log.LogInformation($"{bumper.Username} ganhou {config.XPPerBump}xp.");
+
+                var member = await _db.members.FindOneAsync(a => a.MemberId == bumper.Id && a.GuildId == guildId);
+
+                if (member != null)
                 {
-                    await canal.SendMessageAsync($"Obrigado {mentionedUser.Mention}. Você ganhou +{config.XPPerBump}xp por bumpar o servidor {guild.Name}. Para manter seu novo XP, recepcione os novatos.");
-                    _log.LogInformation($"{mentionedUser.Username} ganhou {config.XPPerBump}xp.");
-
-                    var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author.Id && a.GuildId == guildId);
-
-                    if (member != null)
+                    member.XP += config.XPPerBump;
+                    member.BumpCount++;
+                    await _db.members.UpsertAsync(member, a => a.MemberId == bumper.Id && a.GuildId == guildId);
+                    await _db.bumps.AddAsync(new Bump
                     {
-                        member.XP += config.XPPerBump;
-                        member.BumpCount++;
-                        await _db.members.UpsertAsync(member, a => a.MemberId == arg.Author.Id && a.GuildId == guildId);
-                        await _db.bumps.AddAsync(new Bump
-                        {
-                            BumpId = Guid.NewGuid(),
-                            BumpDate = arg.Timestamp.DateTime,
-                            GuildId = guildId,
-                            UserId = mentionedUser.Id,
-                            XP = config.XPPerBump
-                        });
-                    }
+                        BumpId = Guid.NewGuid(),
+                        BumpDate = arg.Timestamp.DateTime,
+                        GuildId = guildId,
+                        UserId = bumper.Id,
+                        XP = config.XPPerBump
+                    });
                 }
             }
         }

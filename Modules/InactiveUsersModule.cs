@@ -22,7 +22,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("importar-historico-mensagens", "Importa mensagens do histórico até 365 dias")]
+        [SlashCommand("importar-historico-mensagens", "Importa mensagens do histórico até 365 dias", runMode: RunMode.Async)]
         public async Task ImportarHistorico(
             [Summary(description: "Canal a analisar")] ITextChannel canal)
         {
@@ -134,7 +134,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("usuarios-inativos", "Extrair uma lista dos usuários que menos escrevem no chat.")]
+        [SlashCommand("usuarios-inativos", "Extrair uma lista dos usuários que menos escrevem no chat.", runMode: RunMode.Async)]
         public async Task UsuariosInativos(
             [Summary(description: "Canal a analisar")] IChannel canal)
         {

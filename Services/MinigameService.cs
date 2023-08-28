@@ -85,7 +85,43 @@ namespace DiscordBot.Services
             return Task.CompletedTask;
         }
 
-        private async Task _client_MessageReceived(SocketMessage arg)
+        public async Task GiveUp(SocketGuild guild)
+        {
+            if (!StartedMinigame.ContainsKey(guild.Id))
+            {
+                StartedMinigame[guild.Id] = null;
+            }
+
+            var startedGame = await _db.minigames.Find(a => a.GuildId == guild.Id && a.Finished == false)
+                .SortByDescending(a => a.StartDate)
+                .FirstOrDefaultAsync();
+
+            StartedMinigame[guild.Id] = startedGame;
+
+            if (StartedMinigame[guild.Id] != null && !StartedMinigame[guild.Id].Finished)
+            {
+                await guild.SystemChannel.SendMessageAsync(" ",
+                    embed: new EmbedBuilder()
+                    .WithAuthor("Parece que tá difícil..")
+                    .WithDescription($"Tudo bem. A resposta da charada é: {StartedMinigame[guild.Id].Data.Aswer}")
+                    .Build());
+
+                startedGame.Finished = true;
+                startedGame.Winner = _client.CurrentUser.Id;
+                await _db.minigames.UpsertAsync(startedGame, a => a.GuildId == guild.Id && a.MinigameId == startedGame.MinigameId);
+            }
+
+            StartedMinigame[guild.Id] = null;
+            await IniciarMinigame(guild);
+        }
+
+        private Task _client_MessageReceived(SocketMessage arg)
+        {
+            var _ = Task.Run(() => VerificarSeMinigame(arg));
+            return Task.CompletedTask;
+        }
+
+        private async Task VerificarSeMinigame(SocketMessage arg)
         {
             var guild = _client.GetGuild(arg.GetGuildId());
 
@@ -104,6 +140,18 @@ namespace DiscordBot.Services
                 {
                     MsgCounter[guild.Id] = 0;
                 }
+                return;
+            }
+
+            if (arg.Content == ">>minigame")
+            {
+                await IniciarMinigame(guild);
+                return;
+            }
+
+            if (arg.Content == ">>giveup")
+            {
+                await GiveUp(guild);
                 return;
             }
 
@@ -228,7 +276,7 @@ namespace DiscordBot.Services
                 };
 
                 var r = new Random().Next(0, ciencias.Length -1);
-                var result = await openAI.ChatCompletion.CreateCompletion(new OpenAI.ObjectModels.RequestModels.ChatCompletionCreateRequest
+                var result = await openAI.ChatCompletion.CreateCompletion(new ChatCompletionCreateRequest
                 {
                     Messages = new[]
                     {
@@ -244,7 +292,7 @@ R: {{resposta}}")
                 },
                     Model = Models.Gpt_3_5_Turbo,
                     MaxTokens = 1000,
-                    Temperature = 0.5f
+                    Temperature = 0.3f
                 });
 
                 var regex = new Regex(@"R: (\w+)");
