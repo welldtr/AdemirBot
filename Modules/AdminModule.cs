@@ -53,7 +53,7 @@ namespace DiscordBot.Modules
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("kick", "Expulsa um membro")]
-        public async Task Kick([Summary("usuario", "Usuario a ser expulso")]IUser user, string motivo = null)
+        public async Task Kick([Summary("usuario", "Usuario a ser expulso")] IUser user, string motivo = null)
         {
             if (user.Id == Context.User.Id)
             {

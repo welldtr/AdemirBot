@@ -614,18 +614,18 @@ namespace DiscordBot.Services
                 {
                     var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
                     var delecoes = mensagensUltimos10Segundos
-                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id))
+                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
                         .ToArray();
 
                     Task.WaitAll(delecoes);
                 }
                 else if (arg.Content.Matches(@"\S{80}") && arg.Content.Distinct().Count() < 9)
                 {
-                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
+                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg, new RequestOptions { AuditLogReason = "Flood" });
                 }
                 else if (backlistPatterns[arg.GetGuildId()].Any(a => arg.Content.Matches(a)))
                 {
-                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg);
+                    await (arg.Channel as ITextChannel)!.DeleteMessageAsync(arg, new RequestOptions { AuditLogReason = "Mensagem em backlist" });
                 }
             }
         }
@@ -688,7 +688,7 @@ namespace DiscordBot.Services
                 var role = user.Guild.GetRole(config.AutoRoleId);
                 if (role != null)
                 {
-                    await user.AddRoleAsync(role);
+                    await user.AddRoleAsync(role, new RequestOptions { AuditLogReason = "Autorole"});
                 }
             }
             catch (Exception ex)
@@ -780,7 +780,7 @@ namespace DiscordBot.Services
                             if (member != null)
                             {
                                 if (member.WelcomeMessageId > 0)
-                                    await guild.SystemChannel.DeleteMessageAsync(member.WelcomeMessageId);
+                                    await guild.SystemChannel.DeleteMessageAsync(member.WelcomeMessageId, new RequestOptions { AuditLogReason = "O novato foi embora" });
                             }
                             await ProcurarEApagarMensagemDeBoasVindas(guild, membership, membership.DateJoined.Value);
                         }
@@ -807,7 +807,7 @@ namespace DiscordBot.Services
             {
                 try
                 {
-                    await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id);
+                    await guild.SystemChannel.DeleteMessageAsync(buttonMessage.Id, new RequestOptions { AuditLogReason = "O novato foi embora" });
                     Console.WriteLine($"Mensagem de boas vindas do usuario [{member.MemberUserName}] apagada.");
                 }
                 catch (Exception ex)
@@ -1072,8 +1072,8 @@ namespace DiscordBot.Services
             if (levelRolesToAdd.Count() == 0)
                 return;
 
-            await user.AddRolesAsync(levelRolesToAdd);
-            await user.RemoveRolesAsync(levelRolesToRemove);
+            await user.AddRolesAsync(levelRolesToAdd, new RequestOptions { AuditLogReason = "Novo cargo de Level" });
+            await user.RemoveRolesAsync(levelRolesToRemove, new RequestOptions { AuditLogReason = "Antigo cargo de Level" });
         }
 
         private int ProcessWPM(ulong channelId = 0)
