@@ -38,9 +38,9 @@ stages:
         sshEndpoint: 'SSH VPS'
         runOptions: 'commands'
         commands: |
+          docker system prune --force
           docker pull emmanuelpereira/ademir-bot:$(tag)
           docker stop ademir
-          docker system prune --force
           docker rm -f ademir
           docker run --name=ademir --restart=always -v /var/ademir/.env:/App/.env -d emmanuelpereira/ademir-bot:$(tag)
         readyTimeout: '20000'
