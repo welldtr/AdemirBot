@@ -526,7 +526,7 @@ namespace DiscordBot.Services
                     Color = SKColor.Parse("#30D5C8")
                 });
 
-                var avatarUrl = user.GetGuildAvatarUrl(size: 512) ?? user.GetDisplayAvatarUrl(size: 512);
+                var avatarUrl = user.GetGuildAvatarUrl(size: 512, format: ImageFormat.Jpeg) ?? user.GetDisplayAvatarUrl(size: 512);
                 canvas.DrawCircle(new SKPoint(140, 110), 100, new SKPaint
                 {
                     IsAntialias = true,

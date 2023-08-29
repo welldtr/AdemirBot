@@ -275,13 +275,14 @@ namespace DiscordBot.Services
                     "Jogos retrô", "Jogos contemporâneos", "Cultura pop", "Culinária"
                 };
 
-                var r = new Random().Next(0, ciencias.Length -1);
+                var r = new Random().Next(0, ciencias.Length - 1);
+                var ralpha = (char)new Random().Next('A', 'Z');
                 var result = await openAI.ChatCompletion.CreateCompletion(new ChatCompletionCreateRequest
                 {
                     Messages = new[]
                     {
                     new ChatMessage("system", $@"
-Crie um jogo de adivinhação de uma única palavra não-composta, que seja necessário ter um bom nível de conhecimento em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas que sejam absolutamente verdade em relação à resposta e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de uma única palavra não-composta que comece com a letra {ralpha}, que seja necessário ter um bom nível de conhecimento em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas que sejam absolutamente verdade em relação à resposta e dê a resposta em seguida no formato:
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
