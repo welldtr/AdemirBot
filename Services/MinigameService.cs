@@ -282,7 +282,7 @@ namespace DiscordBot.Services
                     Messages = new[]
                     {
                     new ChatMessage("system", $@"
-Crie um jogo de adivinhação de uma única palavra não-composta que comece com a letra {ralpha}, que seja necessário ter um bom nível de conhecimento em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas que sejam absolutamente verdade em relação à resposta e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de uma única palavra não-composta que comece com a letra {ralpha}, que seja necessário ter um bom nível de conhecimento de nível aleatório que varia de fácil a muito difícil em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas que sejam absolutamente verdade em relação à resposta e dê a resposta em seguida no formato:
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
