@@ -668,9 +668,9 @@ namespace DiscordBot.Modules
 
         private async Task<string> ProcessCard(IGuildUser user)
         {
-            var members = await db.members.Find(a => a.GuildId == user.GuildId).SortByDescending(a => a.Level).ToListAsync();
-            var member = members.First(a => a.MemberId == user.Id);
-            var rankPosition = members.IndexOf(member) + 1;
+            var members = await db.members.Find(a => a.GuildId == user.GuildId).SortByDescending(a => a.Level).Project(a => a.MemberId).ToListAsync();
+            var member = await db.members.Find(a => a.MemberId == user.Id).FirstOrDefaultAsync();
+            var rankPosition = members.IndexOf(user.Id) + 1;
             int width = 1600;
             int height = 400;
             SKColor backgroundColor = SKColor.Parse("#313338");
@@ -744,7 +744,7 @@ namespace DiscordBot.Modules
                 canvas.DrawText(videoTime.text, videoTime.x, videoTime.y, new SKFont(typeface, videoTime.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(videoTime.color), TextAlign = SKTextAlign.Right });
                 canvas.DrawText(events.text, events.x, events.y, new SKFont(typeface, events.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(events.color), TextAlign = SKTextAlign.Right });
 
-                var avatarUrl = user.GetGuildAvatarUrl(size: 128, format: ImageFormat.Jpeg) ?? user.GetDisplayAvatarUrl(size: 128, format: ImageFormat.Jpeg);
+                var avatarUrl = user.GetGuildAvatarUrl(size: 128, format: ImageFormat.Png) ?? user.GetDisplayAvatarUrl(size: 128, format: ImageFormat.Png);
 
                 if (!string.IsNullOrEmpty(avatarUrl))
                 {
