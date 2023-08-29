@@ -744,7 +744,7 @@ namespace DiscordBot.Modules
                 canvas.DrawText(videoTime.text, videoTime.x, videoTime.y, new SKFont(typeface, videoTime.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(videoTime.color), TextAlign = SKTextAlign.Right });
                 canvas.DrawText(events.text, events.x, events.y, new SKFont(typeface, events.size), new SKPaint { IsAntialias = true, Color = SKColor.Parse(events.color), TextAlign = SKTextAlign.Right });
 
-                var avatarUrl = user.GetGuildAvatarUrl(size: 512, format: ImageFormat.Jpeg) ?? user.GetDisplayAvatarUrl(size: 512, format: ImageFormat.Jpeg);
+                var avatarUrl = user.GetGuildAvatarUrl(size: 128, format: ImageFormat.Jpeg) ?? user.GetDisplayAvatarUrl(size: 128, format: ImageFormat.Jpeg);
 
                 if (!string.IsNullOrEmpty(avatarUrl))
                 {
