@@ -279,27 +279,28 @@ namespace DiscordBot.Services
                 var r = new Random().Next(0, ciencias.Length - 1);
                 var ciencia = ciencias[r];
                 var ralpha = (char)new Random().Next('A', 'Z');
-                var result = await openAI.ChatCompletion.CreateCompletion(new ChatCompletionCreateRequest
-                {
-                    Messages = new[]
-                    {
-                    new ChatMessage("system", $@"
+
+                var prompt = $@"
 Crie um jogo de adivinhação de uma palavra que comece com a letra {ralpha}, que seja de nível aleatório que varia de fácil a muito difícil em {ciencia} e que seja indiscutivelmente verdade. Sempre dê três dicas e certifique-se que elas são verdadeiras. Dê a resposta em seguida no formato:
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
 - {{dica 3}}
 
-R: {{resposta}}")
-                },
-                    Model = Models.Gpt_3_5_Turbo,
+R: {{resposta}}";
+
+                var result = await openAI.Completions.CreateCompletion(new CompletionCreateRequest
+                {
+                    Prompt = prompt,
+                    N = 1,
                     MaxTokens = 1000,
-                    Temperature = 0.3f
+                    Model = Models.TextDavinciV3,
+                    Temperature = 0.9f
                 });
 
                 var regex = new Regex(@"R: (\w+)");
 
-                if (result.Successful && result.Choices.Count > 0 && result.Choices[0].Message.Content is string message && regex.Matches(message).Count == 1)
+                if (result.Successful && result.Choices.Count > 0 && result.Choices[0].Text is string message && regex.Matches(message).Count == 1)
                 {
                     var charada = message.Match(@"([\S\s]*)R: \w+").Groups[1].Value.Trim();
                     var resposta = message.Match(@"R: (\w+)$").Groups[1].Value;
