@@ -19,5 +19,6 @@ namespace DiscordBot.Domain.Entities
         public bool Finished { get; set; }
         public ulong Winner { get; set; }
         public DateTime StartDate { get; set; }
+        public string Science { get; internal set; }
     }
 }

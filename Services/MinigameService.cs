@@ -173,7 +173,7 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                if (arg.Content.RemoverAcentos().ToLower().Contains(minigame.Data.Aswer.RemoverAcentos().ToLower()))
+                if (arg.Content.RemoverAcentos().Replace(" ", "").ToLower().Contains(minigame.Data.Aswer.RemoverAcentos().ToLower()))
                 {
                     minigame.Finished = true;
                     minigame.Winner = arg.Author.Id;
@@ -216,11 +216,12 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                (string charada, string resposta) = await ObterCharada();
+                (string ciencia, string charada, string resposta) = await ObterCharada();
                 var minigame = new MinigameMatch
                 {
                     MinigameId = Guid.NewGuid(),
                     GuildId = guild.Id,
+                    Science = ciencia,
                     Data = new CharadeData
                     {
                         Charade = charada,
@@ -246,7 +247,7 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task<(string charada, string resposta)> ObterCharada()
+        private async Task<(string ciencia, string charada, string resposta)> ObterCharada()
         {
             while (true)
             {
@@ -276,13 +277,14 @@ namespace DiscordBot.Services
                 };
 
                 var r = new Random().Next(0, ciencias.Length - 1);
+                var ciencia = ciencias[r];
                 var ralpha = (char)new Random().Next('A', 'Z');
                 var result = await openAI.ChatCompletion.CreateCompletion(new ChatCompletionCreateRequest
                 {
                     Messages = new[]
                     {
                     new ChatMessage("system", $@"
-Crie um jogo de adivinhação de uma única palavra não-composta que comece com a letra {ralpha}, que seja necessário ter um bom nível de conhecimento de nível aleatório que varia de fácil a muito difícil em {ciencias[r]} e que seja indiscutivelmente verdade. Sempre dê três dicas que sejam absolutamente verdade em relação à resposta e dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de uma única palavra não-composta que comece com a letra {ralpha}, que seja necessário ter um bom nível de conhecimento de nível aleatório que varia de fácil a muito difícil em {ciencia} e que seja indiscutivelmente verdade. Sempre dê três dicas verdadeiras e precisas e dê a resposta em seguida no formato:
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
@@ -302,11 +304,11 @@ R: {{resposta}}")
                     var charada = message.Match(@"([\S\s]*)R: \w+").Groups[1].Value.Trim();
                     var resposta = message.Match(@"R: (\w+)$").Groups[1].Value;
 
-                    if (string.IsNullOrEmpty(resposta) || resposta.Trim().Length == 0)
+                    if (string.IsNullOrEmpty(resposta) || resposta.Trim().Length == 0 || ralpha != resposta[0])
                         continue;
 
                     Console.WriteLine($"{charada}\n\n{resposta}");
-                    return (charada, resposta);
+                    return (ciencia, charada, resposta);
                 }
             }
         }
