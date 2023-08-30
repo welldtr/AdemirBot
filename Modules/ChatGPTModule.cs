@@ -84,7 +84,7 @@ namespace DiscordBot.Modules
                 N = 1,
                 MaxTokens = 1000,
                 Model = Models.TextDavinciV3,
-                Temperature = 0.9f
+                Temperature = 0.2f
             });
 
             var msg = await ((SocketSlashCommand)Context.Interaction).GetOriginalResponseAsync();
