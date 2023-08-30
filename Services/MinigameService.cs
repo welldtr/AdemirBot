@@ -209,7 +209,7 @@ namespace DiscordBot.Services
                 {
                     await guild.SystemChannel.SendMessageAsync(" ",
                         embed: new EmbedBuilder()
-                        .WithAuthor("Minigame atual:")
+                        .WithAuthor($"Minigame atual [{startedGame.Science}]:")
                         .WithDescription(StartedMinigame[guild.Id].Data.Charade)
                         .Build());
 
@@ -233,7 +233,7 @@ namespace DiscordBot.Services
                 
                 await guild.SystemChannel.SendMessageAsync(" ", 
                     embed: new EmbedBuilder()
-                    .WithAuthor("Minigame:")
+                    .WithAuthor($"Minigame [{ciencia}]:")
                     .WithDescription(charada)
                     .Build());
 
