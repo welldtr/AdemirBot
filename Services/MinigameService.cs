@@ -295,7 +295,7 @@ R: {{resposta}}";
                     N = 1,
                     MaxTokens = 1000,
                     Model = Models.TextDavinciV3,
-                    Temperature = 0.9f
+                    Temperature = 0.2f
                 });
 
                 var regex = new Regex(@"R: (\w+)");
