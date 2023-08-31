@@ -281,13 +281,17 @@ namespace DiscordBot.Services
                 var ralpha = (char)new Random().Next('A', 'Z');
 
                 var prompt = $@"
-Crie um jogo de adivinhação de uma palavra que comece com a letra {ralpha}, que seja de nível aleatório que varia de fácil a muito difícil em {ciencia} e que seja indiscutivelmente verdade. Sempre dê três dicas e certifique-se que elas são verdadeiras. Dê a resposta em seguida no formato:
+Crie um jogo de adivinhação de uma palavra que comece com a letra {ralpha}, que seja de nível aleatório que varia de fácil a muito difícil em {ciencia} e que seja indiscutivelmente verdade em relação às dicas.
+Sempre dê três dicas e certifique-se que elas são verídicas e não contraditórias.
+Repito, exijo que as tanto as dicas quanto a resposta dadas sejam verídicas e a resposta seja completamente coerente com as dicas.
+Dê a resposta em seguida no formato:
+
 Dicas: 
 - {{dica 1}}
 - {{dica 2}}
 - {{dica 3}}
 
-R: {{resposta}}";
+R: {{resposta verdadeira em relação às dicas 1, 2 e 3}}";
 
                 var result = await openAI.Completions.CreateCompletion(new CompletionCreateRequest
                 {
