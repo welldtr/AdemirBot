@@ -41,7 +41,7 @@ namespace DiscordBot.Services
                         await VerificarSeHoraDoBump(guild);
                     }
 
-                    await Task.Delay(TimeSpan.FromMinutes(10));
+                    await Task.Delay(TimeSpan.FromSeconds(10));
                 }
             });
 
