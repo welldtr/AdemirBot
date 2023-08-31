@@ -171,8 +171,7 @@ namespace DiscordBot.Modules
         [SlashCommand("config-rewards", "Configurar recompensas de bump.", runMode: RunMode.Async)]
         public async Task ConfigRewards(
             [Summary(description: "Canal do Bump")] IChannel canal,
-            [Summary(description: "Bot reminder")] IUser bot,
-            [Summary(description: "Conteudo da mensagem")] string conteudo,
+            [Summary(description: "Cargo de Bumper")] IRole cargo,
             [Summary(description: "XP por bump")] long xp)
         {
             var config = (await db.bumpCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
@@ -184,8 +183,7 @@ namespace DiscordBot.Modules
                     BumpConfigId = Guid.NewGuid(),
                     GuildId = Context.Guild.Id,
                     BumpChannelId = canal.Id,
-                    BumpBotId = bot.Id,
-                    BumpMessageContent = conteudo,
+                    BumpRoleId = cargo.Id,
                     XPPerBump = (int)xp
                 };
                 await db.bumpCfg.AddAsync(config);
@@ -193,8 +191,7 @@ namespace DiscordBot.Modules
             else
             {
                 config.BumpChannelId = canal.Id;
-                config.BumpBotId = bot.Id;
-                config.BumpMessageContent = conteudo;
+                config.BumpRoleId = cargo.Id;
                 config.XPPerBump = (int)xp;
                 await db.bumpCfg.UpsertAsync(config);
             }

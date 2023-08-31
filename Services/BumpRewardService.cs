@@ -27,6 +27,49 @@ namespace DiscordBot.Services
         private void BindEventListeners()
         {
             _client.MessageReceived += _client_MessageReceived;
+            _client.ShardReady += _client_ShardReady;
+        }
+
+        private Task _client_ShardReady(DiscordSocketClient arg)
+        {
+            var _ = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    foreach (var guild in _client.Guilds)
+                    {
+                        await VerificarSeHoraDoBump(guild);
+                    }
+
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+                }
+            });
+
+            return Task.CompletedTask;
+        }
+
+        private async Task VerificarSeHoraDoBump(SocketGuild guild)
+        {
+            var config = (await _db.bumpCfg.FindOneAsync(a => a.GuildId == guild.Id));
+
+            if (config == null)
+                return;
+
+            if(config.LastRemindTime == null && DateTime.UtcNow - config.LastBumpTime >= TimeSpan.FromMinutes(120))
+            {
+                var canal = guild.GetTextChannel(config.BumpChannelId);
+
+                await canal.SendMessageAsync($"<@&{config.BumpRoleId}>", 
+                    embed: new EmbedBuilder()
+                    .WithTitle("Ta na hora do BUMP!")
+                    .WithDescription("Impulsione nosso servidor digitando `/bump` !")
+                    .WithCurrentTimestamp()
+                    .WithColor(new Color(0x875cfd))
+                    .Build());
+
+                config.LastRemindTime = DateTime.UtcNow;
+                await _db.bumpCfg.UpsertAsync(config, a => a.GuildId == guild.Id);
+            }
         }
 
         private Task _client_MessageReceived(SocketMessage arg)
@@ -57,6 +100,9 @@ namespace DiscordBot.Services
                 _log.LogInformation($"{bumper.Username} ganhou {config.XPPerBump}xp.");
 
                 var member = await _db.members.FindOneAsync(a => a.MemberId == bumper.Id && a.GuildId == guildId);
+                config.LastBumpTime = arg.Timestamp.UtcDateTime;
+                config.LastRemindTime = null;
+                await _db.bumpCfg.UpsertAsync(config, a => a.GuildId == guildId);
 
                 if (member != null)
                 {
