@@ -129,9 +129,15 @@ namespace DiscordBot.Modules
                 return;
             }
 
-            if(recomendacoesDesteUsuario.Any(a => a.UserRecommendedId == usuario.Id))
+            if (recomendacoesDesteUsuario.Any(a => a.UserRecommendedId == usuario.Id))
             {
                 await ModifyOriginalResponseAsync(a => a.Content = "Você não pode recomendar o mesmo membro de novo.");
+                return;
+            }
+
+            if (usuario.Id == Context.User.Id)
+            {
+                await ModifyOriginalResponseAsync(a => a.Content = "Tsc, que egoísta. Você não pode recomendar a si mesmo, safado.");
                 return;
             }
 
