@@ -42,7 +42,7 @@ namespace DiscordBot.Modules
         [SlashCommand("ban", "Bane um membro")]
         public async Task Ban([Summary("usuario", "Usuario a ser banido")] IUser user, string motivo = null)
         {
-            if(user.Id == Context.User.Id)
+            if (user.Id == Context.User.Id)
             {
                 await RespondAsync($"Desculpe {user.Username}, eu me recuso a te banir.", ephemeral: true);
                 return;
@@ -105,11 +105,18 @@ namespace DiscordBot.Modules
 
             while (msgs.Count() > 0)
             {
-                var message = msgs.Last();
-                msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 500).FlattenAsync();
-                var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id);
-                foreach(var msg in filteredMesssages)
-                await ((ITextChannel)channel).DeleteMessageAsync(msg);
+                try
+                {
+                    var message = msgs.Last();
+                    msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 500).FlattenAsync();
+                    var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id);
+                    foreach (var msg in filteredMesssages)
+                        await ((ITextChannel)channel).DeleteMessageAsync(msg);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
             }
 
             await DeleteOriginalResponseAsync();
