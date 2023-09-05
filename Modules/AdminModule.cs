@@ -94,7 +94,7 @@ namespace DiscordBot.Modules
 
         [RequireUserPermission(ChannelPermission.ManageMessages)]
         [RequireBotPermission(ChannelPermission.ManageMessages)]
-        [SlashCommand("purge", "Remover uma certa quantidade de mensagens de um usuário no canal", runMode: RunMode.Async)]
+        [SlashCommand("purge-user-messages", "Remover uma certa quantidade de mensagens de um usuário no canal", runMode: RunMode.Async)]
         public async Task PurgeMessagesFromUser(
             [Summary("canal", "Usuário a limpar do chat")] IUser usuario,
             [Summary("canal", "Canal a ser limpo")] IMessageChannel channel = default)
