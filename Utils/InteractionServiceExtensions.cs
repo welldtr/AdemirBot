@@ -37,6 +37,7 @@ namespace DiscordBot.Utils
 
                     await shard.SetGameAsync($"tudo e todos [{client.ShardId}]", type: ActivityType.Listening);
                     _log.LogInformation($"Shard Number {client.ShardId} is connected and ready!");
+
                     try
                     {
                         await _interactionService.AddModulesAsync(Assembly.GetAssembly(typeof(ChatGPTModule)), provider);
