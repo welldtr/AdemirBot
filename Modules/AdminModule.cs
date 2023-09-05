@@ -110,6 +110,7 @@ namespace DiscordBot.Modules
                         .ToArray();
 
                 var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id);
+                await ModifyOriginalResponseAsync(a => a.Content = $"Processando mensagens do dia {message.Timestamp.DateTime:dd/MM/yy}");
                 foreach (var m in filteredMesssages)
                     await ((ITextChannel)channel).DeleteMessageAsync(m, new RequestOptions
                     {
