@@ -77,8 +77,7 @@ namespace DiscordBot.Modules
             await RespondAsync($"{memberIds.Length} Usuários Expulsos.", ephemeral: true);
         }
 
-        [RequireUserPermission(ChannelPermission.ManageMessages)]
-        [RequireBotPermission(ChannelPermission.ManageMessages)]
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("purge", "Remover uma certa quantidade de mensagens de um canal", runMode: RunMode.Async)]
         public async Task PurgeMessages(
             [Summary(description: "Quantidade de mensgens a excluir")] int qtd,
@@ -92,8 +91,7 @@ namespace DiscordBot.Modules
         }
 
 
-        [RequireUserPermission(ChannelPermission.ManageMessages)]
-        [RequireBotPermission(ChannelPermission.ManageMessages)]
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("purge-user-messages", "Remover uma certa quantidade de mensagens de um usuário no canal", runMode: RunMode.Async)]
         public async Task PurgeMessagesFromUser(
             [Summary("usuario", "Usuário a limpar do chat")] IUser usuario,
