@@ -101,7 +101,7 @@ namespace DiscordBot.Modules
         {
             await DeferAsync();
             channel = channel ?? Context.Channel;
-            var msgs = await channel.GetMessagesAsync(1,).FlattenAsync();
+            var msgs = await channel.GetMessagesAsync(1).FlattenAsync();
 
             while (msgs.Count() > 0)
             {
