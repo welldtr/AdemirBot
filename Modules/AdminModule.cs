@@ -104,8 +104,12 @@ namespace DiscordBot.Modules
             while (msgs.Count() > 0)
             {
                     var message = msgs.First();
-                    msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 100).FlattenAsync();
-                    var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id).ToArray();
+                    msgs = (await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 100)
+                            .FlattenAsync())
+                            .OrderBy(a => a.Timestamp)
+                            .ToArray();
+
+                    var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id);
                     await ((ITextChannel)channel).DeleteMessagesAsync(filteredMesssages, new RequestOptions
                     {
                         RetryMode = RetryMode.AlwaysRetry,
