@@ -107,9 +107,13 @@ namespace DiscordBot.Modules
                 {
                     var message = msgs.Last();
                     msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 100).FlattenAsync();
-                    var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id);
-                    foreach (var msg in filteredMesssages)
-                        await ((ITextChannel)channel).DeleteMessageAsync(msg.Id);
+                    var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id).ToArray();
+                    await ((ITextChannel)channel).DeleteMessagesAsync(filteredMesssages, new RequestOptions
+                    {
+                        RetryMode = RetryMode.AlwaysRetry,
+                        Timeout = Timeout.Infinite,
+                        AuditLogReason = $"/purge {usuario.Username} em #{channel.Name}"
+                    });
                 }
                 catch (Exception ex)
                 {
