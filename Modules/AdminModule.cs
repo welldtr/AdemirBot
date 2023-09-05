@@ -108,10 +108,10 @@ namespace DiscordBot.Modules
                 try
                 {
                     var message = msgs.Last();
-                    msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 500).FlattenAsync();
+                    msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 100).FlattenAsync();
                     var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id);
                     foreach (var msg in filteredMesssages)
-                        await ((ITextChannel)channel).DeleteMessageAsync(msg);
+                        await ((ITextChannel)channel).DeleteMessageAsync(msg.Id);
                 }
                 catch (Exception ex)
                 {
