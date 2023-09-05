@@ -91,6 +91,28 @@ namespace DiscordBot.Modules
             await DeleteOriginalResponseAsync();
         }
 
+
+        [RequireUserPermission(ChannelPermission.ManageMessages)]
+        [RequireBotPermission(ChannelPermission.ManageMessages)]
+        [SlashCommand("purge", "Remover uma certa quantidade de mensagens de um usuário no canal", runMode: RunMode.Async)]
+        public async Task PurgeMessagesFromUser(
+            [Summary("canal", "Usuário a limpar do chat")] IUser usuario,
+            [Summary("canal", "Canal a ser limpo")] IMessageChannel channel = default)
+        {
+            await DeferAsync();
+            channel = channel ?? Context.Channel;
+            var msgs = await channel.GetMessagesAsync(1).FlattenAsync();
+
+            while (msgs.Count() > 0)
+            {
+                var message = msgs.Last();
+                msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 500).FlattenAsync();
+                await ((ITextChannel)channel).DeleteMessagesAsync(msgs);
+            }
+
+            await DeleteOriginalResponseAsync();
+        }
+
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("set-voice-event-channel", "Define canal de voz dos eventos e realoca os eventos agendados", runMode: RunMode.Async)]
         public async Task SetEventChannel(
