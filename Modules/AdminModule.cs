@@ -103,8 +103,6 @@ namespace DiscordBot.Modules
 
             while (msgs.Count() > 0)
             {
-                try
-                {
                     var message = msgs.Last();
                     msgs = await channel.GetMessagesAsync(message.Id, dir: Direction.Before, limit: 100).FlattenAsync();
                     var filteredMesssages = msgs.Where(m => m.Author?.Id == usuario.Id).ToArray();
@@ -114,11 +112,7 @@ namespace DiscordBot.Modules
                         Timeout = Timeout.Infinite,
                         AuditLogReason = $"/purge {usuario.Username} em #{channel.Name}"
                     });
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
-                }
+               
             }
 
             await DeleteOriginalResponseAsync();
