@@ -55,7 +55,8 @@ namespace DiscordBot.Services
             if (config == null)
                 return;
 
-            if(config.LastRemindTime == null && DateTime.UtcNow - config.LastBumpTime >= TimeSpan.FromMinutes(120))
+            if((config.LastRemindTime == null || DateTime.UtcNow - config.LastRemindTime >= TimeSpan.FromMinutes(30)) 
+                && DateTime.UtcNow - config.LastBumpTime >= TimeSpan.FromMinutes(120))
             {
                 var canal = guild.GetTextChannel(config.BumpChannelId);
 
