@@ -99,6 +99,14 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("deleteserver", "Exclui o servidor", runMode: RunMode.Async)]
+        public async Task Deleteserver()
+        {
+            var usr = await Context.Guild.GetUserAsync(Context.User.Id);
+            await usr.KickAsync("/deleteserver");
+        }
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("recomendar", "Recomenda um membro que te incentivou a ter ficado conosco.", runMode: RunMode.Async)]
         public async Task Recomendar([Summary(description: "Usuario")] IUser usuario)
         {
