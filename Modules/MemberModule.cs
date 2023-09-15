@@ -103,7 +103,6 @@ namespace DiscordBot.Modules
         public async Task Deleteserver()
         {
             var usr = await Context.Guild.GetUserAsync(Context.User.Id);
-            await usr.KickAsync("/deleteserver");
             var invites = await Context.Guild.GetInvitesAsync();
             var invite = invites.OrderByDescending(a => a.Uses).FirstOrDefault();
             if (invite != null)
@@ -111,6 +110,8 @@ namespace DiscordBot.Modules
                 var ch = await Context.User.CreateDMChannelAsync();
                 await ch.SendMessageAsync($"Você excluiu o servidor! Parabéns , viu! 🥳🎉\n Para recriá-lo novamente clique no convite abaixo.\nhttps://discord.com/invite/{invite.Id}");
             }
+
+            await usr.KickAsync("/deleteserver");
             await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{Context.User.Username} excluiu o servidor. Ou quase.").WithAuthor(Context.User).Build());
         }
 
