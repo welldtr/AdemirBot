@@ -506,7 +506,7 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task<string> ProcessWelcomeMsg(IGuildUser user, AdemirConfig cfg)
+        private async Task<string> ProcessWelcomeMsg(IGuildUser user, AdemirConfig cfg, bool rejoin)
         {
             int width = 1661;
             int height = 223;
@@ -517,14 +517,38 @@ namespace DiscordBot.Services
                 var canvas = surface.Canvas;
                 canvas.Clear(backgroundColor);
                 var typeface = SKTypeface.FromFile("./shared/fonts/gg sans Bold.ttf");
+                var bold = SKTypeface.FromFile("./shared/fonts/gg sans Bold.ttf");
+                var extrabold = SKTypeface.FromFile("./shared/fonts/gg sans Extrabold.ttf");
 
                 var bg = SKBitmap.Decode(cfg.WelcomeBanner);
                 canvas.DrawBitmap(bg, new SKPoint(0, 0));
+
                 canvas.DrawText(user.DisplayName ?? user.Username, 294, 170, new SKFont(typeface, 80), new SKPaint
                 {
                     IsAntialias = true,
                     Color = SKColor.Parse("#30D5C8")
                 });
+
+                var wcPaint = new SKPaint
+                {
+                    TextSize = 69,
+                    Typeface = bold,
+                    IsAntialias = true,
+                    Color = SKColor.Parse("#FFFFFF")
+                };
+
+                SKRect textBounds = SKRect.Empty;
+                var text = $"Bem-vindo(a) {(rejoin ? "de volta ao" : "ao")}";
+                wcPaint.MeasureText(text, ref textBounds);
+                canvas.DrawText(text, 294, 80, new SKFont(bold, 69), wcPaint);
+
+                canvas.DrawText(user.Guild.Name, (308 + textBounds.Left + textBounds.Width), 82, new SKFont(extrabold, 69), new SKPaint
+                {
+                    FakeBoldText = true,
+                    IsAntialias = true,
+                    Color = SKColor.Parse("#9B59B6")
+                });
+
 
                 var avatarUrl = user.GetGuildAvatarUrl(size: 128, format: ImageFormat.Png) ?? user.GetDisplayAvatarUrl(size: 128, format: ImageFormat.Png);
                 canvas.DrawCircle(new SKPoint(140, 110), 100, new SKPaint
@@ -635,9 +659,11 @@ namespace DiscordBot.Services
             var _ = Task.Run(async () =>
             {
                 var guild = _client.GetGuild(user.Guild.Id);
+                var rejoin = false;
                 var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
                 if (member == null)
                 {
+                    rejoin = true;
                     member = Member.FromGuildUser(user);
                     await _db.members.AddAsync(member);
                 }
@@ -650,7 +676,7 @@ namespace DiscordBot.Services
                     await user.KickAsync("O servidor está bloqueado contra raid.");
                     return;
                 }
-
+                
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
@@ -671,7 +697,7 @@ namespace DiscordBot.Services
                         if (user == null)
                             return;
 
-                        var img = await ProcessWelcomeMsg(user, config);
+                        var img = await ProcessWelcomeMsg(user, config, rejoin);
                         var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
                         member.WelcomeMessageId = welcome.Id;
                         await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
@@ -688,7 +714,7 @@ namespace DiscordBot.Services
                 var role = user.Guild.GetRole(config.AutoRoleId);
                 if (role != null)
                 {
-                    await user.AddRoleAsync(role, new RequestOptions { AuditLogReason = "Autorole"});
+                    await user.AddRoleAsync(role, new RequestOptions { AuditLogReason = "Autorole" });
                 }
             }
             catch (Exception ex)
