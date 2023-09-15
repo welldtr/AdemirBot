@@ -663,9 +663,12 @@ namespace DiscordBot.Services
                 var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
                 if (member == null)
                 {
-                    rejoin = true;
                     member = Member.FromGuildUser(user);
                     await _db.members.AddAsync(member);
+                }
+                else
+                {
+                    rejoin = true;
                 }
 
                 await IncluirNovaChegada(user);
