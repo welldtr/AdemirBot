@@ -273,7 +273,7 @@ namespace DiscordBot.Services
                 if (evento != null)
                 {
                     evento.ChannelId = ev.Channel.Id;
-                    evento.ChannelId = ev.Id;
+                    evento.EventId = ev.Id;
                     evento.Cover = ev.GetCoverImageUrl();
                     evento.ScheduledTime = ev.StartTime.UtcDateTime;
                     evento.LastAnnounceTime = DateTime.UtcNow;
