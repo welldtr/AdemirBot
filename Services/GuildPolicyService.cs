@@ -633,6 +633,16 @@ namespace DiscordBot.Services
 
             if (arg.Author != null)
             {
+                var guild = _client.GetGuild(arg.GetGuildId());
+                var user = guild.GetUser(arg.Author.Id);
+                var joinedJustNow = DateTime.UtcNow - user.JoinedAt.Value < TimeSpan.FromMinutes(60);
+
+                if (joinedJustNow && arg.Content.Count(a => a == '\n') > 4)
+                {
+                    await user.SetTimeOutAsync(TimeSpan.FromMinutes(60)); 
+                    await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());                    
+                }
+
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
                 if (mensagensUltimos5Segundos.Count() > 10)
                 {
