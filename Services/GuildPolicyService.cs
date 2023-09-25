@@ -640,7 +640,8 @@ namespace DiscordBot.Services
                 if (joinedJustNow && arg.Content.Count(a => a == '\n') > 4)
                 {
                     await user.SetTimeOutAsync(TimeSpan.FromMinutes(60)); 
-                    await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());                    
+                    await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
+                    await arg.DeleteAsync();
                 }
 
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
