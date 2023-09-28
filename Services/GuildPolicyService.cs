@@ -647,7 +647,7 @@ namespace DiscordBot.Services
 
                     await user.SetTimeOutAsync(TimeSpan.FromMinutes(60));
                     await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
-                    var delecoes = mensagensUltimos10Segundos
+                    var delecoes = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id)
                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
                        .ToArray();
 
