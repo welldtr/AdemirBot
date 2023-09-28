@@ -637,11 +637,34 @@ namespace DiscordBot.Services
                 var user = guild.GetUser(arg.Author.Id);
                 var joinedJustNow = DateTime.UtcNow - user.JoinedAt.Value < TimeSpan.FromMinutes(60);
 
+                if (arg.Content.Count(a => a == '\n') > 20)
+                {
+                    var member = await _db.members.Find(a => a.GuildId == arg.GetGuildId() && a.MemberId == arg.Author.Id).FirstOrDefaultAsync();
+                    if (member.Level > 20)
+                        return;
+
+                    await user.SetTimeOutAsync(TimeSpan.FromMinutes(60));
+                    await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
+                    
+                    var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
+                    var delecoes = mensagensUltimos10Segundos
+                       .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
+                       .ToArray();
+
+                    Task.WaitAll(delecoes);
+                }
+
                 if (joinedJustNow && arg.Content.Count(a => a == '\n') > 4)
                 {
                     await user.SetTimeOutAsync(TimeSpan.FromMinutes(60)); 
                     await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
-                    await arg.DeleteAsync();
+                    
+                    var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
+                    var delecoes = mensagensUltimos10Segundos
+                       .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
+                       .ToArray();
+
+                    Task.WaitAll(delecoes);
                 }
 
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
