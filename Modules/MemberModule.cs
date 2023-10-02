@@ -699,7 +699,9 @@ namespace DiscordBot.Modules
 
         private async Task<string> ProcessCard(IGuildUser user)
         {
-            var members = await db.members.Find(a => a.GuildId == user.GuildId).SortByDescending(a => a.Level).Project(a => a.MemberId).ToListAsync();
+            var members = await db.members.Find(a => a.GuildId == user.GuildId)
+                .SortByDescending(a => a.Level)
+                .Project(a => a.MemberId).ToListAsync();
             var member = await db.members.Find(a => a.MemberId == user.Id).FirstOrDefaultAsync();
             var rankPosition = members.IndexOf(user.Id) + 1;
             int width = 1600;
