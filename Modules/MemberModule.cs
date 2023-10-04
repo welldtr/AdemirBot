@@ -423,7 +423,15 @@ namespace DiscordBot.Modules
         public async Task Leaderboard()
         {
             await DeferAsync();
-            var members = await db.members.Find(a => a.GuildId == Context.Guild.Id).SortByDescending(a => a.Level).ToListAsync();
+            var members = await db.members.Find(a => a.GuildId == Context.Guild.Id)
+                .Project(a => new {
+                    a.MemberId,
+                    a.XP,
+                    a.Level
+                })
+                .SortByDescending(a => a.Level)
+                .Limit(100)
+                .ToListAsync();
             var member = members.FirstOrDefault(m => m.MemberId == Context.User.Id);
 
             var currentPage = 1;
@@ -691,7 +699,9 @@ namespace DiscordBot.Modules
 
         private async Task<string> ProcessCard(IGuildUser user)
         {
-            var members = await db.members.Find(a => a.GuildId == user.GuildId).SortByDescending(a => a.Level).Project(a => a.MemberId).ToListAsync();
+            var members = await db.members.Find(a => a.GuildId == user.GuildId)
+                .SortByDescending(a => a.Level)
+                .Project(a => a.MemberId).ToListAsync();
             var member = await db.members.Find(a => a.MemberId == user.Id).FirstOrDefaultAsync();
             var rankPosition = members.IndexOf(user.Id) + 1;
             int width = 1600;
