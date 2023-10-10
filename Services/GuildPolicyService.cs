@@ -716,6 +716,7 @@ namespace DiscordBot.Services
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
                 await CheckIfMinorsAndBanEm(config, member);
+                await CheckIfNewAccountAndKickEm(config, user);
 
 
                 await ProcessMemberProgression(guild);
@@ -740,6 +741,14 @@ namespace DiscordBot.Services
                 }
             });
             return Task.CompletedTask;
+        }
+
+        private async Task CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
+        {
+            if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(30))
+            {
+                await user.KickAsync("Conta nova. Expulso.");
+            }
         }
 
         private async Task GiveAutoRole(AdemirConfig config, SocketGuildUser user)
