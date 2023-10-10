@@ -711,12 +711,12 @@ namespace DiscordBot.Services
                     await user.KickAsync("O servidor está bloqueado contra raid.");
                     return;
                 }
-                
+
+                await CheckIfNewAccountAndKickEm(config, user);
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
                 await CheckIfMinorsAndBanEm(config, member);
-                await CheckIfNewAccountAndKickEm(config, user);
 
 
                 await ProcessMemberProgression(guild);
@@ -745,7 +745,7 @@ namespace DiscordBot.Services
 
         private async Task CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
         {
-            if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(30))
+            if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(15))
             {
                 await user.KickAsync("Conta nova. Expulso.");
             }
