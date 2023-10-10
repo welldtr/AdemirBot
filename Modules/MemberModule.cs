@@ -429,7 +429,7 @@ namespace DiscordBot.Modules
                     a.XP,
                     a.Level
                 })
-                .SortByDescending(a => a.Level)
+                .SortByDescending(a => a.XP)
                 .Limit(100)
                 .ToListAsync();
             var member = members.FirstOrDefault(m => m.MemberId == Context.User.Id);
@@ -700,7 +700,7 @@ namespace DiscordBot.Modules
         private async Task<string> ProcessCard(IGuildUser user)
         {
             var members = await db.members.Find(a => a.GuildId == user.GuildId)
-                .SortByDescending(a => a.Level)
+                .SortByDescending(a => a.XP)
                 .Project(a => a.MemberId).ToListAsync();
             var member = await db.members.Find(a => a.MemberId == user.Id).FirstOrDefaultAsync();
             var rankPosition = members.IndexOf(user.Id) + 1;
