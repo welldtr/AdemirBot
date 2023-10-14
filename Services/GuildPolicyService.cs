@@ -639,7 +639,7 @@ namespace DiscordBot.Services
 
                 var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
                     
-                if (arg.Content.Count(a => a == '\n') > 15 || mensagensUltimos10Segundos.SelectMany(a => (a.Content ?? "").Split("\n")).Count() > 30)
+                if ((arg.Content.Count(a => a == '\n') > 15 && mensagensUltimos10Segundos.Count() > 1) || mensagensUltimos10Segundos.SelectMany(a => (a.Content ?? "").Split("\n")).Count() > 30)
                 {
                     var member = await _db.members.Find(a => a.GuildId == arg.GetGuildId() && a.MemberId == arg.Author.Id).FirstOrDefaultAsync();
                     if (member.Level >= 10)
