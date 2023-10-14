@@ -703,8 +703,11 @@ namespace DiscordBot.Services
                     rejoin = true;
                 }
 
-                await IncluirNovaChegada(user);
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+                if (await CheckIfNewAccountAndKickEm(config, user))
+                    return;
+
+                await IncluirNovaChegada(user);
 
                 if (lockServer.ContainsKey(guild.Id) && lockServer[guild.Id] == true)
                 {
@@ -712,7 +715,6 @@ namespace DiscordBot.Services
                     return;
                 }
 
-                await CheckIfNewAccountAndKickEm(config, user);
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
@@ -743,12 +745,14 @@ namespace DiscordBot.Services
             return Task.CompletedTask;
         }
 
-        private async Task CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
+        private async Task<bool> CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
         {
             if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(15))
             {
                 await user.KickAsync("Conta nova. Expulso.");
+                return true;
             }
+            return false;
         }
 
         private async Task GiveAutoRole(AdemirConfig config, SocketGuildUser user)
