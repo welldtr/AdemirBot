@@ -732,11 +732,11 @@ namespace DiscordBot.Services
                             user = guild.GetUser(user.Id);
                         }
 
-                        if (user == null)
+                        if (user == null || user.IsBot)
                             return;
 
                         var img = await ProcessWelcomeMsg(user, config, rejoin);
-                        var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
+                        var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) {(rejoin ? "de volta " : "")}ao {guild.Name}, {user.Mention}!");
                         member.WelcomeMessageId = welcome.Id;
                         await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
                     });
