@@ -106,6 +106,53 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("kick-new-accounts", "Bloquear a entrada de contas novas", runMode: RunMode.Async)]
+        public async Task KickNewAccounts()
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    KickNewAccounts = true,
+                });
+            }
+            else
+            {
+                config.KickNewAccounts = true;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("Entrada de contas novas bloqueada.", ephemeral: true);
+        }
+
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("disable-kick-new-accounts", "Desbloquear a entrada de contas novas", runMode: RunMode.Async)]
+        public async Task DisableKickNewAccounts()
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    KickNewAccounts = false,
+                });
+            }
+            else
+            {
+                config.KickNewAccounts = false;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("Entrada de contas novas desbloqueada.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("lock-server", "Bloquear a entrada de novos membros", runMode: RunMode.Async)]
         public async Task Lock()
         {

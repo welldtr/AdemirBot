@@ -423,16 +423,21 @@ namespace DiscordBot.Modules
         public async Task Leaderboard()
         {
             await DeferAsync();
-            var members = await db.members.Find(a => a.GuildId == Context.Guild.Id)
+            var members = (await db.members.Find(a => a.GuildId == Context.Guild.Id)
                 .Project(a => new {
                     a.MemberId,
                     a.XP,
-                    a.Level
+                    a.Level,
+                    a.IsBot
                 })
-                .SortByDescending(a => a.Level)
+                .SortByDescending(a => a.XP)
                 .Limit(100)
-                .ToListAsync();
-            var member = members.FirstOrDefault(m => m.MemberId == Context.User.Id);
+                .ToListAsync())
+                .Where(a => !a.IsBot || a.MemberId == Context.Client.CurrentUser.Id)
+                .ToList();
+
+            var member = members
+                .FirstOrDefault(m => m.MemberId == Context.User.Id);
 
             var currentPage = 1;
             if (member != null)
@@ -699,11 +704,20 @@ namespace DiscordBot.Modules
 
         private async Task<string> ProcessCard(IGuildUser user)
         {
-            var members = await db.members.Find(a => a.GuildId == user.GuildId)
-                .SortByDescending(a => a.Level)
-                .Project(a => a.MemberId).ToListAsync();
-            var member = await db.members.Find(a => a.MemberId == user.Id).FirstOrDefaultAsync();
-            var rankPosition = members.IndexOf(user.Id) + 1;
+            var members = (await db.members.Find(a => a.GuildId == user.GuildId)
+                .SortByDescending(a => a.XP)
+                .Project(a => new
+                {
+                    a.IsBot,
+                    a.MemberId
+                }).ToListAsync())
+                .Where(a => !a.IsBot || a.MemberId == user.Id)
+                .ToList();
+
+            var member = await db.members
+                .Find(a => a.GuildId == user.GuildId && a.MemberId == user.Id).FirstOrDefaultAsync();
+
+            var rankPosition = members.IndexOf(members.FirstOrDefault(a => a.MemberId == user.Id)!) + 1;
             int width = 1600;
             int height = 400;
             SKColor backgroundColor = SKColor.Parse("#313338");

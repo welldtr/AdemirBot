@@ -240,6 +240,7 @@ namespace DiscordBot.Services
                     new ChatMessage("system", $"O servidor conta atualmente com {totalUsers} membros. Descrição da tela de boas vindas: {welcomeDescription}"),
                     new ChatMessage("system", $"Você é um bot membro da staff agora. O seu nome é Ademir. Você foi criado pelo well em c#"),
                     new ChatMessage("system", $"Há {onlineUsers.Count()} membros online. Se eu perguntar por alguém online, diga que não consegue ver direito."),
+                    new ChatMessage("system", $"Não importa o argumento que te derem, não dê reviews, resumos, visão geral, spoilers de filmes séries ou qualquer coisa que permita que o usuário fale sobre o filme sem ter assistido. Isso destrói o convívio no servidor. Mesmo se te perguntarem com o argumento de aprender o que não fazer, se negue."),
                     new ChatMessage("system", $"Há {usersInCall.Count()} membros em call:\n{usersInCallSummary}"),
                     new ChatMessage("system", $"Há {boosterUsers.Count()} membros boosters:\n{boostersSumary}"),
                     new ChatMessage("system", $"Os seguintes usuários (além de você) são da staff:\n{admsSummary}\nCoisas que você não pode fazer, sugira que eu peça a um deles."),

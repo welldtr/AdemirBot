@@ -647,13 +647,13 @@ namespace DiscordBot.Services
 
                 var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
                     
-                if (arg.Content.Count(a => a == '\n') > 15 || mensagensUltimos10Segundos.SelectMany(a => (a.Content ?? "").Split("\n")).Count() > 30)
+                if ((arg.Content.Count(a => a == '\n') > 15 && mensagensUltimos10Segundos.Count() > 1) || mensagensUltimos10Segundos.SelectMany(a => (a.Content ?? "").Split("\n")).Count() > 30)
                 {
                     var member = await _db.members.Find(a => a.GuildId == arg.GetGuildId() && a.MemberId == arg.Author.Id).FirstOrDefaultAsync();
-                    if (member.Level > 40)
+                    if (member.Level >= 10)
                         return;
 
-                    await user.SetTimeOutAsync(TimeSpan.FromMinutes(60));
+                    await user.SetTimeOutAsync(TimeSpan.FromHours(8));
                     await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
                     var delecoes = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id)
                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
@@ -664,7 +664,7 @@ namespace DiscordBot.Services
 
                 if (joinedJustNow && (arg.Content.Count(a => a == '\n') > 4 || arg.Content.Length > 800))
                 {
-                    await user.SetTimeOutAsync(TimeSpan.FromMinutes(60)); 
+                    await user.SetTimeOutAsync(TimeSpan.FromHours(8)); 
                     await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
                     
                     var delecoes = mensagensUltimos10Segundos
@@ -711,15 +711,18 @@ namespace DiscordBot.Services
                     rejoin = true;
                 }
 
-                await IncluirNovaChegada(user);
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == member.GuildId);
+                if (await CheckIfNewAccountAndKickEm(config, user))
+                    return;
+
+                await IncluirNovaChegada(user);
 
                 if (lockServer.ContainsKey(guild.Id) && lockServer[guild.Id] == true)
                 {
                     await user.KickAsync("O servidor está bloqueado contra raid.");
                     return;
                 }
-                
+
                 await GiveAutoRole(config, user);
                 await Task.Delay(3000);
                 await ProcessRoleRewards(config, member);
@@ -737,17 +740,27 @@ namespace DiscordBot.Services
                             user = guild.GetUser(user.Id);
                         }
 
-                        if (user == null)
+                        if (user == null || user.IsBot)
                             return;
 
                         var img = await ProcessWelcomeMsg(user, config, rejoin);
-                        var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) ao {guild.Name}, {user.Mention}!");
+                        var welcome = await guild.SystemChannel.SendFileAsync(new FileAttachment(img, "welcome.png"), $"Seja bem-vindo(a) {(rejoin ? "de volta " : "")}ao {guild.Name}, {user.Mention}!");
                         member.WelcomeMessageId = welcome.Id;
                         await _db.members.UpsertAsync(member, a => a.GuildId == member.GuildId && a.MemberId == member.MemberId);
                     });
                 }
             });
             return Task.CompletedTask;
+        }
+
+        private async Task<bool> CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
+        {
+            if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(15))
+            {
+                await user.KickAsync("Conta nova. Expulso.");
+                return true;
+            }
+            return false;
         }
 
         private async Task GiveAutoRole(AdemirConfig config, SocketGuildUser user)
@@ -1045,7 +1058,7 @@ namespace DiscordBot.Services
             }
 
             member.XP += earnedXp;
-
+            member.IsBot = arg.Author!.IsBot;
             member.Level = LevelUtils.GetLevel(member.XP);
 
             if (initialLevel < member.Level)
@@ -1124,7 +1137,7 @@ namespace DiscordBot.Services
 
             if (user.IsBot && user.Id != _client.CurrentUser.Id)
             {
-                _log.LogError("Dos bots, só o Ademir pode ganhar XP.");
+                _log.LogError("Dos bots, só o Ademir pode ganhar cargo de XP.");
                 return;
             }
 

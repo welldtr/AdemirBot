@@ -34,5 +34,6 @@ namespace DiscordBot.Domain.Entities
         public byte[] WelcomeBanner { get; set; }
         public ulong EventStageChannelId { get; set; }
         public long MinRecommendationLevel { get; set; }
+        public bool KickNewAccounts { get; set; }
     }
 }
