@@ -1050,7 +1050,7 @@ namespace DiscordBot.Services
             }
 
             member.XP += earnedXp;
-
+            member.IsBot = arg.Author!.IsBot;
             member.Level = LevelUtils.GetLevel(member.XP);
 
             if (initialLevel < member.Level)
@@ -1129,7 +1129,7 @@ namespace DiscordBot.Services
 
             if (user.IsBot && user.Id != _client.CurrentUser.Id)
             {
-                _log.LogError("Dos bots, só o Ademir pode ganhar XP.");
+                _log.LogError("Dos bots, só o Ademir pode ganhar cargo de XP.");
                 return;
             }
 
