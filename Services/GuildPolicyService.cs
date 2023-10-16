@@ -37,6 +37,7 @@ namespace DiscordBot.Services
         private void BindEventListeners()
         {
             _client.MessageReceived += _client_MessageReceived;
+            _client.MessageUpdated += _client_MessageUpdated;
             _client.UserJoined += _client_UserJoined;
             _client.UserLeft += _client_UserLeft;
             _client.ShardReady += _client_ShardReady;
@@ -47,6 +48,11 @@ namespace DiscordBot.Services
             _client.GuildScheduledEventCompleted += _client_GuildScheduledEventCompleted;
             _client.GuildScheduledEventStarted += _client_GuildScheduledEventStarted;
             _client.GuildScheduledEventUpdated += _client_GuildScheduledEventUpdated;
+        }
+
+        private async Task _client_MessageUpdated(Cacheable<IMessage, ulong> arg1, SocketMessage arg2, ISocketMessageChannel arg3)
+        {
+            await ProtectFromFloodAndBlacklisted(arg2);
         }
 
         internal void UnlockServer(ulong id)
