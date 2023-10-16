@@ -50,9 +50,11 @@ namespace DiscordBot.Services
             _client.GuildScheduledEventUpdated += _client_GuildScheduledEventUpdated;
         }
 
-        private async Task _client_MessageUpdated(Cacheable<IMessage, ulong> arg1, SocketMessage arg2, ISocketMessageChannel arg3)
+        private Task _client_MessageUpdated(Cacheable<IMessage, ulong> arg1, SocketMessage arg2, ISocketMessageChannel arg3)
         {
-            await ProtectFromFloodAndBlacklisted(arg2);
+            var _ = Task.Run(() => ProtectFromFloodAndBlacklisted(arg2));
+            var __ = Task.Run(() => LogMessage(arg2));
+            return Task.CompletedTask;
         }
 
         internal void UnlockServer(ulong id)
