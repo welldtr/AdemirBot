@@ -130,7 +130,7 @@ namespace DiscordBot.Modules
 
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("disable-kick-new-accounts", "Bloquear a entrada de contas novas", runMode: RunMode.Async)]
+        [SlashCommand("disable-kick-new-accounts", "Desbloquear a entrada de contas novas", runMode: RunMode.Async)]
         public async Task DisableKickNewAccounts()
         {
             var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
