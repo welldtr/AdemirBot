@@ -363,24 +363,26 @@ namespace DiscordBot.Services
             await SavePlaylistInfo(guild);
         }
 
+        static object tracklock = new object();
         private async Task SavePlaylistInfo(SocketGuild guild)
         {
             var playback = guild.GetPlayback();
             var tracks = new List<Track>();
 
-            await _db.tracks.DeleteAsync(a => a.GuildId == guild.Id);
-            int position = 0;
-
-            foreach (var track in playback.Tracks)
+            lock (tracklock)
             {
-                position++;
-                track.QueuePosition = position;
-                track.GuildId = guild.Id;
-                track._id = Guid.NewGuid();
-            }
+                _db.tracks.DeleteAsync(a => a.GuildId == guild.Id).Wait();
+                int position = 0;
 
-            if (playback.Tracks.Count > 0)
-                await _db.tracks.AddAsync(playback.Tracks);
+                foreach (var track in playback.Tracks)
+                {
+                    position++;
+                    track.QueuePosition = position;
+                    track.GuildId = guild.Id;
+                    track._id = Guid.NewGuid();
+                    _db.tracks.UpsertAsync(track, t => t._id == track._id).Wait();
+                }
+            }
         }
 
         private void ExecuteTrackPositionLoop()
