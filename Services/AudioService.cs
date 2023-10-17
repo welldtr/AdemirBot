@@ -783,7 +783,7 @@ Obs.: Os comandos acima só funcionam caso você esteja utilizando o player ou n
 
         private async Task<Track[]> GetYoutubePlaylistTracks(string query)
         {
-            var match = query.Trim().Match(@"https\:\/\/www\.youtube\.com\/watch\?(?:v=[^&]*\&)?list=([^&]*)");
+            var match = query.Trim().Match(@"https\:\/\/(?:www\.)?youtube\.com\/(?:watch|playlist)\?(?:v=[^&]*\&)?list=([^&]*)");
             var id = match.Groups[1].Value;
             var tracks = await Youtube.GetListOfTracksAsync(id);
             return tracks;
