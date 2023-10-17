@@ -750,7 +750,7 @@ Obs.: Os comandos acima só funcionam caso você esteja utilizando o player ou n
             {
                 tracks = await GetSpotifyTracks(query);
             }
-            else if (query.Trim().Matches(@"https\:\/\/www\.youtube\.com\/watch\?(?:v=[^&]*\&)?list=([^&]*)"))
+            else if (query.Trim().Matches(@"https\:\/\/(?:www\.)?youtube\.com\/(?:watch|playlist)\?(?:v=[^&]*\&)?list=([^&]*)"))
             {
                 tracks = await GetYoutubePlaylistTracks(query);
             }
