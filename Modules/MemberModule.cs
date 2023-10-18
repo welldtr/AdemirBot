@@ -120,7 +120,7 @@ namespace DiscordBot.Modules
         public async Task Recomendar([Summary(description: "Usuario")] IUser usuario)
         {
             await DeferAsync(ephemeral: true);
-            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync(); 
+            var cfg = await db.ademirCfg.Find(a => a.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
 
             if (cfg == null || cfg.MinRecommendationLevel == 0)
             {
@@ -140,7 +140,7 @@ namespace DiscordBot.Modules
                 .Find(a => a.GuildId == Context.Guild.Id && a.AuthorId == Context.User.Id)
                 .ToListAsync();
 
-            if(recomendacoesDesteUsuario.Count >= 2)
+            if (recomendacoesDesteUsuario.Count >= 2)
             {
                 await ModifyOriginalResponseAsync(a => a.Content = "Você já recomendou 2 membros.");
                 return;
@@ -188,21 +188,28 @@ namespace DiscordBot.Modules
             }
 
             var activeMembers = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.RoleIds.Contains(cfg.ActiveTalkerRole))
+                .Project(a => new
+                {
+                    a.MemberId,
+                    a.LastMessageTime,
+                    a.MemberUserName
+                })
                 .SortBy(a => a.LastMessageTime)
                 .ThenBy(a => a.DateJoined)
                 .ToListAsync();
 
             var guildUsers = await Context.Guild.GetUsersAsync();
-                        
+
             activeMembers = activeMembers.Where((a) => guildUsers.Any(b => b.Id == a.MemberId)).ToList();
-            
+
             var currentPage = 1;
             var numPaginas = (int)Math.Ceiling(activeMembers.Count / 15M);
             var paginas = new List<Page>(Enumerable.Range(0, numPaginas).Select(a => new Page()).ToList());
             for (var i = 0; i < numPaginas; i++)
             {
                 var page = paginas[i];
-                var lines = activeMembers.Where(a => (int)Math.Ceiling((activeMembers.IndexOf(a) + 1) / 15M) - 1 == i).Select(a => {
+                var lines = activeMembers.Where(a => (int)Math.Ceiling((activeMembers.IndexOf(a) + 1) / 15M) - 1 == i).Select(a =>
+                {
                     var inactivityTime = DateTime.UtcNow - a.LastMessageTime;
                     var reward = guildPolicy.GetRewardMultiplierByInactivity(inactivityTime);
                     return $"**{activeMembers.IndexOf(a) + 1}.** {a.MemberUserName} ({reward:n2}x)";
@@ -424,7 +431,8 @@ namespace DiscordBot.Modules
         {
             await DeferAsync();
             var members = (await db.members.Find(a => a.GuildId == Context.Guild.Id)
-                .Project(a => new {
+                .Project(a => new
+                {
                     a.MemberId,
                     a.XP,
                     a.Level,
@@ -535,7 +543,7 @@ namespace DiscordBot.Modules
                 using (var canvas = new SKCanvas(bitmap))
                 {
                     canvas.Clear(SKColors.Transparent);
-                    canvas.DrawText(title, width/2, 40, titlePaint);
+                    canvas.DrawText(title, width / 2, 40, titlePaint);
                     int yscale = 10;
                     using (var paintGrid = new SKPaint())
                     {
