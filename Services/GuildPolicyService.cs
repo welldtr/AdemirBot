@@ -392,11 +392,16 @@ namespace DiscordBot.Services
         {
             try
             {
+                var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
+
+                if (!config.EnableAudioXP)
+                    return;
+
                 var events = await guild.GetEventsAsync();
                 foreach (var voice in guild.VoiceChannels)
                 {
+
                     var @event = events.FirstOrDefault(a => a.ChannelId == voice.Id && a.Status == GuildScheduledEventStatus.Active);
-                    var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
                     if (voice.Id == guild.AFKChannel?.Id)
                         continue;
 
@@ -991,7 +996,7 @@ namespace DiscordBot.Services
 
             var isCoolledDown = lastTime.AddSeconds(60) >= arg.Timestamp.UtcDateTime;
 
-            if (activeTalkerMentions.Length > 0)
+            if (config.EnableMentionXP && activeTalkerMentions.Length > 0)
             {
                 if (isMentionCoolledDown)
                 {

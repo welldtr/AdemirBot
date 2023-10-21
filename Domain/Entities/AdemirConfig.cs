@@ -27,6 +27,8 @@ namespace DiscordBot.Domain.Entities
         public int AdemirConversationRPM { get; set; }
         public ulong EventVoiceChannelId { get; set; }
         public bool Premium { get; set; }
+        public bool EnableAudioXP { get; set; }
+        public bool EnableMentionXP { get; set; }
         public bool EnableRoleRewards { get; set; }
         public RoleReward[] RoleRewards { get; set; }
         [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfArrays)]
