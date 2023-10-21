@@ -344,6 +344,7 @@ namespace DiscordBot.Services
             {
                 ademirConfig = new AdemirConfig
                 {
+                    AdemirConfigId = Guid.NewGuid(),
                     GuildId = guild.Id
                 };
             }
@@ -461,6 +462,7 @@ namespace DiscordBot.Services
             {
                 cfg = new AdemirConfig
                 {
+                    AdemirConfigId = Guid.NewGuid(),
                     GuildId = channel.GuildId,
                     GlobalVolume = volume
                 };

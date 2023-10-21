@@ -29,6 +29,7 @@ namespace DiscordBot.Modules
             {
                 cfg = new AdemirConfig
                 {
+                    AdemirConfigId = Guid.NewGuid(),
                     GuildId = Context.Guild.Id,
                     RoleRewards = new Domain.Lurkr.RoleReward[0]
                 };
@@ -54,12 +55,12 @@ namespace DiscordBot.Modules
                     Level = level,
                     Roles = new[] {
                         new Domain.Lurkr.Role {
-                        Color = cargo.Color.ToString(),
-                        Id = cargo.Id.ToString(),
-                        Name = cargo.Name,
-                        Position = cargo.Position,
+                            Color = cargo.Color.ToString(),
+                            Id = cargo.Id.ToString(),
+                            Name = cargo.Name,
+                            Position = cargo.Position,
+                        }
                     }
-                }
                 });
             }
 
@@ -82,6 +83,7 @@ namespace DiscordBot.Modules
             {
                 cfg = new AdemirConfig
                 {
+                    AdemirConfigId = Guid.NewGuid(),
                     GuildId = Context.Guild.Id,
                     RoleRewards = new Domain.Lurkr.RoleReward[0]
                 };

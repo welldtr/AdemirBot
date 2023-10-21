@@ -84,7 +84,9 @@ namespace DiscordBot.Utils
                 var config = await db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
                 if(config == null)
                 {
-                    config = new AdemirConfig() {
+                    config = new AdemirConfig()
+                    {
+                        AdemirConfigId = Guid.NewGuid(),
                         GuildId = guild.Id
                     };
                 }

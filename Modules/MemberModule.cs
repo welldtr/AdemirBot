@@ -636,6 +636,7 @@ namespace DiscordBot.Modules
             {
                 config = new Domain.Entities.AdemirConfig
                 {
+                    AdemirConfigId = Guid.NewGuid(),
                     GuildId = Context.Guild.Id,
                 };
             }

@@ -5,6 +5,7 @@ using DiscordBot.Modules.Modals;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using MongoDB.Driver;
+using DiscordBot.Domain.Entities;
 
 namespace DiscordBot.Modules
 {
@@ -122,6 +123,98 @@ namespace DiscordBot.Modules
             }
 
             await DeleteOriginalResponseAsync();
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("enable-audio-xp", "Habilitar XP de Audio", runMode: RunMode.Async)]
+        public async Task EnableAudioXP()
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    EnableAudioXP = true,
+                });
+            }
+            else
+            {
+                config.EnableAudioXP = true;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("XP de Audio habilitada.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("disable-audio-xp", "Desabilitar XP de Audio", runMode: RunMode.Async)]
+        public async Task DisableAudioXP()
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    EnableAudioXP = false,
+                });
+            }
+            else
+            {
+                config.EnableAudioXP = false;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("XP de Audio desabilitada.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("enable-audio-xp", "Habilitar XP de menção", runMode: RunMode.Async)]
+        public async Task EnableMentionXP()
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    EnableMentionXP = true,
+                });
+            }
+            else
+            {
+                config.EnableMentionXP = true;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("XP de menção habilitada.", ephemeral: true);
+        }
+
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [SlashCommand("disable-mention-xp", "Desabilitar XP de menção", runMode: RunMode.Async)]
+        public async Task DisableMentionXP()
+        {
+            var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
+            if (config == null)
+            {
+                await db.ademirCfg.AddAsync(new AdemirConfig
+                {
+                    AdemirConfigId = Guid.NewGuid(),
+                    GuildId = Context.Guild.Id,
+                    EnableMentionXP = false,
+                });
+            }
+            else
+            {
+                config.EnableAudioXP = false;
+                await db.ademirCfg.UpsertAsync(config);
+            }
+
+            await RespondAsync("XP de menção desabilitada.", ephemeral: true);
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
