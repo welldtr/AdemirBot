@@ -34,10 +34,25 @@ namespace DiscordBot.Modules
                 };
             }
 
-            cfg.RoleRewards.Append(new Domain.Lurkr.RoleReward
+            if (cfg.RoleRewards.Any(a => a.Level == level))
             {
-                Level = level,
-                Roles = new[] {
+                var levelRecord = cfg.RoleRewards.FirstOrDefault(a => a.Level == level);
+
+                if (levelRecord != null)
+                    levelRecord.Roles.Append(new Domain.Lurkr.Role
+                    {
+                        Color = cargo.Color.ToString(),
+                        Id = cargo.Id.ToString(),
+                        Name = cargo.Name,
+                        Position = cargo.Position,
+                    });
+            }
+            else
+            {
+                cfg.RoleRewards.Append(new Domain.Lurkr.RoleReward
+                {
+                    Level = level,
+                    Roles = new[] {
                         new Domain.Lurkr.Role {
                         Color = cargo.Color.ToString(),
                         Id = cargo.Id.ToString(),
@@ -45,7 +60,8 @@ namespace DiscordBot.Modules
                         Position = cargo.Position,
                     }
                 }
-            });
+                });
+            }
 
             await db.ademirCfg.UpsertAsync(cfg, a => a.GuildId == Context.Guild.Id);
             await ModifyOriginalResponseAsync(a =>
@@ -57,7 +73,7 @@ namespace DiscordBot.Modules
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("remove-level-reward", "Remove cargo de level", runMode: RunMode.Async)]
         public async Task RemoveLevelReward(
-            [Summary(description: "Cargo a remover")] IRole cargo)
+            [Summary(description: "Cargo a remover")] IRole cargo, int level = 0)
         {
             await DeferAsync();
 
@@ -71,11 +87,21 @@ namespace DiscordBot.Modules
                 };
             }
 
-            cfg.RoleRewards = cfg.RoleRewards.Select(a => new Domain.Lurkr.RoleReward
+            if (level == 0)
             {
-                Level = a.Level,
-                Roles = a.Roles.Where(a => a.Id != cargo.Id.ToString()).ToArray()
-            }).ToArray();
+                cfg.RoleRewards = cfg.RoleRewards.Select(a => new Domain.Lurkr.RoleReward
+                {
+                    Level = a.Level,
+                    Roles = a.Roles.Where(a => a.Id != cargo.Id.ToString()).ToArray()
+                }).ToArray();
+            }
+            else
+            {
+                var levelRecord = cfg.RoleRewards.FirstOrDefault(a => a.Level == level);
+
+                if (levelRecord != null)
+                    levelRecord.Roles = levelRecord.Roles.Where(a => a.Id != cargo.Id.ToString()).ToArray();
+            }
 
             await db.ademirCfg.UpsertAsync(cfg, a => a.GuildId == Context.Guild.Id);
             await ModifyOriginalResponseAsync(a =>
