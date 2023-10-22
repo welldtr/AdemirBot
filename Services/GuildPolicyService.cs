@@ -649,17 +649,14 @@ namespace DiscordBot.Services
                 var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
                 var isNewbie = DateTime.UtcNow - member.DateJoined < TimeSpan.FromMinutes(60);
                 var mentionIds = arg.MentionedUsers.Select(a => a.Id);
-                if (isNewbie && mentionIds.Contains(arg.Author.Id))
-                {
-                    var onGoingBump = await _db.bumps
-                        .FindOneAsync(a => a.GuildId == user.Guild.Id && a.BumpDate >= DateTime.Now.AddMinutes(-60) && a.Rewarded == false);
+                var onGoingBump = await _db.bumps
+                    .FindOneAsync(a => a.GuildId == user.Guild.Id && a.BumpDate >= DateTime.Now.AddMinutes(-60) && a.Rewarded == false);
 
-                    if (onGoingBump == null)
+                if (onGoingBump != null)
+                {
+                    if (isNewbie && mentionIds.Contains(arg.Author.Id))
                     {
-                        return;
-                    }
-                    else
-                    {
+                        _log.LogInformation($"{user.Username} ganhou xp de bump.");
                         onGoingBump.Rewarded = true;
                         onGoingBump.WelcomedByBumper = true;
                         await _db.bumps.UpsertAsync(onGoingBump, a => a.GuildId == user.Guild.Id && a.BumpId == onGoingBump.BumpId);
