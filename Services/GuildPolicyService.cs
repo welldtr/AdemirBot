@@ -635,8 +635,37 @@ namespace DiscordBot.Services
         private Task _client_MessageReceived(SocketMessage arg)
         {
             var _ = Task.Run(() => ProtectFromFloodAndBlacklisted(arg));
+            var _ = Task.Run(() => ProcessBumpReward(arg));
             var __ = Task.Run(() => LogMessage(arg));
             return Task.CompletedTask;
+        }
+
+        private async Task ProcessBumpReward(SocketMessage arg)
+        {
+            if (arg.Author != null)
+            {
+                var guild = _client.GetGuild(arg.GetGuildId());
+                var user = guild.GetUser(arg.Author.Id);
+                var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
+                var isNewbie = DateTime.UtcNow - member.DateJoined < TimeSpan.FromMinutes(60);
+                var mentionIds = arg.MentionedUsers.Select(a => a.Id);
+                if (isNewbie && mentionIds.Contains(arg.Author.Id))
+                {
+                    var onGoingBump = await _db.bumps
+                        .FindOneAsync(a => a.GuildId == user.Guild.Id && a.BumpDate >= DateTime.Now.AddMinutes(-60) && a.Rewarded == false);
+
+                    if (onGoingBump == null)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        onGoingBump.Rewarded = true;
+                        onGoingBump.WelcomedByBumper = true;
+                        await _db.bumps.UpsertAsync(onGoingBump, a => a.GuildId == user.Guild.Id && a.BumpId == onGoingBump.BumpId);
+                    }
+                }
+            }
         }
 
         private async Task ProtectFromFloodAndBlacklisted(SocketMessage arg)

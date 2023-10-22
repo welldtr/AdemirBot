@@ -10,5 +10,7 @@ namespace DiscordBot.Domain.Entities
         public ulong UserId { get; set; }
         public DateTime BumpDate { get; set; }
         public long XP { get; set; }
+        public bool WelcomedByBumper { get; set; }
+        public bool Rewarded { get; set; }
     }
 }

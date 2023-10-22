@@ -97,7 +97,7 @@ namespace DiscordBot.Services
             {
                 var bumper = arg.Interaction.User;
 
-                await canal.SendMessageAsync($"Obrigado {bumper.Mention}. Você ganhou +{config.XPPerBump}xp por bumpar o servidor {guild.Name}. Para manter seu novo XP, recepcione os novatos.");
+                await canal.SendMessageAsync($"Obrigado {bumper.Mention}. Você ganhou +{config.XPPerBump}xp por bumpar o servidor {guild.Name}.\n__**Atenção!** Para ganhar seu novo XP é necessário recepcionar os próximos novatos.__");
                 _log.LogInformation($"{bumper.Username} ganhou {config.XPPerBump}xp.");
 
                 var member = await _db.members.FindOneAsync(a => a.MemberId == bumper.Id && a.GuildId == guildId);
