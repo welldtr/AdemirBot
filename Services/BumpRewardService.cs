@@ -107,7 +107,7 @@ namespace DiscordBot.Services
 
                 if (member != null)
                 {
-                    member.XP += config.XPPerBump;
+                    // member.XP += config.XPPerBump;
                     member.BumpCount++;
                     await _db.members.UpsertAsync(member, a => a.MemberId == bumper.Id && a.GuildId == guildId);
                     await _db.bumps.AddAsync(new Bump
