@@ -172,7 +172,7 @@ namespace DiscordBot.Modules
         }
 
         [RequireUserPermission(GuildPermission.Administrator)]
-        [SlashCommand("enable-audio-xp", "Habilitar XP de menção", runMode: RunMode.Async)]
+        [SlashCommand("enable-mention-xp", "Habilitar XP de menção", runMode: RunMode.Async)]
         public async Task EnableMentionXP()
         {
             var config = (await db.ademirCfg.FindOneAsync(a => a.GuildId == Context.Guild.Id));
@@ -243,7 +243,6 @@ namespace DiscordBot.Modules
                 }
             }
         }
-
 
         [RequireUserPermission(GuildPermission.Administrator)]
         [SlashCommand("set-stage-event-channel", "Define canal de palco dos eventos e realoca os eventos agendados", runMode: RunMode.Async)]
