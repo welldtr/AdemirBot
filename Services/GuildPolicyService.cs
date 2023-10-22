@@ -659,7 +659,7 @@ namespace DiscordBot.Services
                         _log.LogInformation($"{user.Username} ganhou xp de bump.");
                         onGoingBump.Rewarded = true;
                         onGoingBump.WelcomedByBumper = true;
-                        await _db.bumps.UpsertAsync(a => a.BumpId == onGoingBump.BumpId);
+                        await _db.bumps.UpsertAsync(onGoingBump, a => a.BumpId == onGoingBump.BumpId);
                     }
                 }
             }
