@@ -635,8 +635,8 @@ namespace DiscordBot.Services
         private Task _client_MessageReceived(SocketMessage arg)
         {
             var _ = Task.Run(() => ProtectFromFloodAndBlacklisted(arg));
-            var _ = Task.Run(() => ProcessBumpReward(arg));
-            var __ = Task.Run(() => LogMessage(arg));
+            var __ = Task.Run(() => ProcessBumpReward(arg));
+            var ___ = Task.Run(() => LogMessage(arg));
             return Task.CompletedTask;
         }
 
