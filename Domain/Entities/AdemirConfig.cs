@@ -26,6 +26,7 @@ namespace DiscordBot.Domain.Entities
         public ulong MinorRoleId { get; set; }
         public int AdemirConversationRPM { get; set; }
         public ulong EventVoiceChannelId { get; set; }
+        public string HighestGptClass { get; set; }
         public bool Premium { get; set; }
         public bool EnableAudioXP { get; set; }
         public bool EnableMentionXP { get; set; }

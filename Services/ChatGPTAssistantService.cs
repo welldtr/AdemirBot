@@ -255,8 +255,8 @@ namespace DiscordBot.Services
                 msgs.InsertRange(0, trainingArray);
 
                 List<ChatMessage> windowedTokens = new List<ChatMessage>();
-                var gptModel = adminOuBooster ? Models.Gpt_3_5_Turbo : Models.Gpt_3_5_Turbo;
-                var gptTokenLimit = gptModel == "gpt-4" ? 4000 : 4000;
+                var gptModel = adminOuBooster ? ademirConfig.HighestGptClass : Models.Gpt_3_5_Turbo;
+                var gptTokenLimit = gptModel == Models.Gpt_4 ? 8000 : 4000;
                 while (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(string.Join("\n", msgs.Select(a => a.Content))) >= gptTokenLimit)
                 {
                     msgs.RemoveAt(trainingArray.Length);
