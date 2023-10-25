@@ -39,21 +39,49 @@ namespace DiscordBot.Modules
                         await RespondAsync("Muito esperto você, viu 👀", ephemeral: true);
                         return;
                     }
-                    await WriteHelp(channel, @"
+                    await WriteHelp(channel, $@"
 ### Comandos da Staff
-- `/config-denuncias`: Configurar o Canal de Denúncias
 - `/config-cargo-ademir`: Configurar cargo extra para falar com o bot
+- `/config-denuncias`: Configurar o Canal de Denúncias
+- `/config-rewards`: Configurar recompensas de bump
+- `/set-activetalker-role`: Define o cargo de pessoas com participação ativa no server
+- `/set-event-invite-role`: Define o cargo a convidar para os eventos quando houverem
+- `/set-recommendation-level`: Define o level mínimo necessário para recomendar membros
+- `/set-stage-event-channel`: Define o canal de Stage dos eventos
+- `/set-voice-event-channel`: Define o canal de Voz dos eventos
+- `/togglerolerewards`: Habilitar/Desabilitar módulo de cargos
+- `/role add-level-reward`: Configura um novo cargo de level
+- `/role remove-level-reward`: Remove configuração de um cargo de level
+- `/purge`: Remover uma certa quantidade de mensagens de um canal
+- `/lock-server`: Impede que novos membros entrem no servidor
+- `/unlock-server`: Rehabilita a entrada de novos membros no servidor 
+- `/disable-kick-new-accounts`: Reabilitar entrada de contas novas (15 dias)
+- `/kick-new-accounts`: Reabilitar entrada de contas novas (15 dias)
+- `/ban`: Bane um membro
+- `/kick`: Expulsa um membro
+- `/massban`: Banir em massa
+- `/masskick`: Expulsar em massa
+- `/enable-audio-xp`: Habilitar XP de Audio
+- `/disable-audio-xp`: Desabilitar XP de Audio
+- `/enable-mention-xp`: Habilitar XP de menção de membros <@&{cfg?.ActiveTalkerRole ?? 0}>
+- `/disable-mention-xp`: Desabilitar XP de menção de membros <@&{cfg?.ActiveTalkerRole ?? 0}>
+- `/xp add`: Adicionar XP a um usuario
+- `/xp remove`: Remover XP de um usuario
+- `/xp set`: Definir a quantidade de XP de um usuario
 - `/macro`: Criar macros através do comando
 - `/listar-macros`: Listar macros
 - `/editar-macro`: Editar macros 
 - `/excluir-macro`: Excluir macro
-- `/massban`: Banir em massa
-- `/masskick`: Expulsar em massa
 - `/importlevelinfo`: Importar levels de outro bot (Lurkr)
-- `/togglerolerewards`: Habilitar módulo de cargos
 - `/importar-historico-mensagens`: Importar histórico de mensagens
-- `/purge`: Remover uma certa quantidade de mensagens de um canal
 - `/usuarios-inativos`: Extrair lista de usuarios por atividade no servidor
+
+
+### Comandos de mensagem (Menu de Mensagem > Apps)
+- Denunciar: Denuncia a mensagem no canal de denúncias configurado
+- Blacklist: Adicionar o que foi dito na mensagem em blacklis para ser apagado sempre que aparecer (funciona com GIFs do tenor)
+- Criar Evento de Voz: Lê o conteúdo da mensagem no canal de eventos e cria um evento no Discord com a data e a hora do evento extraídos da mensagem.
+- Criar Evento Palco: Lê o conteúdo da mensagem no canal de eventos e cria um evento DE PALCO no Discord com a data e a hora do evento extraídos da mensagem.
 ");
                     break;
 
