@@ -681,7 +681,7 @@ namespace DiscordBot.Services
                 if ((arg.Content.Count(a => a == '\n') > 15 && mensagensUltimos10Segundos.Count() > 1) || mensagensUltimos10Segundos.SelectMany(a => (a.Content ?? "").Split("\n")).Count() > 30)
                 {
                     var member = await _db.members.Find(a => a.GuildId == arg.GetGuildId() && a.MemberId == arg.Author.Id).FirstOrDefaultAsync();
-                    if (member.Level >= 10)
+                    if (member.Level >= 10 || member.MessageCount >= 40)
                         return;
 
                     await user.SetTimeOutAsync(TimeSpan.FromHours(8));
