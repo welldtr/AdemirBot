@@ -786,7 +786,7 @@ namespace DiscordBot.Services
 
         private async Task<bool> CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
         {
-            if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(15))
+            if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(10))
             {
                 await user.KickAsync("Conta nova. Expulso.");
                 return true;
