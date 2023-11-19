@@ -37,12 +37,15 @@ namespace DiscordBot.Modules
             }
 
             await DeferAsync();
+            
             var imageResult = await openAI.Image.CreateImage(new ImageCreateRequest
             {
                 Prompt = comando!,
-                N = 1,
-                Size = StaticValues.ImageStatics.Size.Size512,
+                Model = Models.Dall_e_3,
+                N = 1,                
+                Size = StaticValues.ImageStatics.Size.Size1024,
                 ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Url,
+                
             });
 
             var attachments = new List<FileAttachment>();
