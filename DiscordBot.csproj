@@ -28,7 +28,7 @@
     <PackageReference Include="MongoDB.Driver" Version="2.21.0" />
     <PackageReference Include="OpenAI.Gpt3" Version="1.0.3" />
     <PackageReference Include="OpusDotNet.opus.win-x64" Version="1.3.1" />
-    <PackageReference Include="SkiaSharp" Version="2.88.3" />
+    <PackageReference Include="SkiaSharp" Version="2.88.6" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
     <PackageReference Include="SpotifyExplode" Version="1.0.7" />
     <PackageReference Include="YoutubeExplode" Version="6.3.1" />

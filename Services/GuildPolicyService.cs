@@ -7,6 +7,7 @@ using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using SkiaSharp;
 using System.Diagnostics;
+using static MongoDB.Bson.Serialization.Serializers.SerializerHelper;
 
 namespace DiscordBot.Services
 {
@@ -708,6 +709,11 @@ namespace DiscordBot.Services
                 var mensagensUltimos5Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-3));
                 if (mensagensUltimos5Segundos.Count() > 15)
                 {
+                    var member = await _db.members.Find(a => a.GuildId == arg.GetGuildId() && a.MemberId == arg.Author.Id).FirstOrDefaultAsync();
+
+                    if (member.Level >= 10 || member.MessageCount >= 40)
+                        return;
+
                     var delecoes = mensagensUltimos10Segundos
                         .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
                         .ToArray();
