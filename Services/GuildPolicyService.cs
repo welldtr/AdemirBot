@@ -7,7 +7,6 @@ using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using SkiaSharp;
 using System.Diagnostics;
-using static MongoDB.Bson.Serialization.Serializers.SerializerHelper;
 
 namespace DiscordBot.Services
 {
