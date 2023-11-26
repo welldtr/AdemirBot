@@ -259,8 +259,8 @@ namespace DiscordBot.Services
 
                 if(guild.Id == 1055161583841595412)
                 {
-                    gptModel = Models.Gpt_4_32k;
-                    gptTokenLimit = 32000;
+                    gptModel = Models.Gpt_4_1106_preview;
+                    gptTokenLimit = 128000;
                 }
 
                 while (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(string.Join("\n", msgs.Select(a => a.Content))) >= gptTokenLimit)
