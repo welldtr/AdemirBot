@@ -251,7 +251,14 @@ namespace DiscordBot.Services
                     new ChatMessage("system", $"Hoje é dia {DateTime.Now:dd/MM/yyyy} e são exatamente {DateTime.Now:HH:mm}. Fale utilizando esse contexto temporal, porém naturalmente."),
                 };
 
-                msgs.InsertRange(0, trainingArray);
+                if (ademirConfig.TrainingMessages == null)
+                {
+                    msgs.InsertRange(0, trainingArray);
+                }
+                else
+                {
+                    msgs.InsertRange(0, ademirConfig.TrainingMessages);
+                }
 
                 List<ChatMessage> windowedTokens = new List<ChatMessage>();
                 var gptModel = adminOuBooster ? ademirConfig.HighestGptClass : Models.Gpt_3_5_Turbo;
@@ -259,7 +266,7 @@ namespace DiscordBot.Services
 
                 if(guild.Id == 1055161583841595412)
                 {
-                    gptModel = Models.Gpt_4_32k;
+                    gptModel = Models.Gpt_4;
                     gptTokenLimit = 32000;
                 }
 

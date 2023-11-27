@@ -3,6 +3,7 @@ using DiscordBot.Domain.ValueObjects;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Options;
+using OpenAI.ObjectModels.RequestModels;
 using SkiaSharp;
 
 namespace DiscordBot.Domain.Entities
@@ -38,5 +39,6 @@ namespace DiscordBot.Domain.Entities
         public ulong EventStageChannelId { get; set; }
         public long MinRecommendationLevel { get; set; }
         public bool KickNewAccounts { get; set; }
+        public ChatMessage[] TrainingMessages { get; internal set; }
     }
 }
