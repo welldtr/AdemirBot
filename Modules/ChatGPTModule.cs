@@ -30,7 +30,7 @@ namespace DiscordBot.Modules
         {
             var guild = ((SocketTextChannel)Context.Channel).Guild;
             var me = guild.Users.First(a => a.Id == Context.User.Id);
-            if (guild.Id != 1055161583841595412 && !(Context.Guild.IsPremium() && me.PremiumSince.HasValue))
+            if (guild.Id != 1055161583841595412)
             {
                 await RespondAsync($"Funcionalidade premium. Booste o servidor {guild.Name} para usar.", ephemeral: true);
                 return;
