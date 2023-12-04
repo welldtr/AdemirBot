@@ -145,14 +145,7 @@ namespace DiscordBot.Utils
                 var nome = await message.GetGPTAuthorNameAsync();
 
                 var content = await message.GetMessageContentWithAttachments();
-
-                if (message.Type == MessageType.Default)
-                {
-                    if (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(content) < 4000)
-                        msgs.Insert(0, new ChatMessage(autor, content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
-                    else
-                        msgs.Insert(0, new ChatMessage("system", "O usuário mandou uma mensagem maior que 4000 tokens."));
-                }
+                msgs.Insert(0, new ChatMessage(autor, content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
             }
         }
 
