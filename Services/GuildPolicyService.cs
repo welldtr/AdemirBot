@@ -684,7 +684,7 @@ namespace DiscordBot.Services
                     if (member.Level >= 10 || member.MessageCount >= 40)
                         return;
 
-                    await user.SetTimeOutAsync(TimeSpan.FromHours(8));
+                    await user.SetTimeOutAsync(TimeSpan.FromDays(7));
                     await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
                     var delecoes = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id)
                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
@@ -695,7 +695,7 @@ namespace DiscordBot.Services
 
                 if (joinedJustNow && (arg.Content.Count(a => a == '\n') > 4 || arg.Content.Length > 800))
                 {
-                    await user.SetTimeOutAsync(TimeSpan.FromHours(8)); 
+                    await user.SetTimeOutAsync(TimeSpan.FromDays(7));
                     await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
                     
                     var delecoes = mensagensUltimos10Segundos
