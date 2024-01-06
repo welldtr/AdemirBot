@@ -265,7 +265,7 @@ namespace DiscordBot.Services
                 }
 
                 List<ChatMessage> windowedTokens = new List<ChatMessage>();
-                var gptModel = adminOuBooster ? ademirConfig.HighestGptClass : Models.Gpt_3_5_Turbo;
+                var gptModel = Models.Gpt_3_5_Turbo;
                 var gptTokenLimit = gptModel == Models.Gpt_4 ? 8000 : 4000;
 
                 if(guild.Id == 1055161583841595412)
@@ -302,7 +302,7 @@ namespace DiscordBot.Services
                         var resposta = choice.Message.Content;
                         try
                         {
-                            var mm = await channel.Responder($"{resposta}", msgRefer);
+                            var mm = await channel.Responder($"{resposta}".PadRight(1), msgRefer);
                             var fn = choice.Message.FunctionCall;
                             if (fn != null)
                             {
