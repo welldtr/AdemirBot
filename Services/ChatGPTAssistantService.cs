@@ -12,6 +12,7 @@ using OpenAI.Builders;
 using OpenAI.ObjectModels.SharedModels;
 using Amazon.Runtime.Internal.Endpoints.StandardLibrary;
 using System.Buffers.Text;
+using System;
 
 namespace DiscordBot.Services
 {
@@ -310,7 +311,7 @@ namespace DiscordBot.Services
                                 Console.WriteLine($"Function call:  {fn.Name}");
                                 foreach (var entry in fn.ParseArguments())
                                 {
-                                    var attachments = await ProcessDall_eCommand(entry.ToString());
+                                    var attachments = await ProcessDall_eCommand(entry.ToString(), guild.Id);
                                     await mm.ModifyAsync(m => {
                                         m.Attachments = attachments;
                                         m.Content = " ";
@@ -362,10 +363,18 @@ namespace DiscordBot.Services
             }
         }
 
-        private async Task<List<FileAttachment>> ProcessDall_eCommand(string pedido)
+        private async Task<List<FileAttachment>> ProcessDall_eCommand(string pedido, ulong guildId)
         {
+            var dall_eModel = Models.Dall_e_2;
+
+            if (guildId == 1055161583841595412)
+            {
+                dall_eModel = Models.Dall_e_3;
+            }
+
             var imageResult = await _openAI.Image.CreateImage(new ImageCreateRequest
             {
+                Model = dall_eModel,
                 Prompt = pedido!,
                 N = 1,
                 Size = StaticValues.ImageStatics.Size.Size512,
