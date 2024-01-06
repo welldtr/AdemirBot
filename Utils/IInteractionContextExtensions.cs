@@ -127,9 +127,23 @@ namespace DiscordBot.Utils
 
         public static async Task<string> GetMessageContentWithAttachments(this IMessage msg)
         {
-            var attachmentContent = (msg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(msg.Attachments.FirstOrDefault(a => a.Size < 4096)?.Url);
-            var content = (msg.Content + attachmentContent);
-            return content;
+            var urlAnexoSemImagem = msg.Attachments.FirstOrDefault(a => !a.ContentType.Contains("image"))?.Url;
+            var temImagem = msg.Attachments.Any(a => a.ContentType.Contains("image"));
+
+            if (string.IsNullOrEmpty(urlAnexoSemImagem))
+            {
+                if (temImagem)
+                    return "(imagem)";
+                else
+                    return default;
+            }
+            else
+            {
+                var conteudoAnexo = await new HttpClient().GetStringAsync(urlAnexoSemImagem);
+                var attachmentContent = conteudoAnexo;
+                var content = (msg.Content + attachmentContent);
+                return content;
+            }
         }
 
         public static async Task GetRepliedMessages(this DiscordShardedClient _client, ITextChannel channel, IMessage message, List<ChatMessage> msgs)
