@@ -11,6 +11,7 @@ using DiscordBot.Domain.Entities;
 using OpenAI.Builders;
 using OpenAI.ObjectModels.SharedModels;
 using Amazon.Runtime.Internal.Endpoints.StandardLibrary;
+using System.Buffers.Text;
 
 namespace DiscordBot.Services
 {
@@ -300,9 +301,9 @@ namespace DiscordBot.Services
                     foreach (var choice in completionResult.Choices)
                     {
                         var resposta = choice.Message.Content;
+                        var mm = await channel.Responder($"{resposta ?? "__(gerando uma imagem)__"}", msgRefer);
                         try
                         {
-                            var mm = await channel.Responder($"{resposta}".PadRight(1), msgRefer);
                             var fn = choice.Message.FunctionCall;
                             if (fn != null)
                             {
@@ -310,7 +311,10 @@ namespace DiscordBot.Services
                                 foreach (var entry in fn.ParseArguments())
                                 {
                                     var attachments = await ProcessDall_eCommand(entry.ToString());
-                                    await mm.ModifyAsync(m => m.Attachments = attachments);
+                                    await mm.ModifyAsync(m => {
+                                        m.Attachments = attachments;
+                                        m.Content = " ";
+                                    });
                                 }
                             }
 
@@ -365,14 +369,17 @@ namespace DiscordBot.Services
                 Prompt = pedido!,
                 N = 1,
                 Size = StaticValues.ImageStatics.Size.Size512,
-                ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Url,
+                ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Base64,
             });
 
             var attachments = new List<FileAttachment>();
             if (imageResult.Successful)
             {
                 foreach (var img in imageResult.Results)
-                    attachments.Add(new FileAttachment(img.Url));
+                {
+                    var ms = new MemoryStream(Convert.FromBase64String(img.B64));
+                    attachments.Add(new FileAttachment(ms, "imagem.png"));
+                }
             }
             return attachments;
         }
