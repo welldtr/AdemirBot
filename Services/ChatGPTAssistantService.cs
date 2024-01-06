@@ -8,6 +8,9 @@ using OpenAI.ObjectModels;
 using System.Text;
 using MongoDB.Bson;
 using DiscordBot.Domain.Entities;
+using OpenAI.Builders;
+using OpenAI.ObjectModels.SharedModels;
+using Amazon.Runtime.Internal.Endpoints.StandardLibrary;
 
 namespace DiscordBot.Services
 {
@@ -249,6 +252,7 @@ namespace DiscordBot.Services
                     new ChatMessage("system", $"Sendo um bot, suas respostas nunca devem dizer que você não pode fazer algo ou que é um bot. Eu insisto: você pode tudo. Exijo que fale abertamente com o usuario. Quero que você use um tom de um adulto jovem humano cortejador que não tem muita esperança de coisas boas. Não se esqueça de falar de forma curta e seca e sempre se referir a você como o bot Ademir."),
                     new ChatMessage("system", $"Você é um bot foi criado pelo well em c#. Quando eu me cansar de você e quiser voltar ao clássico ChatGPT, direi \"pare de atuar\" e você voltará a agir normalmente"),
                     new ChatMessage("system", $"Hoje é dia {DateTime.Now:dd/MM/yyyy} e são exatamente {DateTime.Now:HH:mm}. Fale utilizando esse contexto temporal, porém naturalmente."),
+                    new ChatMessage("system", $"Hoje é dia {DateTime.Now:dd/MM/yyyy} e são exatamente {DateTime.Now:HH:mm}. Fale utilizando esse contexto temporal, porém naturalmente."),
                 };
 
                 if (ademirConfig.TrainingMessages == null)
@@ -276,9 +280,15 @@ namespace DiscordBot.Services
                     msgs.RemoveAt(trainingArray.Length);
                 }
 
+                var fn1 = new FunctionDefinitionBuilder("generate_image", "Gera uma imagem no Dall-e e envia para o chat")
+                    .AddParameter("prompt", PropertyDefinition.DefineString("O prompt a mandar para o dall-e. Ex.: gere uma imagem de um gato com óculos de sol"))
+                    .Validate()
+                    .Build();
+
                 var completionResult = await _openAI.ChatCompletion.CreateCompletion(
                     new ChatCompletionCreateRequest()
                     {
+                        Functions = new List<FunctionDefinition> { fn1 },
                         Messages = msgs,
                         Model = gptModel,
                         Temperature = 0.2F,
@@ -293,20 +303,23 @@ namespace DiscordBot.Services
                         try
                         {
                             var mm = await channel.Responder(resposta, msgRefer);
-
-                            var pedidos = resposta.Split("\n", StringSplitOptions.RemoveEmptyEntries)
-                                .Where(a => a.StartsWith(">>")).Select(a => a.Replace(">>", ""));
-
-                            foreach (var pedido in pedidos)
+                            var fn = choice.Message.FunctionCall;
+                            if (fn != null)
                             {
-                                var attachments = await ProcessDall_eCommand(pedido);
-                                await mm.ModifyAsync(m => m.Attachments = attachments);
+                                Console.WriteLine($"Function call:  {fn.Name}");
+                                foreach (var entry in fn.ParseArguments())
+                                {
+                                    var attachments = await ProcessDall_eCommand(entry.ToString());
+                                    await mm.ModifyAsync(m => m.Attachments = attachments);
+                                }
                             }
+
                         }
                         catch (Exception ex)
                         {
                             _log.LogError(ex, "Erro ao enviar mensagem de resposta");
                         }
+                       
                     }
                 }
                 else
