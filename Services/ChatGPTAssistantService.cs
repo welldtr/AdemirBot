@@ -302,7 +302,7 @@ namespace DiscordBot.Services
                         var resposta = choice.Message.Content;
                         try
                         {
-                            var mm = await channel.Responder(resposta, msgRefer);
+                            var mm = await channel.Responder($"{resposta}", msgRefer);
                             var fn = choice.Message.FunctionCall;
                             if (fn != null)
                             {
