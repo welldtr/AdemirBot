@@ -127,7 +127,7 @@ namespace DiscordBot.Utils
 
         public static async Task<string> GetMessageContentWithAttachments(this IMessage msg)
         {
-            var attachmentContent = (msg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(msg.Attachments.First(a => a.Size < 4096).Url);
+            var attachmentContent = (msg.Attachments.Count == 0) ? "" : await new HttpClient().GetStringAsync(msg.Attachments.FirstOrDefault(a => a.Size < 4096)?.Url);
             var content = (msg.Content + attachmentContent);
             return content;
         }
