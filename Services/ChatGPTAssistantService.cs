@@ -302,7 +302,7 @@ namespace DiscordBot.Services
                     foreach (var choice in completionResult.Choices)
                     {
                         var resposta = choice.Message.Content;
-                        var mm = await channel.Responder($"{resposta ?? "__(gerando uma imagem)__"}", msgRefer);
+                        var mm = await channel.Responder($"{resposta ?? "__(imagem)__"}", msgRefer);
                         try
                         {
                             var fn = choice.Message.FunctionCall;
@@ -312,9 +312,8 @@ namespace DiscordBot.Services
                                 foreach (var entry in fn.ParseArguments())
                                 {
                                     var attachments = await ProcessDall_eCommand(entry.ToString(), guild.Id);
-                                    await mm.ModifyAsync(m => {
-                                        m.Attachments = attachments;
-                                        m.Content = " ";
+                                    await mm.ModifyAsync(ma => {
+                                        ma.Attachments = attachments;
                                     });
                                 }
                             }
@@ -366,10 +365,12 @@ namespace DiscordBot.Services
         private async Task<List<FileAttachment>> ProcessDall_eCommand(string pedido, ulong guildId)
         {
             var dall_eModel = Models.Dall_e_2;
+            var imgSize = StaticValues.ImageStatics.Size.Size512;
 
             if (guildId == 1055161583841595412)
             {
                 dall_eModel = Models.Dall_e_3;
+                imgSize = StaticValues.ImageStatics.Size.Size1024;
             }
 
             var imageResult = await _openAI.Image.CreateImage(new ImageCreateRequest
@@ -377,7 +378,7 @@ namespace DiscordBot.Services
                 Model = dall_eModel,
                 Prompt = pedido!,
                 N = 1,
-                Size = StaticValues.ImageStatics.Size.Size512,
+                Size = imgSize,
                 ResponseFormat = StaticValues.ImageStatics.ResponseFormat.Base64,
             });
 

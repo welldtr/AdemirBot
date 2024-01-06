@@ -130,16 +130,13 @@ namespace DiscordBot.Utils
             var urlAnexoSemImagem = msg.Attachments.FirstOrDefault(a => !a.ContentType.Contains("image"))?.Url;
             var temImagem = msg.Attachments.Any(a => a.ContentType.Contains("image"));
 
-            if (string.IsNullOrEmpty(urlAnexoSemImagem))
+            if (string.IsNullOrEmpty(urlAnexoSemImagem) && temImagem)
             {
-                if (temImagem)
-                    return "(imagem)";
-                else
-                    return default;
+                return "(imagem)";
             }
             else
             {
-                var conteudoAnexo = await new HttpClient().GetStringAsync(urlAnexoSemImagem);
+                var conteudoAnexo = string.IsNullOrEmpty(urlAnexoSemImagem) ? "" : await new HttpClient().GetStringAsync(urlAnexoSemImagem);
                 var attachmentContent = conteudoAnexo;
                 var content = (msg.Content + attachmentContent);
                 return content;
@@ -159,7 +156,7 @@ namespace DiscordBot.Utils
                 var nome = await message.GetGPTAuthorNameAsync();
 
                 var content = await message.GetMessageContentWithAttachments();
-                msgs.Insert(0, new ChatMessage(autor, content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
+                msgs.Insert(0, new ChatMessage(autor, content?.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
             }
         }
 
