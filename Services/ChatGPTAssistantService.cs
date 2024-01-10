@@ -290,7 +290,7 @@ namespace DiscordBot.Services
                 var completionResult = await _openAI.ChatCompletion.CreateCompletion(
                     new ChatCompletionCreateRequest()
                     {
-                        Functions = new List<FunctionDefinition> { fn1 },
+                        //Functions = new List<FunctionDefinition> { fn1 },
                         Messages = msgs,
                         Model = gptModel,
                         Temperature = 0.2F,
