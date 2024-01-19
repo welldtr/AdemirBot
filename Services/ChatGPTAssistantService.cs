@@ -187,7 +187,7 @@ namespace DiscordBot.Services
                     gptTokenLimit = qtd > 8000 ? 8192 : 128000;
                 }
 
-                if (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(content) > 4000)
+                if (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(content) > gptTokenLimit)
                     msgs = new List<ChatMessage>() { new ChatMessage("system", "O usuário mandou um conteúdo muito grande acima dos 4000 tokens. Avise-o.") };
 
                 await _client.GetRepliedMessages(channel, m, msgs);
