@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using OpenAI.ObjectModels.RequestModels;
 using System.Text.RegularExpressions;
 using System.Text;
+using OpenAI.ObjectModels;
 
 namespace DiscordBot.Utils
 {
@@ -172,12 +173,20 @@ namespace DiscordBot.Utils
 
                 var content = await m.GetMessageContentWithAttachments();
 
+                var gptTokenLimit = 4000;
+
+                if (guild.Id == 1055161583841595412)
+                {
+                    var qtd = OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(string.Join("\n", msgs.Select(a => a.Content)));
+                    gptTokenLimit = 128000;
+                }
+
                 if (message.Type == MessageType.Default)
                 {
-                    if (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(content) < 4000)
+                    if (OpenAI.Tokenizer.GPT3.TokenizerGpt3.TokenCount(content) < gptTokenLimit)
                         msgs.Insert(0, new ChatMessage(autor, content.Replace($"<@{_client.CurrentUser.Id}>", "Ademir"), nome));
                     else
-                        msgs.Insert(0, new ChatMessage("system", "O usuário mandou uma mensagem maior que 4000 tokens."));
+                        msgs.Insert(0, new ChatMessage("system", $"O usuário mandou uma mensagem maior que {gptTokenLimit} tokens."));
                 }
             }
 
