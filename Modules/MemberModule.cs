@@ -123,7 +123,7 @@ namespace DiscordBot.Modules
             var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
             member.ProtectionWhiteListed = true;
             await db.members.UpsertAsync(member, a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id);
-            await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{Context.User.Username} colocado na whitelist.").WithAuthor(Context.User).Build());
+            await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{usuario.Username} colocado na whitelist.").WithAuthor(Context.User).Build());
         }
 
 
@@ -134,7 +134,7 @@ namespace DiscordBot.Modules
             var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
             member.ProtectionWhiteListed = false;
             await db.members.UpsertAsync(member, a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id);
-            await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{Context.User.Username} retirado da whitelist.").WithAuthor(Context.User).Build());
+            await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{usuario.Username} retirado da whitelist.").WithAuthor(Context.User).Build());
         }
 
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
