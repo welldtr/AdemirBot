@@ -115,6 +115,28 @@ namespace DiscordBot.Modules
             await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{Context.User.Username} excluiu o servidor. Ou quase.").WithAuthor(Context.User).Build());
         }
 
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("whitelist-add-member", "Coloca o usuario em whitelist da protecao de flood", runMode: RunMode.Async)]
+        public async Task WhitelistMember([Summary(description: "Usuario")] IUser usuario)
+        {
+            var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
+            member.ProtectionWhiteListed = true;
+            await db.members.UpsertAsync(member, a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id);
+            await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{Context.User.Username} colocado na whitelist.").WithAuthor(Context.User).Build());
+        }
+
+
+        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
+        [SlashCommand("whitelist-remove-member", "Coloca o usuario em whitelist da protecao de flood", runMode: RunMode.Async)]
+        public async Task WhitelistRemoveMember([Summary(description: "Usuario")] IUser usuario)
+        {
+            var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
+            member.ProtectionWhiteListed = false;
+            await db.members.UpsertAsync(member, a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id);
+            await RespondAsync(" ", embed: new EmbedBuilder().WithColor(Color.Red).WithDescription($"{Context.User.Username} retirado da whitelist.").WithAuthor(Context.User).Build());
+        }
+
         [RequireUserPermission(GuildPermission.UseApplicationCommands)]
         [SlashCommand("recomendar", "Recomenda um membro que te incentivou a ter ficado conosco.", runMode: RunMode.Async)]
         public async Task Recomendar([Summary(description: "Usuario")] IUser usuario)

@@ -36,6 +36,7 @@ namespace DiscordBot.Domain.Entities
         public ulong WelcomeMessageId { get; set; }
         public ulong[] RoleIds { get; set; }
         public bool IsBot { get; set; }
+        public bool ProtectionWhiteListed { get; set; }
 
         internal static Member FromGuildUser(IGuildUser user)
         {

@@ -677,11 +677,11 @@ namespace DiscordBot.Services
                 var joinedJustNow = DateTime.UtcNow - user.JoinedAt.Value < TimeSpan.FromMinutes(60);
 
                 var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
-                    
+
                 if ((arg.Content.Count(a => a == '\n') > 15 && mensagensUltimos10Segundos.Count() > 1) || mensagensUltimos10Segundos.SelectMany(a => (a.Content ?? "").Split("\n")).Count() > 30)
                 {
                     var member = await _db.members.Find(a => a.GuildId == arg.GetGuildId() && a.MemberId == arg.Author.Id).FirstOrDefaultAsync();
-                    if (member.Level >= 10 || member.MessageCount >= 40)
+                    if (member.Level >= 10 || member.MessageCount >= 40 || member.ProtectionWhiteListed)
                         return;
 
                     await user.SetTimeOutAsync(TimeSpan.FromDays(7));
@@ -710,7 +710,7 @@ namespace DiscordBot.Services
                 {
                     var member = await _db.members.Find(a => a.GuildId == arg.GetGuildId() && a.MemberId == arg.Author.Id).FirstOrDefaultAsync();
 
-                    if (member.Level >= 10 || member.MessageCount >= 40)
+                    if (member.Level >= 10 || member.MessageCount >= 40 || member.ProtectionWhiteListed)
                         return;
 
                     var delecoes = mensagensUltimos10Segundos
