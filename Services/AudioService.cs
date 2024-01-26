@@ -682,7 +682,7 @@ Obs.: Os comandos acima só funcionam caso você esteja utilizando o player ou n
                             {
                                 var voiceChannel = ((IVoiceChannel)playback.VoiceChannel);
                                 
-                                await voiceChannel.SetStatusAsync($"▶ {track.Title} - {track.Title}");
+                                await voiceChannel.SetStatusAsync($"▶ {track.Title} - {track.Author}");
                                 await playback.PlayAsync(output, discord);
 
                                 await msg.ModifyAsync(a =>
