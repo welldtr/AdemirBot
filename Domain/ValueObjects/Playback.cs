@@ -187,7 +187,6 @@ namespace DiscordBot.Domain.ValueObjects
             await AudioClient!.SetSpeakingAsync(true);
             var cts = new CancellationTokenSource();
             var token = cts.Token;
-
             EventHandler delegateInterrupt = (s, e) => { cts.Cancel(); };
             Interrupted += delegateInterrupt;
 

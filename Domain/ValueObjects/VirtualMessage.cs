@@ -82,6 +82,11 @@ namespace DiscordBot.Domain.ValueObjects
             throw new NotImplementedException();
         }
 
+        public IAsyncEnumerable<IReadOnlyCollection<IUser>> GetReactionUsersAsync(IEmote emoji, int limit, RequestOptions options = null, ReactionType type = ReactionType.Normal)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task RemoveAllReactionsAsync(RequestOptions options = null)
         {
             throw new NotImplementedException();
