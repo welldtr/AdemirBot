@@ -23,7 +23,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.StopMusic(user, channel);
-                await ((SocketMessageComponent)Context.Interaction)!.UpdateAsync(a =>
+                await ((SocketSlashCommand)Context.Interaction)!.ModifyOriginalResponseAsync(a =>
                 {
                     a.Components = null;
                 });
@@ -38,7 +38,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.SkipMusic(user, channel);
-                await ((SocketMessageComponent)Context.Interaction)!.UpdateAsync(a =>
+                await ((SocketSlashCommand)Context.Interaction)!.ModifyOriginalResponseAsync(a =>
                 {
                     a.Components = null;
                 });
@@ -53,7 +53,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.PauseMusic(user, channel);
-                await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
+                await svc.UpdateControlsForMessage((SocketSlashCommand)Context.Interaction);
             });
         }
 
@@ -64,7 +64,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.BackMusic(user, channel);
-                await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
+                await svc.UpdateControlsForMessage((SocketSlashCommand)Context.Interaction);
             });
             await Context.Interaction.DeferAsync();
         }
@@ -83,7 +83,7 @@ namespace DiscordBot.Modules
         [ComponentInteraction("download-music", false, RunMode.Async)]
         public async Task DownloadMusic()
         {
-            await svc.DownloadAtachment((SocketMessageComponent)Context.Interaction);
+            await svc.DownloadAtachment((SocketSlashCommand)Context.Interaction);
             await Context.Interaction.DeferAsync();
         }
 
@@ -95,7 +95,6 @@ namespace DiscordBot.Modules
             {
                 await svc.PlayMusic(user, channel, busca);
             });
-            await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
         }
 
         [RequireUserCanControlMusicPlayer]
@@ -106,7 +105,7 @@ namespace DiscordBot.Modules
             {
                 await svc.PauseMusic(user, channel);
             });
-            await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
+            await svc.UpdateControlsForMessage((SocketSlashCommand)Context.Interaction);
         }
 
         [RequireUserCanControlMusicPlayer]
@@ -134,7 +133,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.StopMusic(user, channel);
-                await ((SocketMessageComponent)Context.Interaction)!.UpdateAsync(a =>
+                await ((SocketSlashCommand)Context.Interaction)!.ModifyOriginalResponseAsync(a =>
                  {
                      a.Components = null;
                  });
@@ -148,7 +147,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.BackMusic(user, channel, qtd);
-                await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
+                await svc.UpdateControlsForMessage((SocketSlashCommand)Context.Interaction);
             });
         }
 
@@ -159,7 +158,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.SkipMusic(user, channel, qtd);
-                await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
+                await svc.UpdateControlsForMessage((SocketSlashCommand)Context.Interaction);
             });
         }
 
@@ -178,7 +177,7 @@ namespace DiscordBot.Modules
             await Context.EnsureUserCanUseThePlayer(async (user, channel) =>
             {
                 await svc.ReplayMusic(user, channel);
-                await svc.UpdateControlsForMessage((SocketMessageComponent)Context.Interaction);
+                await svc.UpdateControlsForMessage((SocketSlashCommand)Context.Interaction);
             });
         }
 

@@ -601,6 +601,20 @@ Obs.: Os comandos acima só funcionam caso você esteja utilizando o player ou n
             File.Delete(sourceFilename);
             File.Delete(sourceFilename + ".mp3");
         }
+        public async Task DownloadAtachment(SocketSlashCommand arg)
+        {
+            var playback = arg.GetPlayback();
+            var youtubeClient = new YoutubeClient();
+            var video = playback.Tracks[playback.CurrentTrack - 1];
+            await arg.DeferAsync();
+            var sourceFilename = await youtubeClient.ExtractAsync(video, CancellationToken.None);
+            var fileName = video.Title.AsAlphanumeric() + ".mp3";
+            var attachment = await FFmpeg.CreateMp3Attachment(sourceFilename, fileName);
+            await arg.User.SendFileAsync(attachment);
+            await arg.DeleteOriginalResponseAsync();
+            File.Delete(sourceFilename);
+            File.Delete(sourceFilename + ".mp3");
+        }
 
         public async Task PlayMusic(IGuildUser user, ITextChannel channel, string query = null, params Track[] tracks)
         {
@@ -809,6 +823,13 @@ Obs.: Os comandos acima só funcionam caso você esteja utilizando o player ou n
             var playback = arg.GetPlayback();
             var components = GetAudioControls(playback.PlayerState);
             await arg.UpdateAsync(a => a.Components = components);
+        }
+
+        public async Task UpdateControlsForMessage(SocketSlashCommand arg)
+        {
+            var playback = arg.GetPlayback();
+            var components = GetAudioControls(playback.PlayerState);
+            await arg.ModifyOriginalResponseAsync(a => a.Components = components);
         }
     }
 }

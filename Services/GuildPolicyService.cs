@@ -674,6 +674,8 @@ namespace DiscordBot.Services
             {
                 var guild = _client.GetGuild(arg.GetGuildId());
                 var user = guild.GetUser(arg.Author.Id);
+                if (user == null)
+                    return;
                 var joinedJustNow = DateTime.UtcNow - user.JoinedAt.Value < TimeSpan.FromMinutes(60);
 
                 var mensagensUltimos10Segundos = mensagensUltimos5Minutos.Where(a => a.Author.Id == arg.Author.Id && a.Timestamp.UtcDateTime >= DateTime.UtcNow.AddSeconds(-10));
@@ -971,10 +973,10 @@ namespace DiscordBot.Services
                     MessageId = arg.Id,
                     ChannelId = channel.Id,
                     GuildId = channel.Guild.Id,
-                    Content = arg.Content,
+                    Content = arg.Content ?? "",
                     MessageDate = arg.Timestamp.UtcDateTime,
                     UserId = arg.Author?.Id ?? 0,
-                    MessageLength = arg.Content.Length,
+                    MessageLength = arg.Content?.Length ?? 0,
                     Reactions = arg.Reactions.ToDictionary(a => a.Key.ToString()!, b => b.Value.ReactionCount)
                 });
 
@@ -1001,7 +1003,10 @@ namespace DiscordBot.Services
             if (!(arg is SocketUserMessage userMessage) || userMessage.Author == null)
                 return;
 
-            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
+            if (arg.Author!.Id == 0)
+                return;
+
+                var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
             if (member == null)
             {
                 member = Member.FromGuildUser(arg.Author as IGuildUser);

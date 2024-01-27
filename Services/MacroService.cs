@@ -38,6 +38,8 @@ namespace DiscordBot.Services
         {
             var channel = arg.GetTextChannel();
             var user = await arg.GetAuthorGuildUserAsync();
+            if (user == null)
+                return;
             if (user.GuildPermissions.Administrator && arg.Content.StartsWith("%") && arg.Content.Length > 1 && !arg.Content.Contains(' '))
             {
                 var macro = await _db.macros
