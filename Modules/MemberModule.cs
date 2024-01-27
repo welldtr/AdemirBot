@@ -116,9 +116,9 @@ namespace DiscordBot.Modules
         }
 
 
-        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("whitelist-add-member", "Coloca o usuario em whitelist da protecao de flood", runMode: RunMode.Async)]
-        public async Task WhitelistMember([Summary(description: "Usuario")] IUser usuario)
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [UserCommand("Adicionar ao FloodWhitelist")]
+        public async Task WhitelistMember(IUser usuario)
         {
             var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
             member.ProtectionWhiteListed = true;
@@ -127,9 +127,9 @@ namespace DiscordBot.Modules
         }
 
 
-        [RequireUserPermission(GuildPermission.UseApplicationCommands)]
-        [SlashCommand("whitelist-remove-member", "Coloca o usuario em whitelist da protecao de flood", runMode: RunMode.Async)]
-        public async Task WhitelistRemoveMember([Summary(description: "Usuario")] IUser usuario)
+        [RequireUserPermission(GuildPermission.Administrator)]
+        [UserCommand("Remover do FloodWhitelist")]
+        public async Task WhitelistRemoveMember(IUser usuario)
         {
             var member = await db.members.Find(a => a.GuildId == Context.Guild.Id && a.MemberId == usuario.Id).FirstOrDefaultAsync();
             member.ProtectionWhiteListed = false;
