@@ -166,7 +166,7 @@ namespace DiscordBot.Modules
         [SlashCommand("download", "Baixa a música em execução", runMode: RunMode.Async)]
         public async Task Download()
         {
-            await svc.DownloadAtachment((SocketMessageComponent)Context.Interaction);
+            await svc.DownloadAtachment((SocketSlashCommand)Context.Interaction);
             await RespondAsync();
         }
 
