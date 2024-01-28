@@ -27,5 +27,49 @@ namespace DiscordBot.Utils
             await p.WaitForExitAsync();
             return new FileAttachment($"{sourceFile}.mp3", attachmentFileName);
         }
+
+        public static string ConvertOggToMp3(string oggFilePath)
+        {
+            string mp3FilePath = GetTempFilePath(".mp3");
+
+            // Comando para executar o ffmpeg e converter o arquivo OGG para MP3
+            string ffmpegCommand = $"-i \"{oggFilePath}\" \"{mp3FilePath}\"";
+
+            // Executa o comando do ffmpeg
+            ProcessStartInfo processInfo = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                Arguments = ffmpegCommand,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (Process process = new Process())
+            {
+                process.StartInfo = processInfo;
+                process.Start();
+
+                // Aguarda a conclusão do processo
+                process.WaitForExit();
+                
+                if (process.ExitCode == 0)
+                {
+                    return mp3FilePath;
+                }
+                else
+                {
+                    throw new Exception("Erro ao converter o arquivo OGG para MP3.");
+                }
+            }
+        }
+
+        private static string GetTempFilePath(string extension)
+        {
+            string tempFileName = Guid.NewGuid().ToString() + extension;
+            string tempFilePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), tempFileName);
+            return tempFilePath;
+        }
     }
 }

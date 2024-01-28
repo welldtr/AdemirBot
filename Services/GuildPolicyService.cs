@@ -394,9 +394,6 @@ namespace DiscordBot.Services
             {
                 var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
 
-                if (!config.EnableAudioXP)
-                    return;
-
                 var events = await guild.GetEventsAsync();
                 foreach (var voice in guild.VoiceChannels)
                 {
@@ -471,6 +468,9 @@ namespace DiscordBot.Services
 
                             earnedXp *= 4;
                         }
+
+                        if (!config.EnableAudioXP)
+                            return;
 
                         var qtdPessoasEntraramNaMesmaEpoca = connectedMembers.Where(a => (a.DateJoined - member.DateJoined).Duration() <= TimeSpan.FromDays(21)).Count();
                         var outrasPessoas = voice.Users.Count - qtdPessoasEntraramNaMesmaEpoca;
