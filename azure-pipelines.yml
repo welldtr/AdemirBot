@@ -38,7 +38,7 @@ stages:
         sshEndpoint: 'SSH VPS'
         runOptions: 'commands'
         commands: |
-          docker rm -f --volumes ademir 2 > /dev/null
+          docker rm -f --volumes ademir || true
           docker images -f "dangling=true" -q
           docker system prune --force
           docker pull emmanuelpereira/ademir-bot:$(tag)
