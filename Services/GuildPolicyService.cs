@@ -161,9 +161,9 @@ namespace DiscordBot.Services
                     g.SetPremium(guild.Premium);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                _log.LogError("Erro ao atualizar lista de Guild Premium.");
+                _log.LogError(ex, "Erro ao atualizar lista de Guild Premium.");
             }
         }
 

@@ -21,8 +21,15 @@ namespace DiscordBot.Utils
         }
         public static void SetPremium(this IGuild guild,bool premium)
         {
-            if (premiumGuilds[guild.Id] != premium)
-                premiumGuilds[guild.Id] = premium;
+            if (!premiumGuilds.ContainsKey(guild.Id))
+            {
+                premiumGuilds.TryAdd(guild.Id, premium);
+            }
+            else
+            {
+                if (premiumGuilds[guild.Id] != premium)
+                    premiumGuilds[guild.Id] = premium;
+            }
         }
 
         public static async Task<string> GetGPTAuthorNameAsync(this IMessage msg)
