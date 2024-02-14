@@ -14,6 +14,9 @@ namespace DiscordBot.Utils
 
         public static bool IsPremium(this IGuild guild)
         {
+            if (!premiumGuilds.ContainsKey(guild.Id))
+                return false;
+
             return premiumGuilds[guild.Id];
         }
         public static void SetPremium(this IGuild guild,bool premium)

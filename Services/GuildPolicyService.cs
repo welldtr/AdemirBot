@@ -124,7 +124,7 @@ namespace DiscordBot.Services
                 {
                     foreach (var guild in _client.Guilds)
                     {
-                        await SairDeServidoresNaoAutorizados(guild);
+                        // await SairDeServidoresNaoAutorizados(guild);
                         await ProcessMemberProgression(guild);
                         await TrancarThreadAntigasDoAdemir(guild);
                     }
