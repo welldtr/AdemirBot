@@ -797,7 +797,7 @@ namespace DiscordBot.Services
 
         private async Task<bool> CheckIfUserNamePatternIsRaidBotAndBan(SocketGuildUser user)
         {
-            var isRaidBot = user.Username.Matches(@"^[a-z]+_[a-z]{7}[0-9]{4}$");
+            var isRaidBot = user.Username.Matches(@"^[a-z]+_[a-z]{7}[0-9]{4}");
             if (isRaidBot)
             {
                 await user.BanAsync();
