@@ -6,6 +6,8 @@ using DiscordBot.Utils;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using SkiaSharp;
+using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace DiscordBot.Services
@@ -138,6 +140,7 @@ namespace DiscordBot.Services
                     var sw = new Stopwatch();
                     var tasks = _client.Guilds.Select(guild => Task.Run(async () =>
                     {
+                        await AtualizarListaGuildsPremium(guild);
                         await ProcessarXPDeAudio(guild);
                         await AnunciarEventosComecando(guild);
                         await BuscarPadroesBlacklistados(guild);
@@ -146,6 +149,22 @@ namespace DiscordBot.Services
                     await Task.Delay(TimeSpan.FromSeconds(120) - sw.Elapsed);
                 }
             });
+        }
+
+        private async Task AtualizarListaGuildsPremium(SocketGuild g)
+        {
+            try
+            {
+                var guild = await this._db.ademirCfg.Find(a => a.GuildId == g.Id).FirstOrDefaultAsync();
+                if(guild != null)
+                {
+                    g.SetPremium(guild.Premium);
+                }
+            }
+            catch
+            {
+                _log.LogError("Erro ao atualizar lista de Guild Premium.");
+            }
         }
 
         private async Task LoadMembersRoles(SocketGuild guild)

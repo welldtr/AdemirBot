@@ -4,15 +4,22 @@ using OpenAI.ObjectModels.RequestModels;
 using System.Text.RegularExpressions;
 using System.Text;
 using OpenAI.ObjectModels;
+using System.Collections.Concurrent;
 
 namespace DiscordBot.Utils
 {
     public static class IInteractionContextExtensions
     {
+        private static ConcurrentDictionary<ulong, bool> premiumGuilds = new ConcurrentDictionary<ulong, bool>();
+
         public static bool IsPremium(this IGuild guild)
         {
-            var premiumGuilds = Environment.GetEnvironmentVariable("PremiumGuilds")!.Split(',');
-            return premiumGuilds.Contains(guild.Id.ToString());
+            return premiumGuilds[guild.Id];
+        }
+        public static void SetPremium(this IGuild guild,bool premium)
+        {
+            if (premiumGuilds[guild.Id] != premium)
+                premiumGuilds[guild.Id] = premium;
         }
 
         public static async Task<string> GetGPTAuthorNameAsync(this IMessage msg)

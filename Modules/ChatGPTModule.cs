@@ -75,7 +75,7 @@ namespace DiscordBot.Modules
             var me = guild.Users.First(a => a.Id == Context.User.Id);
             if (guild.Id != 1055161583841595412 && !(Context.Guild.IsPremium() && (me.PremiumSince.HasValue || me.GuildPermissions.Administrator)))
             {
-                await RespondAsync($"Funcionalidade premium. Booste o servidor {guild.Name} para usar.", ephemeral: true);
+                await RespondAsync($"Funcionalidade premium. Não disponível para este servidor.", ephemeral: true);
                 return;
             }
 
@@ -113,7 +113,7 @@ namespace DiscordBot.Modules
             var me = guild.Users.First(a => a.Id == Context.User.Id);
             if (guild.Id != 1055161583841595412 && !(Context.Guild.IsPremium() && (me.PremiumSince.HasValue || me.GuildPermissions.Administrator)))
             {
-                await RespondAsync($"Funcionalidade premium. Booste o servidor {guild.Name} para usar.", ephemeral: true);
+                await RespondAsync($"Funcionalidade premium. Não disponível para este servidor.", ephemeral: true);
                 return;
             }
 
