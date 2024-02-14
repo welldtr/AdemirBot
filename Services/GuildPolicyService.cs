@@ -738,6 +738,10 @@ namespace DiscordBot.Services
             {
                 var guild = _client.GetGuild(user.Guild.Id);
                 var rejoin = false;
+
+                if (await CheckIfUserNamePatternIsRaidBotAndBan(user))
+                    return;
+                
                 var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
                 if (member == null)
                 {
@@ -789,6 +793,20 @@ namespace DiscordBot.Services
                 }
             });
             return Task.CompletedTask;
+        }
+
+        private async Task<bool> CheckIfUserNamePatternIsRaidBotAndBan(SocketGuildUser user)
+        {
+            var isRaidBot = user.Username.Matches(@"^[a-z]+_[a-z]{7}[0-9]{4}$");
+            if (isRaidBot)
+            {
+                await user.BanAsync();
+                await user.Guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder()
+                                .WithDescription($"**foi banido do servidor por ser um bot maldito (não me julguem).**")
+                                .WithAuthor(user)
+                                .Build());
+            }
+            return isRaidBot;
         }
 
         private async Task<bool> CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
