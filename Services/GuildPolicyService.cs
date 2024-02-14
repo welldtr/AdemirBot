@@ -247,7 +247,7 @@ namespace DiscordBot.Services
         private async Task SairDeServidoresNaoAutorizados(SocketGuild guild)
         {
             var config = await _db.ademirCfg.FindOneAsync(a => a.GuildId == guild.Id);
-            if (config == null || !config.Premium)
+            if (config == null)
                 await guild.LeaveAsync();
         }
 
