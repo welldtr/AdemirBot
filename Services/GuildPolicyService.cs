@@ -800,11 +800,7 @@ namespace DiscordBot.Services
             var isRaidBot = user.Username.Matches(@"^[a-z]+_[a-z]{7}[0-9]{4}");
             if (isRaidBot)
             {
-                await user.BanAsync();
-                await user.Guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder()
-                                .WithDescription($"**foi banido do servidor por ser um bot maldito (não me julguem).**")
-                                .WithAuthor(user)
-                                .Build());
+                await user.BanAsync(reason: "Padrão de Username de Bot");
             }
             return isRaidBot;
         }
