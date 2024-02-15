@@ -8,9 +8,9 @@ namespace DiscordBot.Utils
     {
         public static string[] FemaleNames;
 
-        static DataSetUtils()
+        public static async Task InitDatasets()
         {
-            Task.Run(() => DownloadWomanNamesDataset());
+            await DownloadWomanNamesDataset();
         }
 
         private static async Task DownloadWomanNamesDataset()
@@ -18,7 +18,7 @@ namespace DiscordBot.Utils
             using (var httpClient = new HttpClient())
             {
                 var femaleNames = await httpClient.GetStringAsync("https://www.cs.cmu.edu/Groups/AI/areas/nlp/corpora/names/female.txt");
-                FemaleNames = femaleNames.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).OrderBy(a => a.Length).ToArray();
+                FemaleNames = femaleNames.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).OrderByDescending(a => a.Length).ToArray();
             }
         }
     }
