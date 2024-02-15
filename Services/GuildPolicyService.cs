@@ -816,6 +816,16 @@ namespace DiscordBot.Services
 
         private async Task<bool> CheckIfUserNamePatternIsRaidBotAndBan(SocketGuildUser user)
         {
+            var nomeInicial = DataSetUtils.FemaleNames.FirstOrDefault(a => user.Username.StartsWith(a.ToLower()));
+            if (nomeInicial != null)
+            {
+                var avatarUrl = _client.GetUser(user.Id).GetAvatarUrl();
+                if (avatarUrl == null && user.Username.Matches(nomeInicial+@"[a-z]{6}"))
+                {
+                    await user.BanAsync(reason: "Padrão de Username de Bot");
+                }
+            }
+
             var isRaidBot = user.Username.Matches(@"^[a-z]+_[a-z]{7}[0-9]{4}");
             if (isRaidBot)
             {
