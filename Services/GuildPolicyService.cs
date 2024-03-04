@@ -156,7 +156,7 @@ namespace DiscordBot.Services
             try
             {
                 var guild = await this._db.ademirCfg.Find(a => a.GuildId == g.Id).FirstOrDefaultAsync();
-                if(guild != null)
+                if (guild != null)
                 {
                     g.SetPremium(guild.Premium);
                 }
@@ -718,7 +718,7 @@ namespace DiscordBot.Services
                 {
                     await user.SetTimeOutAsync(TimeSpan.FromDays(7));
                     await guild.SystemChannel.SendMessageAsync(" ", embed: new EmbedBuilder().WithDescription("Foi pego floodando. Mutado.").WithAuthor(arg.Author).Build());
-                    
+
                     var delecoes = mensagensUltimos10Segundos
                        .Select(async (msg) => await arg.Channel.DeleteMessageAsync(msg.Id, new RequestOptions { AuditLogReason = "Flood" }))
                        .ToArray();
@@ -760,7 +760,7 @@ namespace DiscordBot.Services
 
                 if (await CheckIfUserNamePatternIsRaidBotAndBan(user))
                     return;
-                
+
                 var member = await _db.members.FindOneAsync(a => a.MemberId == user.Id && a.GuildId == user.Guild.Id);
                 if (member == null)
                 {
@@ -816,11 +816,17 @@ namespace DiscordBot.Services
 
         private async Task<bool> CheckIfUserNamePatternIsRaidBotAndBan(SocketGuildUser user)
         {
+            var avatarUrl = _client.GetUser(user.Id).GetAvatarUrl();
+            if (avatarUrl == null)
+            {
+                await user.BanAsync(reason: "Usuário não tem imagem de perfil.");
+                return true;
+            }
+
             var nomeInicial = DataSetUtils.FemaleNames.FirstOrDefault(a => user.Username.StartsWith(a.ToLower()))?.ToLower();
             if (nomeInicial != null)
             {
-                var avatarUrl = _client.GetUser(user.Id).GetAvatarUrl();
-                if (avatarUrl == null && user.Username.Matches(nomeInicial+@"[a-z]{6}"))
+                if (user.Username.Matches(nomeInicial + @"[a-z]{6}"))
                 {
                     await user.BanAsync(reason: "Padrão de Username de Bot");
                 }
@@ -836,7 +842,7 @@ namespace DiscordBot.Services
 
         private async Task<bool> CheckIfNewAccountAndKickEm(AdemirConfig config, SocketGuildUser user)
         {
-            if(config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(10))
+            if (config.KickNewAccounts && DateTime.UtcNow - user.CreatedAt < TimeSpan.FromDays(10))
             {
                 await user.KickAsync("Conta nova. Expulso.");
                 return true;
@@ -1049,7 +1055,7 @@ namespace DiscordBot.Services
             if (arg.Author!.Id == 0)
                 return;
 
-                var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
+            var member = await _db.members.FindOneAsync(a => a.MemberId == arg.Author!.Id && a.GuildId == arg.GetGuildId());
             if (member == null)
             {
                 member = Member.FromGuildUser(arg.Author as IGuildUser);
