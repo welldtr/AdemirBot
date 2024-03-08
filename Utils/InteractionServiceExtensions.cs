@@ -32,7 +32,7 @@ namespace DiscordBot.Utils
                     initialized = true;
 
                     var paginationService = provider.GetRequiredService<PaginationService>();
-                    await client.BulkOverwriteGlobalApplicationCommandsAsync(new ApplicationCommandProperties[] { });
+                   // await client.BulkOverwriteGlobalApplicationCommandsAsync(new ApplicationCommandProperties[] { });
                     var _interactionService = new InteractionService(client.Rest);
 
                     await shard.SetGameAsync($"tudo e todos [{client.ShardId}]", type: ActivityType.Listening);
