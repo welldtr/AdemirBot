@@ -63,6 +63,7 @@ namespace DiscordBot
         public async Task MainAsync(string[] args)
         {
             DotEnv.Load();
+            await DataSetUtils.InitDatasets();
             CreateProvider();
             var builder = WebApplication.CreateBuilder(args);
             var app = builder.Build();

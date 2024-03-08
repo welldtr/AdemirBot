@@ -57,6 +57,7 @@ namespace DiscordBot.Utils
         {
             return (span - TimeSpan.FromMinutes(minutes)).Duration() < TimeSpan.FromMinutes(spaceInMinutes);
         }
+
         public static string FormatRushTime(this TimeSpan span)
         {
             if (span.Days != 0)
